@@ -1,0 +1,56 @@
+<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+  <select id="so-flt" onchange="loadSOData()" style="padding:5px 10px;border:0.5px solid #ccc;border-radius:6px;font-size:12px">
+    <option value="all">Semua SO</option>
+    <option value="open">Open (belum 100%)</option>
+    <option value="done">Done (100%)</option>
+    <option value="overdue">Overdue</option>
+  </select>
+  <button class="btn btn-sm" onclick="loadSOData()"><i class="ti ti-refresh"></i> Refresh</button>
+  <span id="so-stat" style="margin-left:auto;font-size:11px;color:#666"></span>
+</div>
+<div id="so-data"><div class="loading">Loading...</div></div>
+
+<script>
+function loadSOData(){
+  document.getElementById('so-data').innerHTML='<div class="loading">Loading...</div>';
+  google.script.run.withSuccessHandler(function(sos){
+    var f=document.getElementById('so-flt').value;
+    sos=(sos||[]).filter(function(s){return s.SO_No&&String(s.SO_No).trim()!==''&&String(s.SO_No).trim()!=='-'});
+    var today=new Date();
+    var done=0,open=0,overdue=0;
+    var rows=sos.map(function(so){
+      var soQ=parseFloat(so['SO Q']||so.SO_Q||0);
+      var dQ=parseFloat(so['Delv Q']||so.Delv_Q||0);
+      var spkQ=parseFloat(so['SPK_Q']||so['PLAN Q']||0);
+      var pct=soQ>0?Math.round(dQ/soQ*100):0;
+      var sched=so['SCHEDUL E DATE']||so.Schedule_Date||so.SCHEDULE_DATE;
+      var schedDate=sched?new Date(sched):null;
+      var isOverdue=schedDate&&schedDate<today&&pct<100;
+      if(pct>=100)done++;else open++;
+      if(isOverdue)overdue++;
+      return {so:so,pct:pct,soQ:soQ,dQ:dQ,spkQ:spkQ,sched:sched,overdue:isOverdue};
+    });
+    document.getElementById('so-stat').textContent=sos.length+' total · '+done+' done · '+open+' open · '+overdue+' overdue';
+    var filtered=rows.filter(function(r){
+      if(f==='open')return r.pct<100;
+      if(f==='done')return r.pct>=100;
+      if(f==='overdue')return r.overdue;
+      return true;
+    });
+    if(filtered.length===0){document.getElementById('so-data').innerHTML='<div class="loading">Tidak ada data</div>';return;}
+    var html='<table class="tbl"><tr><th>SO No.</th><th>Cust</th><th>Item</th><th>SO Qty</th><th>SPK</th><th>Delv</th><th>Progress</th><th>Sched</th><th>Status</th></tr>';
+    filtered.forEach(function(r){
+      var so=r.so;
+      var st=r.pct>=100?'Selesai':r.overdue?'Overdue':r.pct>0?'Proses':'Belum';
+      var bdg=r.pct>=100?'bdg-s':r.overdue?'bdg-q':r.pct>0?'bdg-p':'bdg-q';
+      var color=r.pct>=100?'#1D9E75':r.overdue?'#E24B4A':'#185FA5';
+      html+='<tr><td class="tbl-no">'+(so.SO_No||'-')+'</td><td>'+(so.Cust||'-')+'</td><td style="font-size:11px">'+(so.Description||'-')+'</td><td>'+r.soQ+' lbr</td><td>'+r.spkQ+'</td><td>'+r.dQ+'</td><td><div style="display:flex;align-items:center;gap:6px"><div style="flex:1;height:6px;background:#e0e0e0;border-radius:3px;overflow:hidden"><div style="height:100%;width:'+Math.min(100,r.pct)+'%;background:'+color+'"></div></div><span style="font-size:11px;color:#666;min-width:35px">'+r.pct+'%</span></div></td><td style="font-size:11px">'+(r.sched?new Date(r.sched).toLocaleDateString('id-ID'):'-')+'</td><td><span class="bdg '+bdg+'">'+st+'</span></td></tr>';
+    });
+    html+='</table>';
+    document.getElementById('so-data').innerHTML=html;
+  }).withFailureHandler(function(e){
+    document.getElementById('so-data').innerHTML='<div class="loading" style="color:#A32D2D">Error: '+e.message+'</div>';
+  }).getSheetData('SO');
+}
+loadSOData();
+</script>

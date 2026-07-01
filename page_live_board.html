@@ -1,0 +1,1107 @@
+<style>
+/* ============================================================== */
+/* CSS: LIVE SPK BOARD - PURE STICKY (anti-bocor di iframe GAS)   */
+/* ============================================================== */
+* { 
+  box-sizing: border-box; 
+  font-family: 'Segoe UI', Arial, sans-serif; 
+  margin: 0; 
+  padding: 0; 
+}
+
+/* ⭐ JANGAN sentuh body — itu body parent app */
+html, body { 
+  background: #f1f5f9; 
+  color: #334155;
+}
+
+/* ============================================================== */
+/* ⭐ FROZEN TOP — fixed, offset dari topbar & sidebar parent      */
+/* ============================================================== */
+.frozen-top {
+  position: fixed;
+  top: var(--topbar-h, 40px);            /* di bawah topbar COS */
+  left: 5%;
+  right: 0;
+  z-index: 300;                          /* di bawah topbar (yg biasanya 1000+) */
+  background: #f1f5f9;
+  padding: 8px 15px 0 15px;
+  box-shadow: 0 4px 6px -2px rgba(0,0,0,0.06);
+}
+
+/* ============================================================== */
+/* HEADER RAMPING (KPI Cards Menyatu)                              */
+/* ============================================================== */
+.header-box { 
+  background: #ffffff; 
+  padding: 8px 20px; 
+  border-radius: 8px; 
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+  display: flex; 
+  align-items: center; 
+  gap: 15px; 
+  margin-bottom: 10px; 
+  border-left: 5px solid #1d4ed8; 
+}
+
+.header-title { font-size: 19px; font-weight: 800; color: #1e293b; letter-spacing: 0.5px; flex: 0 0 auto; }
+
+.header-kpi-group {
+  flex: 1; 
+  display: flex;
+  justify-content: flex-start; 
+  gap: 12px;
+  align-items: center;
+  margin-left: 20px; 
+}
+
+.kpi-mini-card {
+  background: #ffffff;
+  padding: 6px 12px; 
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-left: 3px solid #cbd5e1;
+  white-space: nowrap;
+  width: 145px; 
+  cursor: pointer; transition: all 0.2s ease-in-out;
+}
+.kpi-mini-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+.kpi-mini-card.dimmed { background: #f8fafc; border-color: #cbd5e1; opacity: 0.5; filter: grayscale(100%); }
+
+.kpi-mini-card.active { border-color: #3b82f6; background: #eff6ff; }
+.kpi-mini-card.queue { border-color: #f59e0b; background: #fffbeb; }
+.kpi-mini-card.running { border-color: #10b981; background: #ecfdf5; }
+.kpi-mini-card.done { border-color: #6366f1; background: #eef2ff; }
+.kpi-mini-card.cancel { border-color: #ef4444; background: #fef2f2; }
+
+.kpi-mini-title { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; }
+.kpi-mini-value { font-size: 17px; font-weight: 900; color: #1e293b; margin-left: auto; }
+.header-user { font-weight: 600; color: #64748b; background: #f1f5f9; padding: 5px 12px; border-radius: 20px; font-size: 13px; flex: 0 0 auto; }
+
+/* ============================================================== */
+/* FILTER BAR                                                     */
+/* ============================================================== */
+.filter-bar { 
+  background: #ffffff; 
+  padding: 12px 15px; 
+  border-radius: 8px; 
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+  display: flex; 
+  gap: 10px; 
+  align-items: center; 
+  margin-bottom: 10px;          /* spasi tipis ke tabel */
+}
+.filter-bar input, .filter-bar select { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 5px; font-size: 13px; color: #334155; font-weight: 600; }
+.filter-bar input { flex: 1; }
+.btn-refresh { background: #1d4ed8; color: #fff; border: none; padding: 8px 15px; border-radius: 5px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+.btn-refresh:hover { background: #1e40af; }
+.auto-refresh-box { font-size: 12px; font-weight: 600; color: #64748b; display: flex; align-items: center; gap: 5px; margin-left: auto; }
+
+#machine-filter-group { display: flex; gap: 6px; }
+#machine-filter-group button {
+  padding: 7px 14px;
+  border-radius: 5px;
+  border: 1.5px solid #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+#machine-filter-group button:hover { background: #e2e8f0; }
+#btn-mc-all.mc-active   { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
+#btn-mc-ctl.mc-active   { background: #0e7490; color: #fff; border-color: #0e7490; }
+#btn-mc-shr.mc-active   { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+#btn-mc-slt.mc-active   { background: #b45309; color: #fff; border-color: #b45309; }
+#machine-filter-group button.mc-dimmed {
+  opacity: 0.75;
+  filter: grayscale(60%);
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #000000;
+}
+
+/* ============================================================== */
+/* TABLE WRAP — dorong ke bawah supaya tidak ketutup frozen-top   */
+/* ============================================================== */
+.table-wrap { 
+  margin: var(--frozen-h, 130px) 15px 0 15px;
+  background: #ffffff; 
+  border-radius: 8px; 
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.live-table { 
+  width: 100%; 
+  border-collapse: separate;
+  border-spacing: 0; 
+  text-align: left; 
+}
+
+/* ============================================================== */
+/* ⭐ STICKY THEAD - top diatur via CSS variable dari JS          */
+/* ============================================================== */
+.live-table thead th { 
+  background: #f8fafc !important;
+  color: #475569; 
+  font-weight: 700; 
+  font-size: 12px; 
+  padding: 12px 15px; 
+  text-transform: uppercase; 
+  position: sticky; 
+  top: calc(var(--frozen-h, 130px) - 24px);          
+  z-index: 100; 
+  box-shadow: inset 0 -3px 0 0 #1d4ed8,
+              0 2px 4px rgba(0,0,0,0.04);
+  border-bottom: none !important;
+}
+
+.live-table td { font-size: 13px; color: #1e293b; border: none; }
+.row-parent td { border-top: 2px solid #cbd5e1; }
+#board-tbody tr:first-child td { border-top: none; } 
+
+.cell-merged { vertical-align: top; padding-top: 15px !important; padding-left: 15px; padding-right: 15px; }
+.row-parent td.cell-split { padding-top: 15px; padding-bottom: 4px; padding-left: 5px; padding-right: 5px; }
+.row-child td.cell-split { padding-top: 4px; padding-bottom: 6px; padding-left: 5px; padding-right: 5px; }
+
+.spk-no { font-weight: 800; color: #1d4ed8; font-size: 12.5px; }
+.spk-child-no { font-weight: 500; color: #475569; font-size: 11.5px; padding-left: 5px; }
+.spec-text { font-size: 11.5px; color: #64748b; font-weight: 600; }
+
+/* CIRCULAR PROGRESS (DONUT CHART) */
+.status-wrapper { display: flex; justify-content: flex-start; align-items: center; }
+.circular-progress { 
+  position: relative; width: 65px; height: 65px; border-radius: 50%; 
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0; 
+}
+.circular-progress::before { 
+  content: ""; position: absolute; width: 53px; height: 53px; 
+  border-radius: 50%; background-color: #ffffff; 
+}
+.donut-inner-text {
+  position: relative; display: flex; flex-direction: column; 
+  align-items: center; line-height: 1.2; z-index: 1;
+}
+.donut-status { font-size: 8px; font-weight: 800; text-transform: uppercase; margin-bottom: 2px; }
+.progress-value { font-size: 13px; font-weight: 900; color: #1e293b; }
+
+/* ACTIONS */
+.action-cell { text-align: center; border-left: 1px dashed #e2e8f0 !important; }
+.btn-cancel { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; padding: 5px 8px; border-radius: 4px; font-weight: 700; font-size: 11px; cursor: pointer; width: 75px; margin-bottom: 5px; }
+.btn-cancel:hover { background: #fecaca; }
+.btn-print { background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; padding: 5px 8px; border-radius: 4px; font-weight: 700; font-size: 11px; cursor: pointer; width: 75px; }
+.btn-print:hover { background: #bae6fd; }
+
+</style>
+
+
+<body>
+
+  <!-- ⭐ WRAPPER BARU: STICKY TO TOP -->
+  <div class="frozen-top">
+
+    <div class="header-box">
+      <div class="header-title">📋 LIVE SPK BOARD</div>
+      <div class="header-kpi-group">
+        <div class="kpi-mini-card active" id="btn-kpi-all" onclick="filterByKpi('ALL')"><span class="kpi-mini-title">TOTAL</span><span class="kpi-mini-value" id="kpi-aktif">0</span></div>
+        <div class="kpi-mini-card queue" id="btn-kpi-antrian" onclick="filterByKpi('ANTRIAN')"><span>⏳</span><span class="kpi-mini-title">ANTRIAN</span><span class="kpi-mini-value" id="kpi-queue">0</span></div>
+        <div class="kpi-mini-card running" id="btn-kpi-running" onclick="filterByKpi('RUNNING')"><span>⚙️</span><span class="kpi-mini-title">RUNNING</span><span class="kpi-mini-value" id="kpi-run">0</span></div>
+        <div class="kpi-mini-card done" id="btn-kpi-done" onclick="filterByKpi('DONE')"><span>✅</span><span class="kpi-mini-title">DONE TODAY</span><span class="kpi-mini-value" id="kpi-done">0</span></div>
+        <div class="kpi-mini-card cancel" id="btn-kpi-cancel" onclick="filterByKpi('CANCELLED')"><span>❌</span><span class="kpi-mini-title">CANCEL</span><span class="kpi-mini-value" id="kpi-cancel">0</span></div>
+      </div>
+      <div class="header-user">👤 Admin PPIC</div>
+    </div>
+
+    <div class="filter-bar">
+      <span>🔍</span>
+      <input type="text" id="fil-search" placeholder="Cari No SPK, Spec, Customer..." onkeyup="applyFilters()">
+      <div id="machine-filter-group">
+        <button onclick="filterByMachine('ALL')" id="btn-mc-all">ALL</button>
+        <button onclick="filterByMachine('CTL')" id="btn-mc-ctl">CTL</button>
+        <button onclick="filterByMachine('SHR')" id="btn-mc-shr">SHR</button>
+        <button onclick="filterByMachine('SLT')" id="btn-mc-slt">SLT</button>
+      </div>
+      <button class="btn-refresh" onclick="loadLiveData()" id="btn-refresh">↻ Refresh Data</button>
+      <div class="auto-refresh-box">
+        <input type="checkbox" id="auto-refresh" checked onchange="toggleAutoRefresh()"> Auto-Refresh (60s)
+      </div>
+    </div>
+
+  </div>
+  <!-- ⭐ END FROZEN-TOP -->
+
+  <div class="table-wrap">
+    <table class="live-table">
+      <thead>
+        <tr>
+          <th style="width: 16%;">No SPK & Mesin</th>
+          <th style="width: 8%;">Cust</th>
+          <th style="width: 12%;">Parent SPK</th>
+          <th style="width: 17%;">Spec & Size</th>
+          <th style="width: 10%;">Target vs Act</th>
+          <th style="width: 13%;">PST - PFT</th>
+          <th style="width: 10%;">Status & Progres</th>
+          <th style="width: 6%; text-align:center;">Action</th>
+        </tr>
+      </thead>
+      <tbody id="board-tbody">
+        <tr><td colspan="8" style="text-align:center; padding:30px; color:#64748b;">⏳ Memuat data Live Board...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    window._allSpkData = window._allSpkData || [];
+    window._refreshTimer = window._refreshTimer || null;
+    let _currentStatusFilter = 'ALL'; 
+    let _currentMachineFilter = 'ALL';
+
+    function initBoard() {
+      document.getElementById('btn-mc-all').classList.add('mc-active'); // ← tambah ini
+      loadLiveData();
+      toggleAutoRefresh();
+    }
+    
+    function loadLiveData() {
+        document.getElementById('btn-refresh').textContent = "⏳ Memuat...";
+        google.script.run
+          .withSuccessHandler(function(data) {
+            _allSpkData = data || [];
+            document.getElementById('btn-refresh').textContent = "↻ Refresh Data";
+            applyFilters();
+          })
+          .withFailureHandler(function(err) {  // ← TAMBAH INI
+            document.getElementById('btn-refresh').textContent = "↻ Refresh Data";
+            document.getElementById('board-tbody').innerHTML = 
+              `<tr><td colspan="8" style="text-align:center;padding:30px;color:#b91c1c;">
+                ❌ Gagal memuat data: ${err.message}
+              </td></tr>`;
+          })
+          .getLiveBoardDataBackend();
+    }
+
+    function toggleAutoRefresh() {
+      if(_refreshTimer) clearInterval(_refreshTimer);
+      if(document.getElementById('auto-refresh').checked) { _refreshTimer = setInterval(loadLiveData, 60000); }
+    }
+
+    window.filterByKpi = function(status) {
+      _currentStatusFilter = status;
+      let btns = ['all', 'antrian', 'running', 'done', 'cancel'];
+      let targetBtn = status === 'ALL' ? 'all' : status.toLowerCase();
+      if (targetBtn === 'cancelled') targetBtn = 'cancel';
+
+      if (status === 'ALL') {
+        btns.forEach(b => document.getElementById('btn-kpi-' + b).classList.remove('dimmed'));
+      } else {
+        btns.forEach(b => {
+          let el = document.getElementById('btn-kpi-' + b);
+          if (b === targetBtn) el.classList.remove('dimmed');
+          else el.classList.add('dimmed');
+        });
+      }
+      applyFilters();
+    };
+
+    window.filterByMachine = function(mc) {
+      _currentMachineFilter = mc;
+
+      const allBtns = ['all','ctl','shr','slt'];
+
+      if (mc === 'ALL') {
+        // Semua aktif, tidak ada yang dimmed
+        allBtns.forEach(b => {
+          let el = document.getElementById('btn-mc-' + b);
+          el.classList.remove('mc-dimmed');
+          el.classList.remove('mc-active');
+        });
+        document.getElementById('btn-mc-all').classList.add('mc-active');
+      } else {
+        let targetId = mc.toLowerCase();
+        allBtns.forEach(b => {
+          let el = document.getElementById('btn-mc-' + b);
+          el.classList.remove('mc-active');
+          if (b === targetId) {
+            el.classList.add('mc-active');
+            el.classList.remove('mc-dimmed');
+          } else {
+            el.classList.add('mc-dimmed');
+          }
+        });
+      }
+
+      applyFilters();
+    };
+
+    function applyFilters() {
+      let el = document.getElementById('fil-search');
+      let txt = el ? el.value.toLowerCase() : '';
+
+      let filtered = _allSpkData.filter(r => {
+        let children = r.children || [];
+
+        let matchTxt =
+          (r.SPK_No||'').toLowerCase().includes(txt) ||
+          (r.Spec_Size||'').toLowerCase().includes(txt) ||
+          (r.Cust||'').toLowerCase().includes(txt) ||
+          children.some(c =>
+            (c.spk_no||'').toLowerCase().includes(txt) ||
+            (c.cust||'').toLowerCase().includes(txt) ||
+            (c.spec_size||'').toLowerCase().includes(txt)
+          );
+
+        let matchMc = _currentMachineFilter === 'ALL' ||
+                      (r.Machine || '').toUpperCase().includes(_currentMachineFilter);
+
+        let matchSt = _currentStatusFilter === 'ALL' ||
+                      (r.Status||'').toUpperCase() === _currentStatusFilter;
+
+        return matchTxt && matchMc && matchSt;
+      });
+
+      renderTable(filtered);
+      updateKPI();
+      updateMachineButtons();
+    }
+
+    function updateKPI() {
+      let queue = 0, run = 0, done = 0, cancel = 0;
+      
+      _allSpkData.forEach(r => {
+        let st = (r.Status||'').toUpperCase();
+        if(st === 'ANTRIAN') queue++;
+        else if(st === 'RUNNING') run++;
+        else if(st === 'DONE') done++;
+        else if(st === 'CANCELLED') cancel++;
+      });
+      
+      let active = queue + run + done + cancel; 
+      
+      document.getElementById('kpi-aktif').textContent = active;
+      document.getElementById('kpi-queue').textContent = queue;
+      document.getElementById('kpi-run').textContent = run;
+      document.getElementById('kpi-done').textContent = done;
+      document.getElementById('kpi-cancel').textContent = cancel;
+    }
+
+    function updateMachineButtons() {
+      let groups = {
+        CTL: { total: 0, done: 0 },
+        SHR: { total: 0, done: 0 },
+        SLT: { total: 0, done: 0 }
+      };
+
+      _allSpkData.forEach(r => {
+        let mc = (r.Machine || '').toUpperCase();
+        let st = (r.Status || '').toUpperCase();
+
+        let key = mc.includes('CTL') ? 'CTL'
+                : mc.includes('SHR') ? 'SHR'
+                : mc.includes('SLT') ? 'SLT'
+                : null;
+
+        if (!key) return;
+
+        groups[key].total++;
+
+        if (st === 'DONE' || st === 'CANCELLED') {
+          groups[key].done++;
+        }
+      });
+
+      document.getElementById('btn-mc-ctl').textContent = `CTL ${groups.CTL.done} / ${groups.CTL.total}`;
+      document.getElementById('btn-mc-shr').textContent = `SHR ${groups.SHR.done} / ${groups.SHR.total}`;
+      document.getElementById('btn-mc-slt').textContent = `SLT ${groups.SLT.done} / ${groups.SLT.total}`;
+    }
+
+    function fmtJadwal(mulai, selesai) {
+      if (!mulai || !selesai) return '';
+      let mParts = mulai.split(' ');
+      let sParts = selesai.split(' ');
+      if (mParts[0] === sParts[0]) return `${mParts[1]} - ${sParts[1]}`;
+      return `${mParts[1]}  s/d  ${sParts[0]} ${sParts[1]}`;
+    }
+
+    function renderTable(data) {
+      let tbody = document.getElementById('board-tbody');
+      if(data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:#64748b;">Tidak ada data SPK aktif yang sesuai filter.</td></tr>';
+        return;
+      }
+
+      let html = '';
+      data.forEach(r => {
+        let childCount = r.children.length;
+        let totalRowsInBlock = childCount + 1; 
+        
+        let mc = (r.Machine || '').toUpperCase();
+        let isCTL = mc.includes('CTL');
+        let isSLT = mc.includes('SLT');
+        
+        let parentUom = (isCTL || isSLT) ? 'Kg' : 'Sht';
+        let childUom = isSLT ? 'Kg' : 'Sht';
+
+        let totalTgt = 0;
+        let totalAct = 0;
+        
+        if (childCount > 0) {
+          r.children.forEach(c => { 
+            totalTgt += (childUom === 'Kg') ? (c.kg_tgt || 0) : (c.qty_tgt || 0); 
+            totalAct += (childUom === 'Kg') ? (c.kg_act || 0) : (c.qty_act || 0); 
+          });
+        } else {
+          totalTgt = (parentUom === 'Kg') ? (r.Kg_Tgt || 0) : (r.Qty_Tgt || 0); 
+          totalAct = (parentUom === 'Kg') ? (r.Kg_Act || 0) : (r.Qty_Act || 0);
+        }
+        
+        let pStat = (r.Status || 'ANTRIAN').toUpperCase();
+        let pPct = totalTgt > 0 ? Math.min(100, Math.round((totalAct / totalTgt) * 100)) : 0;
+        if(pStat === 'DONE') pPct = 100;
+        
+        let barColor, fadedColor, textColor;
+        if (pStat === 'DONE') {
+          barColor = '#4338ca'; fadedColor = '#e0e7ff'; textColor = '#4338ca';
+        } else if (pStat === 'RUNNING') {
+          barColor = '#10b981'; fadedColor = '#d1fae5'; textColor = '#047857';
+        } else if (pStat === 'CANCELLED') {
+          barColor = '#ef4444'; fadedColor = '#fee2e2'; textColor = '#b91c1c';
+        } else { 
+          barColor = '#f59e0b'; fadedColor = '#fef3c7'; textColor = '#b45309';
+        }
+
+        // Ganti bagian actionButtons yang existing:
+        let isSHR = mc.includes('SHR');
+
+        let actionButtons = '';
+        if (pStat === 'DONE' || pStat === 'CANCELLED') {
+          actionButtons = isSHR
+            ? `<button class="btn-print" onclick="printFromLiveBoard('${r.SPK_No}')">🖨️ Print</button>`
+            : `<button class="btn-print" onclick="printFromLiveBoard('${r.SPK_No}')">🖨️ Print</button>`;
+        } else {
+          actionButtons = `<button class="btn-cancel" onclick="confirmCascadeCancel('${r.SPK_No}')">❌ Cancel</button><br>`;
+          actionButtons += isSHR
+            ? `<button class="btn-print" onclick="printFromLiveBoard('${r.SPK_No}')">🖨️ Print</button>`
+            : `<button class="btn-print" onclick="printFromLiveBoard('${r.SPK_No}')">🖨️ Print</button>`;
+        }
+
+        let parentTgt = (parentUom === 'Kg') ? (r.Kg_Tgt || 0) : (r.Qty_Tgt || 0);
+        let parentAct = (parentUom === 'Kg') ? (r.Kg_Act || 0) : (r.Qty_Act || 0);
+        let parentTargetStr = `${parentTgt} / ${parentAct} ${parentUom}`;
+
+        // 🟩 JADWAL ESTAFET (Tampil Cuma Kalau Belum Selesai)
+        let parentSchedule = '';
+        if (r.Est_Mulai && r.Est_Selesai && pStat !== 'DONE' && pStat !== 'CANCELLED') {
+          let jadwalText = fmtJadwal(r.Est_Mulai, r.Est_Selesai);
+          if (jadwalText) {
+            parentSchedule = `<span style="color:#0369a1; font-weight:600; background:#e0f2fe; padding:2px 5px; border-radius:3px; margin-left:5px;">  🕒 ${jadwalText}</span>`;
+          }
+        }
+
+          // <td class="cell-merged" rowspan="${totalRowsInBlock}" style="font-weight:600; color:#64748b;">${r.Date}</td>
+        html += `
+        <tr class="row-parent">
+          <td class="cell-split"><div class="spk-no">${r.SPK_No}</div><div class="spec-text">Mesin: <b>${r.Machine}</b></div></td>
+          <td class="cell-split" style="font-weight:700; color:#475569;">${r.Cust || '______'}</td>
+          <td class="cell-split" style="font-weight:600; color:#64748b;">${r.Parent_SPK}</td>
+          <td class="cell-split" style="font-weight:700; color:#1e293b;">${r.Spec_Size}</td>
+          <td class="cell-split" style="white-space:nowrap;">
+            <span style="font-weight:500; color:#1e293b;">${parentTargetStr}</span>
+          </td>
+          <td class="cell-split" style="white-space:nowrap;">
+            ${parentSchedule}
+          </td>
+          
+          <td class="cell-merged" rowspan="${totalRowsInBlock}">
+            <div class="status-wrapper">
+              <div class="circular-progress" style="background: conic-gradient(${barColor} ${pPct * 3.6}deg, ${fadedColor} 0deg);">
+                <div class="donut-inner-text">
+                  <span class="donut-status" style="color: ${textColor};">${pStat}</span>
+                  <span class="progress-value">${pPct}%</span>
+                </div>
+              </div>
+            </div>
+          </td>
+
+          <td class="cell-merged action-cell" rowspan="${totalRowsInBlock}">${actionButtons}</td>
+        </tr>`;
+
+        if (childCount > 0) {
+          r.children.forEach((c) => {
+            let childTgt = (childUom === 'Kg') ? (c.kg_tgt || 0) : (c.qty_tgt || 0);
+            let childAct = (childUom === 'Kg') ? (c.kg_act || 0) : (c.qty_act || 0);
+            let childTargetStr = `${childTgt} / ${childAct} ${childUom}`;
+
+
+            // GANTI SELURUH BLOK ini:
+            let childSchedule = '';
+            if (c.est_mulai && c.est_selesai && c.status !== 'DONE' && c.status !== 'CANCELLED') {
+              let jadwalText = fmtJadwal(c.est_mulai, c.est_selesai); // ← assign dulu
+              if (jadwalText) {
+                childSchedule = `<span style="color:#0369a1; font-weight:600; background:#e0f2fe; padding:2px 5px; border-radius:3px; margin-left:5px;">  🕒 ${jadwalText}</span>`;
+              }
+            }
+
+            html += `
+            <tr class="row-child">
+              <td class="cell-split spk-child-no">↳ ${c.spk_no}</td>
+              <td class="cell-split" style="font-weight:700; color:#1e293b;">${c.cust}</td>
+              <td class="cell-split" style="color:#64748b;">${c.parent_spk}</td>
+              <td style="font-weight:600; color:#334155;">${c.spec_size}</td>
+              <td class="cell-split" style="white-space:nowrap;">
+                <span style="font-weight:500; color:#334155;">${childTargetStr}</span>
+              </td>
+              <td class="cell-split" style="white-space:nowrap;">
+                ${childSchedule}
+              </td>
+            </tr>`;
+          });
+        }
+      });
+      tbody.innerHTML = html;
+    }
+
+    function printSPK_SHR(dataSPK, dataOut) {
+      // dataSPK: Objek informasi SPK Induk (No SPK, Tanggal, Mesin, Batch, dll)
+      // dataOut: Array berisi detail potongan (SHR-OUT)
+
+      let htmlPrint = `
+      <html>
+      <head>
+        <title>Print SPK - ${dataSPK.spk_no}</title>
+        <style>
+          /* UKURAN KERTAS SEPEREMPAT LETTER (Atau setara A6/Thermal Label Lebar) */
+          @page {
+            size: 108mm 140mm;
+            margin: 5mm;
+          }
+          * {
+            box-sizing: border-box;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #000;
+            margin: 0;
+            padding: 0;
+          }
+          body {
+            font-size: 9pt;
+            line-height: 1.2;
+            background: #fff;
+          }
+          .bold { font-weight: bold; }
+          .line-double { border-bottom: 2px solid #000; margin: 4px 0; }
+          .line-dashed { border-bottom: 1px dashed #000; margin: 4px 0; }
+          .line-thin { border-bottom: 1px solid #000; margin: 4px 0; }
+          .table-w100 { display: table; width: 100%; }
+          .table-row { display: table-row; }
+          .table-cell { display: table-cell; vertical-align: top; }
+          
+          .section-title { font-size: 8.5pt; font-weight: bold; margin-top: 3px; text-transform: uppercase; }
+          .induk-box { border: 1px solid #000; padding: 4px; font-size: 8.5pt; margin-bottom: 5px; }
+          .child-item { padding: 4px 0; page-break-inside: avoid; }
+          .child-title { font-weight: bold; font-size: 9pt; margin-bottom: 2px; }
+          
+          .box-aktual { display: inline-block; border: 1px solid #000; width: 15mm; height: 6mm; vertical-align: middle; }
+          .footer-space { margin-top: 15px; page-break-inside: avoid; }
+        </style>
+      </head>
+      <body>
+        <div class="table-w100">
+          <div class="table-row">
+            <div class="table-cell" style="width: 45%; font-size: 10pt; font-weight: bold;">
+              [LOGO F/C]<br>
+              <span style="font-size: 7.5pt; font-weight: normal;">PT Flambindo Cortama</span>
+            </div>
+            <div class="table-cell" style="width: 55%; font-size: 8pt; text-align: right;">
+              <span style="font-size: 11pt; font-weight: bold;">SPK SHEARING</span><br>
+              No SPK: <span class="bold">${dataSPK.spk_no}</span><br>
+              Tgl: ${dataSPK.tanggal} &nbsp;|&nbsp; M/C: ${dataSPK.mc_no}
+            </div>
+          </div>
+        </div>
+
+        <div class="line-double"></div>
+
+        <div class="section-title">A. Material Induk (Input)</div>
+        <div class="induk-box">
+          <div class="table-w100">
+            <div class="table-row">
+              <div class="table-cell" style="width: 55%;">
+                Batch ID: <span class="bold">${dataSPK.batch_id}</span><br>
+                Asal: <span class="bold">${dataSPK.lokasi_asal}</span>
+              </div>
+              <div class="table-cell" style="width: 45%; text-align: right;">
+                Target: <span class="bold">${dataSPK.qty_induk} Lbr (${dataSPK.kg_induk} Kg)</span><br>
+                OP: <span class="bold">${dataSPK.operator}</span>
+              </div>
+            </div>
+          </div>
+          <div class="line-thin" style="margin: 2px 0;"></div>
+          <div style="font-size: 9.5pt;">
+            Spec: <span class="bold">${dataSPK.spec_induk}</span>
+          </div>
+        </div>
+
+        <div class="section-title">B. Instruksi Potong (SHR-OUT)</div>
+        <div class="line-thin"></div>
+      `;
+
+      // LOOPING UNTUK SETIAP ANAK POTONGAN (SHR-OUT)
+      dataOut.forEach((item, index) => {
+        htmlPrint += `
+        <div class="child-item">
+          <div class="child-title">#${index + 1} | ID: ${item.spk_child_no}</div>
+          <div class="table-w100">
+            <div class="table-row">
+              <div class="table-cell" style="width: 55%; font-size: 8.5pt;">
+                Cust/SO: <span class="bold">${item.cust}</span> / ${item.so_no}<br>
+                Size: <span class="bold" style="font-size: 9pt;">${item.spec_hasil}</span><br>
+                Pola: <span class="bold">Cut_P: ${item.cut_p} &nbsp;&nbsp; Cut_L: ${item.cut_l}</span>
+              </div>
+              <div class="table-cell" style="width: 45%; font-size: 8.5pt; padding-left: 2px;">
+                Loc Target: <span class="bold">${item.target_loc}</span><br>
+                Qty Target: <span class="bold" style="font-size: 10pt;">${item.qty_target} Pcs</span><br>
+                Aktual: <div class="box-aktual"></div> Pcs
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="line-dashed"></div>
+        `;
+      });
+
+      // PENUTUP (CATATAN & TTD)
+      htmlPrint += `
+        <div style="font-size: 7.5pt; font-style: italic; margin-top: 3px;">
+          Catatan: ....................................................................
+        </div>
+        <div class="footer-space">
+          <div class="table-w100" style="font-size: 8pt;">
+            <div class="table-row">
+              <div class="table-cell" style="width: 50%; text-align: center;">
+                Dibuat Oleh,<br><br><br><br>( Admin PPIC )
+              </div>
+              <div class="table-cell" style="width: 50%; text-align: center;">
+                Diterima Oleh,<br><br><br><br>( Leader SHR )
+              </div>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+      `;
+
+      // METODE IFRAME TERSEMBUNYI (ANTI POP-UP BLOCKER)
+      let printFrame = document.createElement('iframe');
+      printFrame.style.position = 'fixed';
+      printFrame.style.right = '0';
+      printFrame.style.bottom = '0';
+      printFrame.style.width = '0';
+      printFrame.style.height = '0';
+      printFrame.style.border = '0';
+      document.body.appendChild(printFrame);
+      
+      printFrame.contentDocument.open();
+      printFrame.contentDocument.write(htmlPrint);
+      printFrame.contentDocument.close();
+      
+      // Tunggu HTML selesai dibangun di background, lalu cetak!
+      printFrame.onload = function() {
+        printFrame.contentWindow.focus();
+        printFrame.contentWindow.print();
+        
+        // Bersihkan iframe dari memori setelah jeda cetak
+        setTimeout(function() {
+          document.body.removeChild(printFrame);
+        }, 3000);
+      };
+    } // Akhir dari fungsi printSPK_SHR
+
+    function printSPK_CTL(dataSPK, dataOut) {
+
+      let htmlPrint = `
+      <html>
+      <head>
+        <title>SPK CTL - ${dataSPK.spk_no}</title>
+
+        <style>
+          @page { size: Letter portrait; margin: 12mm; }
+
+          body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 10pt;
+          }
+
+          .section-title {
+            margin-top: 14px;
+            font-weight: bold;
+          }
+
+          .row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+          }
+
+          .center { text-align: center; }
+          .right { text-align: right; }
+          .bold { font-weight: bold; }
+
+          .title {
+            font-size: 16pt;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 5px;
+          }
+
+          .section-title {
+            margin-top: 12px;
+            font-weight: bold;
+          }
+
+          .box {
+            border: 1px solid #000;
+            padding: 8px;
+            margin-top: 5px;
+          }
+
+          .line-dashed {
+            border-bottom: 1px dashed #000;
+            margin: 8px 0;
+          }
+
+          .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 4px;
+          }
+
+          .table td {
+            padding: 2px 4px;
+            vertical-align: top;
+          }
+
+          td {
+            white-space: nowrap;
+          }
+
+          .box-input {
+            display: inline-block;
+            width: 60px;
+            height: 20px;
+            border: 2px solid #000;
+            vertical-align: middle;
+          }
+
+          .footer {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+            text-align: center;
+          }
+
+          .footer div {
+            width: 23%;
+          }
+
+        </style>
+      </head>
+
+      <body>
+
+        <!-- HEADER -->
+        <div class="row">
+          <div>
+            <div class="bold">FLAMBINDO CORTAMA</div>
+            <div>No.Doc : FM-PP-021</div>
+          </div>
+
+          <div class="title">SPK CUT-TO-LENGTH</div>
+
+          <div class="right">
+            Tgl: ${dataSPK.tanggal} | M/C: ${dataSPK.mc_no}<br>
+            No SPK: <span class="bold">${dataSPK.spk_no}</span>
+          </div>
+        </div>
+
+        <!-- SECTION A -->
+        <div class="section-title">A. MATERIAL INDUK (COIL INPUT)</div>
+
+        <div class="box">
+          <table style="width:100%; border-collapse:collapse; font-size:10.5pt;">
+            <tr>
+
+              <!-- KIRI -->
+              <td style="width:20%; vertical-align:top;">
+                <table style="width:100%;">
+                  <tr>
+                    <td style="width:80px;">Coil ID</td>
+                    <td>:</td>
+                    <td><b>${dataSPK.batch_id}</b></td>
+                  </tr>
+                  <tr>
+                    <td>Spec Coil</td>
+                    <td>:</td>
+                    <td><b>${dataSPK.spec_induk}</b></td>
+                  </tr>
+                  <tr colspan="2">
+                    <td>Asal</td>
+                    <td>:</td>
+                    <td>${dataSPK.lokasi_asal} &nbsp;&nbsp; OP: ${dataSPK.operator}</td>
+                  </tr>
+                </table>
+              </td>
+
+              <!-- TENGAH -->
+              <td style="width:30%; vertical-align:top;">
+                <table style="width:100%;">
+                  <tr>
+                    <td style="width:80px;">No_Coil</td>
+                    <td>:</td>
+                    <td><b>${dataSPK.no_coil || '-'}</b></td>
+                  </tr>
+                  <tr>
+                    <td>Berat_C</td>
+                    <td>:</td>
+                    <td><b>${dataSPK.berat || '-'}</b> kg</td>
+                  </tr>
+                </table>
+              </td>
+
+              <!-- KANAN -->
+              <td style="width:25%; vertical-align:top;">
+                <table style="width:100%;">
+                  <tr>
+                    <td style="width:80px;">T_Proses</td>
+                    <td>:</td>
+                    <td><b>${dataSPK.t_proses || '-'}</b> Kg</td>
+                  </tr>
+                  <tr>
+                    <td>Act_P</td>
+                    <td>:</td>
+                    <td><span class="box-input"></span></td>
+                  </tr>
+                </table>
+              </td>
+
+              <td style="width:25%; vertical-align:top;">
+                <table style="width:100%;">
+                  <tr>
+                    <td>T_Sisa</td>
+                    <td>:</td>
+                    <td><b>${dataSPK.t_sisa || '-'}</b> kg</td>
+                  </tr>
+                  <tr>
+                    <td>Act_S</td>
+                    <td>:</td>
+                    <td><span class="box-input"></span></td>
+                  </tr>
+                </table>
+              </td>
+
+            </tr>
+          </table>
+        </div>
+
+        <!-- SECTION B -->
+        <div class="section-title">B. INSTRUKSI POTONG (CTL-OUT)</div>
+
+        ${dataOut.map((item, i) => `
+          <table style="width:100%; border-collapse:collapse; margin-top:8px; font-size:10.5pt;">
+            
+            <!-- BARIS 1 -->
+            <tr>
+              <td style="width:55%;" rowspan="2">
+                <b>#${i+1}</b> | ID: <b>${item.spk_child_no}</b>
+                &nbsp;&nbsp;
+                Size: <b>${item.spec_hasil}</b>
+              </td>
+
+              <td style="width:12.5%; text-align:left;">
+                Target <b>${item.qty_target}</b> Lbr
+              </td>
+              <td style="width:12.5%; text-align:left;">
+                <b>${item.kg_target}</b> Kg
+              </td>
+
+              <td style="width:20%; text-align:right;">
+                Cust/SO: ${item.cust || '--'} / ${item.so_no || '--'}
+              </td>
+            </tr>
+
+            <!-- BARIS 2 -->
+            <tr>
+              <td style="width:12.5%; text-align:left;">
+                Aktual 
+                <span class="box-input"></span> Lbr
+              </td>
+              <td style="width:12.5%; text-align:left;">
+                <span class="box-input"></span> Kg
+              </td>
+
+              <td colspan="2" style="text-align:right;">
+                Loc Target: <b>${item.target_loc}</b>
+              </td>
+            </tr>
+
+          </table>
+
+          <div class="line-dashed"></div>
+        `).join("")}
+
+        <!-- CATATAN -->
+        <div style="margin-top:10px;">
+          Catatan: 
+        </div>
+
+        <!-- FOOTER -->
+        <div class="footer">
+          <div>
+            Dibuat<br><br><br><br>
+            ( Admin PPIC )
+          </div>
+
+          <div>
+            Diterima<br><br><br><br>
+            ( Leader CTL )
+          </div>
+
+          <div>
+            Diperiksa<br><br><br><br>
+            ( Admin WH )
+          </div>
+
+          <div>
+            Diketahui<br><br><br><br>
+            ( Kepala Prod )
+          </div>
+        </div>
+
+      </body>
+      </html>
+      `;
+
+      // === PRINT VIA IFRAME (punya kamu, sudah benar) ===
+      let printFrame = document.createElement('iframe');
+      printFrame.style.position = 'fixed';
+      printFrame.style.right = '0';
+      printFrame.style.bottom = '0';
+      printFrame.style.width = '0';
+      printFrame.style.height = '0';
+      printFrame.style.border = '0';
+      document.body.appendChild(printFrame);
+
+      printFrame.contentDocument.open();
+      printFrame.contentDocument.write(htmlPrint);
+      printFrame.contentDocument.close();
+
+      printFrame.onload = function() {
+        printFrame.contentWindow.focus();
+        printFrame.contentWindow.print();
+        setTimeout(() => document.body.removeChild(printFrame), 3000);
+      };
+    } // Akhir dari fungsi printSPK_CTL
+
+    window.printFromLiveBoard = function(spkNo) {
+      var spk = _allSpkData.find(function(r) { return r.SPK_No === spkNo; });
+      if (!spk) { alert('Data SPK tidak ditemukan di board!'); return; }
+
+      if (!spk.children || spk.children.length === 0) {
+        alert('SPK ' + spkNo + ' belum punya detail anak. Tidak bisa dicetak.');
+        return;
+      }
+
+      var mc = (spk.Machine || '').toUpperCase();
+
+      // ===== MAPPING DATA INDUK (sama untuk semua mesin) =====
+      var dataInduk = {
+        spk_no      : spk.SPK_No,
+        tanggal     : spk.Date,
+        mc_no       : spk.Machine    || '______',
+        batch_id    : spk.Batch_ID   || spk.Parent_SPK || '______',
+        lokasi_asal : spk.Source_Loc || '______',
+        qty_induk   : spk.Qty_Tgt    || 0,
+        kg_induk    : spk.Kg_Tgt     || 0,
+        operator    : spk.Operator   || '______',
+        spec_induk  : spk.Spec_Size  || '______',
+        no_coil     : spk.No_Coil    || '______'
+      };
+
+      // ===== MAPPING DATA ANAK (sama untuk semua mesin) =====
+      var dataAnak = spk.children.map(function(c) {
+        return {
+          spk_child_no : c.spk_no,
+          so_no        : c.so_ref      || '______',
+          cust         : c.cust        || '______',
+          spec_hasil   : c.spec_size   || '______',
+          cut_p        : c.cut_p       || 1,
+          cut_l        : c.cut_l       || 1,
+          target_loc   : c.target_loc  || '______',
+          qty_target   : c.qty_tgt     || 0,
+          kg_target    : c.kg_tgt      || 0    // ⭐ dipakai oleh CTL (Lbr + Kg)
+        };
+      });
+
+      // ===== DISPATCH BERDASARKAN TIPE MESIN =====
+      if (mc.indexOf('SHR') !== -1) {
+        printSPK_SHR(dataInduk, dataAnak);
+      } else if (mc.indexOf('CTL') !== -1) {
+        printSPK_CTL(dataInduk, dataAnak);
+      } else if (mc.indexOf('SLT') !== -1) {
+        alert('⚠️ Print SPK Slitting belum tersedia.\nMesin: ' + spk.Machine);
+      } else {
+        alert('⚠️ Tipe mesin tidak dikenali: ' + spk.Machine);
+      }
+    };
+
+    window.confirmCascadeCancel = function(spkNo) {
+      let msg = `⚠️ POKA-YOKE SISTEM: PEMBATALAN BERANTAI\n\nApakah Anda yakin ingin MEMBATALKAN SPK ${spkNo}?\n\nTindakan ini akan OTOMATIS membatalkan nomor Induk beserta SELURUH anak potongannya di database!`;
+      if(confirm(msg)) {
+        document.getElementById('board-tbody').innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:#b91c1c; font-weight:bold;">⏳ Menjalankan Cascade Cancel di Database...</td></tr>';
+        google.script.run.withSuccessHandler(function(res) {
+          if(res.success) {
+            alert(`✅ Sukses! SPK ${spkNo} dan seluruh anak prosesnya resmi dibatalkan.`);
+            loadLiveData();
+          } else {
+            alert("❌ Gagal membatalkan: " + res.message);
+            loadLiveData();
+          }
+        }).cancelSpkBackend(spkNo);
+      }
+    };
+
+
+    // ⭐ Ukur dimensi layout parent (topbar + sidebar) + frozen-top sendiri
+    function setLayoutVars() {
+      const topbar  = document.querySelector('.topbar');           // dari index.html parent
+      const sidebar = document.querySelector('.sidebar');          // dari index.html parent
+      const frozen  = document.querySelector('.frozen-top');
+      const root    = document.documentElement;
+
+
+      if (topbar)  root.style.setProperty('--topbar-h',  topbar.offsetHeight + 'px');
+      if (sidebar) {
+        const rect = sidebar.getBoundingClientRect();
+        root.style.setProperty('--main-left', (rect.right) + 'px');  // pakai right edge sidebar
+      }
+      if (frozen)  root.style.setProperty('--frozen-h',  frozen.offsetHeight + 'px');
+    }
+
+    window.addEventListener('load',   setLayoutVars);
+    window.addEventListener('resize', setLayoutVars);
+
+    // Re-calc kalau frozen-top atau sidebar berubah tinggi/lebar (mis. sidebar collapse)
+    const _ftEl = document.querySelector('.frozen-top');
+    const _sbEl = document.querySelector('.sidebar');
+    if (_ftEl) new ResizeObserver(setLayoutVars).observe(_ftEl);
+    if (_sbEl) new ResizeObserver(setLayoutVars).observe(_sbEl);
+
+    // Panggil sekali di awal sebelum data sempat render
+    setLayoutVars();
+
+    initBoard();
+  </script>
+</body>

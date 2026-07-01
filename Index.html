@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<title>FC CORE OPERATIONS SYSTEM (COS)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<?!= include('shared_css'); ?>
+</head>
+<body>
+
+<div class="app">
+
+  <header class="topbar">
+    <div class="header-brand">
+      <img src="https://i.ibb.co.com/RG55ZR0R/FC-COS-1-1.png" alt="FC COS SSC">
+    </div>
+    <div class="header-main">
+      <div id="conn-status" class="conn loading">
+        <i class="ti ti-loader spin-anim"></i>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-body">
+    
+    <nav class="sidebar" id="sidebar">
+
+      <!-- ============ [1] OPERATIONS ============ -->
+      <div class="nav-item on" onclick="toggleSubMenu('ops-sub', this)">
+        <i class="ti ti-layout-dashboard nav-icon"></i>
+        <span class="nav-text">Operations</span>
+        <i class="ti ti-chevron-down sub-arrow"></i>
+      </div>
+      <div class="sub-menu" id="ops-sub">
+        <div class="sub-item on" onclick="goSubPage('dashboard', this)">Operations Dashboard</div>
+      </div>
+
+      <div class="nav-divider"></div>
+
+      <!-- ============ [2] SALES & DELIVERY ============ -->
+      <div class="nav-item" onclick="toggleSubMenu('sales-sub', this)">
+        <i class="ti ti-receipt-2 nav-icon"></i>
+        <span class="nav-text">Sales &amp; Delivery</span>
+        <i class="ti ti-chevron-down sub-arrow"></i>
+      </div>
+      <div class="sub-menu" id="sales-sub">
+        <div class="sub-item" onclick="goSubPage('so', this)">Sales Order</div>
+        <div class="sub-item" onclick="goSubPage('delivery', this)">Delivery</div>
+        <div class="sub-item" onclick="goSubPage('so_done', this)">SO Closed</div>
+      </div>
+
+      <!-- ============ [3] PROCUREMENT ============ -->
+      <div class="nav-item" onclick="toggleSubMenu('proc-sub', this)">
+        <i class="ti ti-shopping-cart nav-icon"></i>
+        <span class="nav-text">Procurement</span>
+        <i class="ti ti-chevron-down sub-arrow"></i>
+      </div>
+      <div class="sub-menu" id="proc-sub">
+        <div class="sub-item" onclick="goSubPage('po', this)">Purchase Order</div>
+        <div class="sub-item" onclick="goSubPage('gr', this)">Goods Receipt</div>
+      </div>
+
+      <div class="nav-divider"></div>
+
+      <!-- ============ [4] PPIC ============ -->
+      <div class="nav-item" onclick="toggleSubMenu('ppic-sub', this)">
+        <i class="ti ti-clipboard-list nav-icon"></i>
+        <span class="nav-text">PPIC</span>
+        <i class="ti ti-chevron-down sub-arrow"></i>
+      </div>
+      <div class="sub-menu" id="ppic-sub">
+        <div class="sub-item" onclick="goSubPage('planning_board', this)">Planning Board</div>
+        <div class="sub-item" onclick="goSubPage('live_board', this)">Live SPK Board</div>
+        <div class="sub-item" onclick="goSubPage('spk_alloc', this)">Allocated Material</div>
+        <div class="sub-item" onclick="goSubPage('spk_ctl', this)">SPK CTL</div>
+        <div class="sub-item" onclick="goSubPage('spk_shr', this)">SPK SHR</div>
+        <div class="sub-item" onclick="goSubPage('spk_slt', this)">SPK SLT</div>
+      </div>
+
+      <!-- ============ [5] PRODUCTION ============ -->
+      <div class="nav-item" onclick="toggleSubMenu('prod-sub', this)">
+        <i class="ti ti-tools nav-icon"></i>
+        <span class="nav-text">Production</span>
+        <i class="ti ti-chevron-down sub-arrow"></i>
+      </div>
+      <div class="sub-menu" id="prod-sub">
+        <div class="sub-item" onclick="goSubPage('board_ctl', this)">Board Mesin CTL</div>
+        <div class="sub-item" onclick="goSubPage('board_shr', this)">Board Mesin SHR</div>
+        <div class="sub-item" onclick="goSubPage('board_slt', this)">Board Mesin SLT</div>
+      </div>
+
+      <div class="nav-divider"></div>
+
+      <!-- ============ [6] INVENTORY ============ -->
+      <div class="nav-item" onclick="toggleSubMenu('inv-sub', this)">
+        <i class="ti ti-building-warehouse nav-icon"></i>
+        <span class="nav-text">Inventory</span>
+        <i class="ti ti-chevron-down sub-arrow"></i>
+      </div>
+      <div class="sub-menu" id="inv-sub">
+        <div class="sub-item" onclick="goSubPage('live_stok', this)">Live Inventory</div>
+        <div class="sub-item" onclick="goSubPage('opname', this)">Stock Opname</div>
+        <div class="sub-item" onclick="goSubPage('tracker', this)">Traceability</div>
+      </div>
+
+      <!-- ============ [7] REPORTS ============ -->
+      <div class="nav-item" onclick="toggleSubMenu('rep-sub', this)">
+        <i class="ti ti-report-analytics nav-icon"></i>
+        <span class="nav-text">Reports</span>
+        <i class="ti ti-chevron-down sub-arrow"></i>
+      </div>
+      <div class="sub-menu" id="rep-sub">
+        <div class="sub-item" onclick="goSubPage('report_mutasi', this)">Stock Mutation Report</div>
+      </div>
+
+    </nav>
+
+    <main id="main-content">
+      <div class="loading">Loading...</div>
+    </main>
+
+  </div>
+
+</div>
+
+<div id="toast" class="toast"></div>
+
+<?!= include('shared_js'); ?>
+
+<script>
+// ==========================================
+// CONTROL UTAMA NAVIGATION JAVASCRIPT
+// ==========================================
+
+function forceCollapseSidebar() {
+  // Memberikan efek paksa mengempis setelah di-klik agar area kerja kembali luas
+  var sb = document.getElementById('sidebar');
+  sb.classList.add('force-collapse');
+  setTimeout(function() { sb.classList.remove('force-collapse'); }, 300);
+}
+
+function toggleSubMenu(id, el) {
+  var sm = document.getElementById(id);
+  var isOpen = sm.style.display === 'flex';
+
+  // Tutup folder dropdown lain untuk menjaga kerapian sidebar
+  document.querySelectorAll('.sub-menu').forEach(function(m) { m.style.display = 'none'; });
+  document.querySelectorAll('.nav-item').forEach(function(b) { b.classList.remove('on'); });
+
+  if (!isOpen) {
+    sm.style.display = 'flex'; // Ekspansi sub-menu ke bawah
+    if(el) el.classList.add('on');
+  }
+}
+
+function goSubPage(pageName, el) {
+  // Tandai sub-menu yang aktif saja
+  document.querySelectorAll('.sub-item').forEach(function(b) { b.classList.remove('on'); });
+  if (el) el.classList.add('on');
+
+  loadPage('page_' + pageName);
+  forceCollapseSidebar();
+}
+
+function loadPage(pageName) {
+  var main = document.getElementById('main-content');
+  main.innerHTML = '<div class="loading"><i class="ti ti-loader" style="animation:spin 1s linear infinite"></i> Memuat Halaman ' + pageName.replace('page_','').toUpperCase() + '...</div>';
+  
+  google.script.run
+    .withSuccessHandler(function(html) {
+      main.innerHTML = html;
+      
+      // Mengaktifkan kembali tag <script> yang tersemat di dalam file HTML page target
+      var scripts = main.querySelectorAll('script');
+      scripts.forEach(function(s) {
+        var ns = document.createElement('script');
+        if (s.src) ns.src = s.src;
+        else ns.textContent = s.textContent;
+        document.body.appendChild(ns);
+        s.remove();
+      });
+    })
+    .withFailureHandler(function(err) {
+      main.innerHTML = '<div class="loading" style="color:#A32D2D">Error System: ' + err.message + '</div>';
+    })
+    .getPageContent(pageName);
+}
+
+// Cek status konektivitas database awal
+google.script.run
+  .withSuccessHandler(function() {
+    var conn = document.getElementById('conn-status');
+    conn.className = 'conn ok';
+    conn.innerHTML = '<i class="ti ti-circle-check"></i> Connected';
+  })
+  .withFailureHandler(function(err) {
+    var conn = document.getElementById('conn-status');
+    conn.className = 'conn err';
+    conn.innerHTML = '<i class="ti ti-x"></i> Error';
+  })
+  .getSheetData('M_ITEM');
+
+// Buka Operations Dashboard secara otomatis saat sistem dijalankan pertama kali
+loadPage('page_dashboard');
+</script>
+
+</body>
+</html>

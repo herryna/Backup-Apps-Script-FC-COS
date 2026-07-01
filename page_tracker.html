@@ -1,0 +1,1177 @@
+<style>
+/* ================================================================
+   PAGE TRACKER — BATCH TRACEABILITY UI (v2 - dengan Mass Balance)
+================================================================ */
+.tr-container { padding-bottom: 20px; max-width: 100%; }
+
+.tr-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; }
+.tr-head h1 { font-size: 20px; font-weight: 700; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 8px; }
+.tr-head .sub { font-size: 12px; color: #6b7785; margin-top: 2px; display: block; }
+
+/* Filter card */
+.tr-filter {
+  display: grid;
+  grid-template-columns: 2fr 0.9fr 0.9fr 1fr 1fr auto auto;
+  gap: 10px; align-items: end;
+  padding: 14px; background: #fff; border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+  margin-bottom: 14px;
+}
+.tr-filter .tr-field label { font-size: 10px; font-weight: 600; color: #6b7785; text-transform: uppercase; margin-bottom: 3px; display: block; letter-spacing: 0.4px; }
+.tr-filter input, .tr-filter select {
+  width: 100%; padding: 6px 10px; height: 32px;
+  border: 1px solid #cbd5e1; border-radius: 4px;
+  font-size: 12px; background: #fff; box-sizing: border-box;
+}
+.tr-filter input:focus, .tr-filter select:focus { outline: none; border-color: #1565c0; box-shadow: 0 0 0 2px rgba(21,101,192,0.15); }
+.tr-filter button { height: 32px; }
+
+/* Results table */
+.tr-results { background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); margin-bottom: 14px; }
+.tr-results .head { padding: 10px 14px; border-bottom: 1px solid #e0e0e0; font-weight: 600; font-size: 13px; color: #0f172a; display: flex; justify-content: space-between; align-items: center; }
+.tr-results .head .meta { font-weight: 400; font-size: 11px; color: #6b7785; }
+.tr-results table { width: 100%; border-collapse: collapse; }
+.tr-results thead th { text-align: left; padding: 8px 12px; font-size: 11px; font-weight: 600; color: #6b7785; text-transform: uppercase; background: #f8fafc; border-bottom: 1px solid #e0e0e0; position: sticky; top: 0; z-index: 5; }
+.tr-results tbody td { padding: 7px 12px; font-size: 12px; border-bottom: 1px solid #f0f0f0; }
+.tr-results tbody tr { cursor: pointer; transition: background 0.1s; }
+.tr-results tbody tr:hover td { background: #f0f9ff; }
+.tr-results tbody tr.selected td { background: #dbeafe !important; }
+.tr-results .scroll { max-height: 280px; overflow-y: auto; }
+
+/* Batch type badges */
+.b-badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+.b-GR    { background: #dbeafe; color: #1e40af; }
+.b-SHEET { background: #ccfbf1; color: #0f766e; }
+.b-WIP   { background: #ede9fe; color: #6d28d9; }
+.b-FGC, .b-FGS, .b-FCL, .b-FSL, .b-FSH { background: #dcfce7; color: #166534; }
+.b-NG    { background: #fee2e2; color: #991b1b; }
+
+/* Detail card */
+.tr-detail { background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); padding: 18px; }
+.tr-detail-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+.tr-detail-title { font-size: 20px; font-weight: 700; color: #0f172a; font-family: ui-monospace, 'Menlo', monospace; }
+.tr-detail-sub { font-size: 11px; color: #6b7785; margin-top: 4px; }
+.tr-detail-head button { margin-left: 4px; }
+
+.tr-meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; padding: 12px 14px; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0; }
+.tr-meta-item { font-size: 11px; }
+.tr-meta-label { color: #6b7785; font-weight: 600; text-transform: uppercase; font-size: 9.5px; margin-bottom: 3px; letter-spacing: 0.3px; }
+.tr-meta-value { color: #0f172a; font-weight: 600; font-size: 12px; word-break: break-word; }
+
+/* Tabs */
+.tr-tabs { display: flex; gap: 2px; border-bottom: 1px solid #e0e0e0; margin-bottom: 14px; flex-wrap: wrap; }
+.tr-tab { padding: 9px 16px; cursor: pointer; font-size: 12px; font-weight: 600; color: #6b7785; border-bottom: 2px solid transparent; transition: all 0.15s; display: flex; align-items: center; gap: 6px; }
+.tr-tab:hover { color: #1565c0; }
+.tr-tab.active { color: #1565c0; border-bottom-color: #1565c0; }
+.tr-tab-count { background: #f1f5f9; color: #475569; padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+.tr-tab.active .tr-tab-count { background: #dbeafe; color: #1e40af; }
+.tr-tab.primary { font-weight: 700; }
+.tr-tab.primary::before { content: "★"; color: #f59e0b; margin-right: 4px; font-size: 11px; }
+
+.tr-tab-content { display: none; }
+.tr-tab-content.active { display: block; }
+
+/* ===================================================================
+   MASS BALANCE TAB (BARU)
+   =================================================================== */
+.mb-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.mb-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 12px 14px;
+}
+.mb-card-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #6b7785;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 4px;
+}
+.mb-card-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.mb-card-sub {
+  font-size: 10.5px;
+  color: #6b7785;
+  margin-top: 2px;
+}
+.mb-card.status-OK       { background: #ecfdf5; border-color: #a7f3d0; }
+.mb-card.status-OK       .mb-card-value { color: #047857; }
+.mb-card.status-WARNING  { background: #fffbeb; border-color: #fde68a; }
+.mb-card.status-WARNING  .mb-card-value { color: #b45309; }
+.mb-card.status-CRITICAL { background: #fef2f2; border-color: #fecaca; }
+.mb-card.status-CRITICAL .mb-card-value { color: #b91c1c; }
+
+.mb-overall {
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.mb-overall.status-OK       { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+.mb-overall.status-WARNING  { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+.mb-overall.status-CRITICAL { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+.mb-overall i { font-size: 18px; }
+
+.mb-section-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #6b7785;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin: 14px 0 8px 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* Distribution table */
+.mb-dist {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.mb-dist thead th {
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #6b7785;
+  text-transform: uppercase;
+  background: #f8fafc;
+  border-bottom: 2px solid #e0e0e0;
+  letter-spacing: 0.3px;
+}
+.mb-dist tbody td {
+  padding: 9px 10px;
+  font-size: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+}
+.mb-dist tbody tr.expandable { cursor: pointer; transition: background 0.1s; }
+.mb-dist tbody tr.expandable:hover td { background: #f0f9ff; }
+.mb-dist tbody tr.expanded td { background: #eff6ff; }
+.mb-dist tbody tr.total-row td {
+  background: #f8fafc;
+  font-weight: 700;
+  border-top: 2px solid #cbd5e1;
+}
+.mb-dist tbody tr.initial-row td {
+  background: #fef3c7;
+  font-weight: 700;
+}
+.mb-dist .icon-col { font-size: 14px; width: 28px; }
+.mb-dist .num { text-align: right; font-variant-numeric: tabular-nums; }
+.mb-dist .qtykg { font-weight: 600; }
+.mb-dist .pct { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+.mb-detail-row { background: #fafafa !important; }
+.mb-detail-content {
+  padding: 4px 10px 8px 38px;
+  font-size: 11px;
+  color: #475569;
+}
+.mb-detail-item {
+  padding: 5px 0;
+  border-bottom: 1px dashed #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mb-detail-item:last-child { border-bottom: none; }
+.mb-detail-batch {
+  font-family: ui-monospace, monospace;
+  font-weight: 600;
+  color: #0f172a;
+  cursor: pointer;
+}
+.mb-detail-batch:hover { color: #1565c0; text-decoration: underline; }
+.mb-detail-desc { flex: 1; color: #6b7785; }
+.mb-detail-qty { font-weight: 600; color: #0f172a; font-variant-numeric: tabular-nums; }
+.mb-detail-loc { color: #6b7785; font-size: 10.5px; }
+.mb-detail-status {
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.mb-status-Available { background: #dbeafe; color: #1e40af; }
+.mb-status-Running   { background: #fef3c7; color: #92400e; }
+.mb-status-Reserved  { background: #fce7f3; color: #9d174d; }
+.mb-status-Shipped   { background: #dcfce7; color: #166534; }
+
+.mb-alerts {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.mb-alert {
+  padding: 8px 12px;
+  border-radius: 5px;
+  font-size: 11.5px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border-left: 3px solid;
+}
+.mb-alert.lvl-OK       { background: #ecfdf5; color: #065f46; border-left-color: #10b981; }
+.mb-alert.lvl-WARNING  { background: #fffbeb; color: #78350f; border-left-color: #f59e0b; }
+.mb-alert.lvl-CRITICAL { background: #fef2f2; color: #7f1d1d; border-left-color: #dc2626; }
+.mb-alert-icon { font-size: 14px; line-height: 1; }
+.mb-alert-content { flex: 1; }
+.mb-alert-title { font-weight: 700; margin-bottom: 2px; }
+.mb-alert-msg { font-size: 11px; }
+.mb-alert-thr { font-size: 10px; opacity: 0.8; margin-top: 2px; }
+
+.mb-empty-pos {
+  color: #94a3b8 !important;
+  font-style: italic;
+}
+
+/* ===================================================================
+   END MASS BALANCE STYLES
+   =================================================================== */
+
+/* Tree view */
+.tr-tree-section { margin-bottom: 14px; }
+.tr-tree-section-title { font-size: 10px; font-weight: 700; color: #6b7785; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 8px; }
+.tr-tree-ancestors { padding: 10px 12px; background: #fffbeb; border-radius: 6px; border: 1px solid #fde68a; }
+
+.tr-tree-node { padding: 2px 0; }
+.tr-tree-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 4px; transition: background 0.15s; }
+.tr-tree-row:hover { background: #f0f9ff; }
+.tr-tree-row.current { background: #fef3c7; border-left: 3px solid #f59e0b; padding-left: 7px; }
+.tr-tree-toggle { width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; color: #6b7785; font-size: 11px; flex-shrink: 0; }
+.tr-tree-toggle.empty { color: transparent; }
+.tr-tree-id { font-family: ui-monospace, monospace; font-size: 12px; font-weight: 600; color: #0f172a; cursor: pointer; }
+.tr-tree-id:hover { color: #1565c0; text-decoration: underline; }
+.tr-tree-info { font-size: 11px; color: #6b7785; }
+.tr-tree-children { margin-left: 22px; border-left: 1px dashed #cbd5e1; padding-left: 8px; }
+
+/* Flat table */
+.tr-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+.tr-tbl thead th { text-align: left; padding: 8px 10px; font-size: 11px; font-weight: 600; color: #6b7785; text-transform: uppercase; background: #f8fafc; border-bottom: 1px solid #e0e0e0; letter-spacing: 0.3px; }
+.tr-tbl tbody td { padding: 7px 10px; font-size: 11.5px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+.tr-tbl tbody tr.self td { background: #fef3c7; font-weight: 600; }
+.tr-tbl .num { text-align: right; font-variant-numeric: tabular-nums; }
+.tr-tbl .mono { font-family: ui-monospace, monospace; }
+
+/* Timeline */
+.tr-timeline { position: relative; padding-left: 28px; }
+.tr-timeline::before { content: ''; position: absolute; left: 9px; top: 8px; bottom: 8px; width: 2px; background: #e2e8f0; }
+.tr-event { position: relative; padding: 0 0 16px 0; }
+.tr-event::before { content: ''; position: absolute; left: -25px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: #1565c0; border: 2px solid #fff; box-shadow: 0 0 0 1px #cbd5e1; }
+.tr-event.e-GR_IN::before        { background: #1e40af; }
+.tr-event.e-PROD_OUTPUT::before  { background: #0f766e; }
+.tr-event.e-NG_CREATED::before, .tr-event.e-SPK_CANCEL::before { background: #dc2626; }
+.tr-event.e-SPK_DONE::before     { background: #16a34a; }
+.tr-event.e-DELV_SHIP::before    { background: #f59e0b; }
+.tr-event.e-ICT_TRANSFER::before { background: #d946ef; }
+.tr-event.e-SPK_CREATE::before, .tr-event.e-SPK_START::before { background: #6b7785; }
+
+.tr-event-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin-bottom: 4px; }
+.tr-event-time { font-size: 10px; color: #6b7785; font-family: ui-monospace, monospace; white-space: nowrap; }
+.tr-event-label { font-size: 12px; font-weight: 600; color: #0f172a; }
+.tr-event-ref { font-size: 11px; color: #1565c0; font-family: ui-monospace, monospace; }
+.tr-event-qty { font-size: 11px; color: #6b7785; font-variant-numeric: tabular-nums; }
+.tr-event-note { font-size: 11px; color: #6b7785; line-height: 1.4; }
+
+/* Empty state */
+.tr-empty { text-align: center; padding: 30px; color: #6b7785; font-size: 12px; }
+.tr-empty .ti-loader { animation: spin 1s linear infinite; }
+
+/* Click-to-trace cursor */
+.tr-clickable { cursor: pointer; }
+.tr-clickable:hover { text-decoration: underline; color: #1565c0; }
+
+/* Button styles consistent dengan shared_css */
+.tr-btn-search { background: #1565c0; color: #fff; border: none !important; padding: 0 16px; font-weight: 600; }
+.tr-btn-search:hover { background: #0d47a1; transform: none; }
+</style>
+
+<div class="tr-container">
+
+  <div class="tr-head">
+    <div>
+      <h1><i class="ti ti-route"></i> Batch Traceability</h1>
+      <span class="sub">Posisi stok, mass balance &amp; silsilah batch dari Goods Receipt sampai Delivery</span>
+    </div>
+    <button class="btn" onclick="tr_reset()"><i class="ti ti-refresh"></i> Reset</button>
+  </div>
+
+  <!-- FILTER SECTION -->
+  <div class="tr-filter">
+    <div class="tr-field">
+      <label>Batch ID / Item Code</label>
+      <input type="text" id="tr-q-batch" placeholder="contoh: GR260013, SHT-, 6-CL-019..." onkeypress="if(event.key==='Enter')tr_search()">
+    </div>
+    <div class="tr-field">
+      <label>Owner</label>
+      <select id="tr-q-owner">
+        <option value="">Semua</option>
+        <option value="FC">FC</option>
+        <option value="DRC">DRC</option>
+      </select>
+    </div>
+    <div class="tr-field">
+      <label>Lokasi</label>
+      <select id="tr-q-loc">
+        <option value="">Semua</option>
+        <option value="COIL">Coil</option>
+        <option value="SHEET">Sheet</option>
+        <option value="WIP">WIP</option>
+        <option value="FG">FG</option>
+        <option value="NG">NG</option>
+      </select>
+    </div>
+    <div class="tr-field">
+      <label>Dari Tgl</label>
+      <input type="date" id="tr-q-from">
+    </div>
+    <div class="tr-field">
+      <label>S/D Tgl</label>
+      <input type="date" id="tr-q-to">
+    </div>
+    <button class="btn tr-btn-search" onclick="tr_search()"><i class="ti ti-search"></i> Cari</button>
+    <button class="btn" onclick="tr_clearFilter()"><i class="ti ti-x"></i> Clear</button>
+  </div>
+
+  <!-- RESULTS TABLE -->
+  <div class="tr-results">
+    <div class="head">
+      <span id="tr-results-info">Hasil Pencarian</span>
+      <span class="meta" id="tr-results-meta"></span>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:14%;">Batch ID</th>
+            <th style="width:8%;">Type</th>
+            <th style="width:9%;">Tgl</th>
+            <th style="width:11%;">Item Code</th>
+            <th style="width:22%;">Description</th>
+            <th style="width:7%;">Owner</th>
+            <th style="width:8%; text-align:right;">Qty</th>
+            <th style="width:9%; text-align:right;">KG</th>
+            <th style="width:12%;">Lokasi / SPK</th>
+          </tr>
+        </thead>
+        <tbody id="tr-results-tbody">
+          <tr><td colspan="9" class="tr-empty"><i class="ti ti-loader"></i> Memuat data awal...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- DETAIL SECTION -->
+  <div class="tr-detail" id="tr-detail-card" style="display:none;">
+    <div class="tr-detail-head">
+      <div>
+        <div class="tr-detail-title" id="tr-detail-title">—</div>
+        <div class="tr-detail-sub" id="tr-detail-sub">—</div>
+      </div>
+      <div>
+        <button class="btn" onclick="tr_export()" id="tr-btn-export"><i class="ti ti-download"></i> Export CSV</button>
+        <button class="btn" onclick="tr_closeDetail()"><i class="ti ti-x"></i> Tutup</button>
+      </div>
+    </div>
+
+    <div class="tr-meta-grid" id="tr-meta"></div>
+
+    <!-- TABS — Mass Balance jadi PRIMARY -->
+    <div class="tr-tabs">
+      <div class="tr-tab primary active" data-tab="mass" onclick="tr_switchTab('mass')">
+        <i class="ti ti-scale"></i> Mass Balance
+      </div>
+      <div class="tr-tab" data-tab="tree" onclick="tr_switchTab('tree')">
+        <i class="ti ti-binary-tree"></i> Tree
+      </div>
+      <div class="tr-tab" data-tab="flat" onclick="tr_switchTab('flat')">
+        <i class="ti ti-list"></i> Flat List <span class="tr-tab-count" id="tr-cnt-flat">0</span>
+      </div>
+      <div class="tr-tab" data-tab="timeline" onclick="tr_switchTab('timeline')">
+        <i class="ti ti-history"></i> Timeline <span class="tr-tab-count" id="tr-cnt-timeline">0</span>
+      </div>
+      <div class="tr-tab" data-tab="delivery" onclick="tr_switchTab('delivery')">
+        <i class="ti ti-truck"></i> Delivery <span class="tr-tab-count" id="tr-cnt-delv">0</span>
+      </div>
+    </div>
+
+    <!-- TAB: MASS BALANCE (PRIMARY / DEFAULT) -->
+    <div class="tr-tab-content active" id="tr-content-mass">
+      <div id="tr-mass-root">
+        <div class="tr-empty"><i class="ti ti-loader"></i> Memuat mass balance...</div>
+      </div>
+    </div>
+
+    <!-- TAB: TREE -->
+    <div class="tr-tab-content" id="tr-content-tree">
+      <div id="tr-tree-root">
+        <div class="tr-empty"><i class="ti ti-loader"></i> Memuat tree...</div>
+      </div>
+    </div>
+
+    <!-- TAB: FLAT -->
+    <div class="tr-tab-content" id="tr-content-flat">
+      <table class="tr-tbl">
+        <thead>
+          <tr>
+            <th style="width:8%;">Depth</th>
+            <th style="width:14%;">Batch ID</th>
+            <th style="width:8%;">Type</th>
+            <th style="width:11%;">Item</th>
+            <th style="width:20%;">Spec (T×P×L)</th>
+            <th style="width:8%; text-align:right;">Qty</th>
+            <th style="width:9%; text-align:right;">KG</th>
+            <th style="width:14%;">SPK Ref</th>
+            <th style="width:8%;">Owner</th>
+          </tr>
+        </thead>
+        <tbody id="tr-flat-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- TAB: TIMELINE -->
+    <div class="tr-tab-content" id="tr-content-timeline">
+      <div class="tr-timeline" id="tr-timeline-root">
+        <div class="tr-empty"><i class="ti ti-loader"></i> Memuat timeline...</div>
+      </div>
+    </div>
+
+    <!-- TAB: DELIVERY -->
+    <div class="tr-tab-content" id="tr-content-delivery">
+      <table class="tr-tbl">
+        <thead>
+          <tr>
+            <th style="width:10%;">Tgl</th>
+            <th style="width:13%;">SJ No</th>
+            <th style="width:16%;">SO No</th>
+            <th style="width:12%;">Customer</th>
+            <th style="width:14%;">Batch Dikirim</th>
+            <th style="width:9%; text-align:right;">Qty</th>
+            <th style="width:9%; text-align:right;">KG</th>
+            <th style="width:17%;">Armada / Driver</th>
+          </tr>
+        </thead>
+        <tbody id="tr-delv-tbody"></tbody>
+      </table>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+(function() {
+
+  // ======================================================================
+  // STATE
+  // ======================================================================
+  var TR_STATE = {
+    currentBatch  : null,
+    currentDetail : null,   // { trace: {...}, mutasi: {...}, mass: {...} }
+    activeTab     : 'mass'  // ← default: Mass Balance
+  };
+
+  // ======================================================================
+  // UTILS
+  // ======================================================================
+  function fmtNum(n) { return (Number(n) || 0).toLocaleString('id-ID'); }
+  function fmtNum2(n) { return (Number(n) || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 }); }
+  function fmtPct(n) { return (Number(n) || 0).toFixed(2) + '%'; }
+  function safe(s) { return s == null ? '' : String(s); }
+  function fmtDate(d) {
+    if (!d) return '-';
+    var dt = (d instanceof Date) ? d : new Date(d);
+    if (isNaN(dt.getTime())) return '-';
+    var mth = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
+    var dd = String(dt.getDate()).padStart(2,'0');
+    return dd + ' ' + mth[dt.getMonth()] + ' ' + String(dt.getFullYear()).slice(-2);
+  }
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+  }
+  // Format Qty/KG side-by-side: "92 Sht / 5000 Kg"
+  function fmtQtyKg(qty, qtyUnit, kg, kgUnit) {
+    var q = fmtNum2(qty || 0);
+    var k = fmtNum2(kg || 0);
+    return q + ' ' + (qtyUnit || 'Sht') + ' / ' + k + ' ' + (kgUnit || 'Kg');
+  }
+
+  // ======================================================================
+  // SEARCH
+  // ======================================================================
+  window.tr_search = function() {
+    var filter = {
+      batch_id  : document.getElementById('tr-q-batch').value.trim(),
+      owner     : document.getElementById('tr-q-owner').value,
+      loc       : document.getElementById('tr-q-loc').value,
+      date_from : document.getElementById('tr-q-from').value,
+      date_to   : document.getElementById('tr-q-to').value,
+      limit     : 200
+    };
+
+    document.getElementById('tr-results-tbody').innerHTML =
+      '<tr><td colspan="9" class="tr-empty"><i class="ti ti-loader"></i> Mencari batch...</td></tr>';
+    document.getElementById('tr-results-meta').textContent = '';
+
+    gas('searchBatchByFilter', [filter], function(res) {
+      if (!res || !res.success) {
+        document.getElementById('tr-results-tbody').innerHTML =
+          '<tr><td colspan="9" class="tr-empty" style="color:#A32D2D;">Error: ' + escapeHtml(res && res.message ? res.message : 'unknown') + '</td></tr>';
+        return;
+      }
+      tr_renderResults(res);
+    });
+  };
+
+  window.tr_clearFilter = function() {
+    document.getElementById('tr-q-batch').value = '';
+    document.getElementById('tr-q-owner').value = '';
+    document.getElementById('tr-q-loc').value   = '';
+    document.getElementById('tr-q-from').value  = '';
+    document.getElementById('tr-q-to').value    = '';
+  };
+
+  window.tr_reset = function() {
+    tr_clearFilter();
+    document.getElementById('tr-results-tbody').innerHTML =
+      '<tr><td colspan="9" class="tr-empty">Klik <strong>Cari</strong> untuk menampilkan batch</td></tr>';
+    document.getElementById('tr-results-info').textContent = 'Hasil Pencarian';
+    document.getElementById('tr-results-meta').textContent = '';
+    tr_closeDetail();
+  };
+
+  function tr_renderResults(res) {
+    var tbody = document.getElementById('tr-results-tbody');
+    if (!res.results || res.results.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" class="tr-empty">Tidak ada batch yang cocok dengan filter</td></tr>';
+      document.getElementById('tr-results-info').textContent = 'Hasil Pencarian (0)';
+      document.getElementById('tr-results-meta').textContent = '';
+      return;
+    }
+    document.getElementById('tr-results-info').textContent = 'Hasil Pencarian (' + res.total + ')';
+    document.getElementById('tr-results-meta').textContent = res.truncated ? '⚠ Dibatasi 200 baris pertama' : '';
+
+    var html = '';
+    for (var i = 0; i < res.results.length; i++) {
+      var r = res.results[i];
+      var locOrSpk = r.loc || r.spk_ref || '-';
+      var rowSel = (r.batch_id === TR_STATE.currentBatch) ? ' class="selected"' : '';
+      html += '<tr' + rowSel + ' onclick="tr_loadDetail(\'' + escapeHtml(r.batch_id) + '\')">';
+      html += '<td><span class="tr-tree-id">' + escapeHtml(r.batch_id) + '</span></td>';
+      html += '<td><span class="b-badge b-' + escapeHtml(r.type) + '">' + escapeHtml(r.type) + '</span></td>';
+      html += '<td>' + escapeHtml(r.tgl_label) + '</td>';
+      html += '<td>' + escapeHtml(r.item_code || '-') + '</td>';
+      html += '<td style="font-size:11px;">' + escapeHtml(r.description || '-') + '</td>';
+      html += '<td>' + escapeHtml(r.owner || '-') + '</td>';
+      html += '<td style="text-align:right;">' + fmtNum2(r.qty) + '</td>';
+      html += '<td style="text-align:right;">' + fmtNum2(r.kg) + '</td>';
+      html += '<td style="font-size:11px; font-family:ui-monospace,monospace;">' + escapeHtml(locOrSpk) + '</td>';
+      html += '</tr>';
+    }
+    tbody.innerHTML = html;
+  }
+
+  // ======================================================================
+  // LOAD DETAIL — fetch trace + mutasi + mass balance parallel
+  // ======================================================================
+  window.tr_loadDetail = function(batchId) {
+    if (!batchId) return;
+    TR_STATE.currentBatch = batchId;
+
+    // Highlight selected row
+    document.querySelectorAll('#tr-results-tbody tr').forEach(function(tr) { tr.classList.remove('selected'); });
+    var rows = document.querySelectorAll('#tr-results-tbody tr');
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i].textContent.indexOf(batchId) > -1) { rows[i].classList.add('selected'); break; }
+    }
+
+    document.getElementById('tr-detail-card').style.display = 'block';
+    document.getElementById('tr-detail-title').textContent = batchId;
+    document.getElementById('tr-detail-sub').innerHTML = '<i class="ti ti-loader" style="animation:spin 1s linear infinite"></i> Memuat detail...';
+    document.getElementById('tr-meta').innerHTML = '';
+    document.getElementById('tr-mass-root').innerHTML = '<div class="tr-empty"><i class="ti ti-loader"></i> Memuat mass balance...</div>';
+    document.getElementById('tr-tree-root').innerHTML = '<div class="tr-empty"><i class="ti ti-loader"></i> Memuat tree...</div>';
+    document.getElementById('tr-flat-tbody').innerHTML = '';
+    document.getElementById('tr-timeline-root').innerHTML = '<div class="tr-empty"><i class="ti ti-loader"></i> Memuat timeline...</div>';
+    document.getElementById('tr-delv-tbody').innerHTML = '';
+    document.getElementById('tr-cnt-flat').textContent = '0';
+    document.getElementById('tr-cnt-timeline').textContent = '0';
+    document.getElementById('tr-cnt-delv').textContent = '0';
+
+    // Switch ke Mass Balance tab (PRIMARY)
+    tr_switchTab('mass');
+
+    setTimeout(function() {
+      document.getElementById('tr-detail-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+
+    TR_STATE.currentDetail = {};
+
+    // === FETCH 1: MASS BALANCE (PRIMARY — load duluan) ===
+    gas('getBatchMassBalance', [batchId], function(massRes) {
+      if (!massRes || !massRes.success) {
+        document.getElementById('tr-mass-root').innerHTML =
+          '<div class="tr-empty" style="color:#A32D2D;">Gagal memuat mass balance: ' +
+          escapeHtml(massRes && massRes.message ? massRes.message : 'unknown') + '</div>';
+        return;
+      }
+      TR_STATE.currentDetail.mass = massRes;
+      tr_renderMassBalance(massRes);
+    });
+
+    // === FETCH 2: TRACE ===
+    gas('getBatchTrace', [batchId], function(traceRes) {
+      if (!traceRes || !traceRes.success) {
+        document.getElementById('tr-detail-sub').innerHTML = '<span style="color:#A32D2D;">Error: ' + escapeHtml(traceRes && traceRes.message ? traceRes.message : 'unknown') + '</span>';
+        document.getElementById('tr-tree-root').innerHTML = '<div class="tr-empty" style="color:#A32D2D;">Gagal memuat tree</div>';
+        return;
+      }
+      TR_STATE.currentDetail.trace = traceRes;
+      tr_renderMeta(traceRes.meta);
+      tr_renderTree(traceRes, batchId);
+      tr_renderFlat(traceRes.flat);
+      tr_renderDelivery(traceRes.deliveries);
+
+      document.getElementById('tr-cnt-flat').textContent = (traceRes.flat || []).length;
+      document.getElementById('tr-cnt-delv').textContent = (traceRes.deliveries || []).length;
+
+      var sub = '';
+      if (traceRes.meta.total_ancestors > 0) sub += traceRes.meta.total_ancestors + ' parent';
+      if (traceRes.meta.total_descendants > 0) sub += (sub ? ' · ' : '') + traceRes.meta.total_descendants + ' descendant';
+      if (traceRes.meta.is_delivered) sub += (sub ? ' · ' : '') + '✓ delivered';
+      else sub += (sub ? ' · ' : '') + 'in stock';
+      document.getElementById('tr-detail-sub').textContent = sub;
+    });
+
+    // === FETCH 3: MUTASI ===
+    gas('getBatchMutasi', [batchId], function(mutRes) {
+      if (mutRes && mutRes.success) {
+        TR_STATE.currentDetail.mutasi = mutRes;
+        tr_renderTimeline(mutRes.events);
+        document.getElementById('tr-cnt-timeline').textContent = mutRes.total || 0;
+      } else {
+        document.getElementById('tr-timeline-root').innerHTML = '<div class="tr-empty" style="color:#A32D2D;">Gagal memuat timeline</div>';
+      }
+    });
+  };
+
+  function tr_renderMeta(meta) {
+    var items = [
+      { label: 'Root Batch',  value: safe(meta.root_batch) || '-' },
+      { label: 'Supplier',    value: safe(meta.supplier) || '-' },
+      { label: 'No PO',       value: safe(meta.no_po) || '-' },
+      { label: 'No DO',       value: safe(meta.no_do) || '-' },
+      { label: 'Ancestors',   value: meta.total_ancestors },
+      { label: 'Descendants', value: meta.total_descendants },
+      { label: 'Total Delivered', value: meta.total_deliveries + ' SJ / ' + fmtNum(meta.total_delv_qty) + ' pcs' },
+      { label: 'Status',      value: meta.is_delivered ? '✓ Delivered' : '◯ In Stock' }
+    ];
+    var html = '';
+    for (var i = 0; i < items.length; i++) {
+      html += '<div class="tr-meta-item">';
+      html += '<div class="tr-meta-label">' + escapeHtml(items[i].label) + '</div>';
+      html += '<div class="tr-meta-value">' + escapeHtml(String(items[i].value)) + '</div>';
+      html += '</div>';
+    }
+    document.getElementById('tr-meta').innerHTML = html;
+  }
+
+  // ======================================================================
+  // RENDER MASS BALANCE (BARU) — tab PRIMARY
+  // ======================================================================
+  function tr_renderMassBalance(mb) {
+    var root = document.getElementById('tr-mass-root');
+    var html = '';
+
+    // ─── Header info ───
+    var batchHeader = mb.batch_id + (mb.description ? ' — ' + mb.description : '');
+    document.getElementById('tr-detail-title').textContent = batchHeader;
+
+    // ─── Overall Status Banner ───
+    var overallIcon = mb.overall_status === 'OK' ? 'ti-circle-check' :
+                      mb.overall_status === 'WARNING' ? 'ti-alert-triangle' : 'ti-alert-octagon';
+    html += '<div class="mb-overall status-' + mb.overall_status + '">';
+    html += '<i class="ti ' + overallIcon + '"></i>';
+    html += '<div><strong>' + escapeHtml(mb.overall_status) + '</strong> — ' + escapeHtml(mb.overall_message) + '</div>';
+    html += '</div>';
+
+    // ─── Summary Cards ───
+    var initialDisplay = fmtQtyKg(mb.initial_qty, mb.initial_qty_unit, mb.initial_kg, mb.initial_kg_unit);
+    var tercatatDisplay = fmtQtyKg(mb.summary.total_tercatat_qty, mb.initial_qty_unit, mb.summary.total_tercatat_kg, 'Kg');
+    var selisihSign = mb.summary.selisih_kg >= 0 ? '+' : '';
+    var selisihDisplay = selisihSign + fmtNum2(mb.summary.selisih_kg) + ' Kg (' + selisihSign + fmtNum2(mb.summary.selisih_pct) + '%)';
+
+    // Determine status untuk tiap card
+    var mbAlert = tr_findAlert(mb.alerts, 'MASS_BALANCE_PCT');
+    var ngAlert = tr_findAlert(mb.alerts, 'NG_RATE_PCT');
+    var yldAlert = tr_findAlert(mb.alerts, 'YIELD_COIL_PCT') ||
+                   tr_findAlert(mb.alerts, 'YIELD_SHEET_PCT') ||
+                   tr_findAlert(mb.alerts, 'YIELD_WIP_PCT');
+
+    var selisihCardClass = mbAlert ? 'status-' + mbAlert.level : 'status-OK';
+    var yieldCardClass   = yldAlert ? 'status-' + yldAlert.level : 'status-OK';
+
+    html += '<div class="mb-summary-cards">';
+    html += '<div class="mb-card">';
+    html += '<div class="mb-card-label">Initial</div>';
+    html += '<div class="mb-card-value">' + escapeHtml(initialDisplay) + '</div>';
+    html += '<div class="mb-card-sub">Batch awal (sebelum diproses)</div>';
+    html += '</div>';
+
+    html += '<div class="mb-card">';
+    html += '<div class="mb-card-label">Total Tercatat</div>';
+    html += '<div class="mb-card-value">' + escapeHtml(tercatatDisplay) + '</div>';
+    html += '<div class="mb-card-sub">' + fmtPct(mb.summary.total_tercatat_pct) + ' dari initial</div>';
+    html += '</div>';
+
+    html += '<div class="mb-card ' + selisihCardClass + '">';
+    html += '<div class="mb-card-label">Selisih (Loss/Over)</div>';
+    html += '<div class="mb-card-value">' + escapeHtml(selisihDisplay) + '</div>';
+    html += '<div class="mb-card-sub">' + (mbAlert ? mbAlert.message : 'Belum ada threshold') + '</div>';
+    html += '</div>';
+
+    if (mb.batch_type !== 'FG' && mb.batch_type !== 'NG') {
+      html += '<div class="mb-card ' + yieldCardClass + '">';
+      html += '<div class="mb-card-label">Yield</div>';
+      html += '<div class="mb-card-value">' + fmtPct(mb.summary.yield_pct) + '</div>';
+      html += '<div class="mb-card-sub">' + (yldAlert ? yldAlert.message : 'Belum ada threshold') + '</div>';
+      html += '</div>';
+    }
+    html += '</div>';
+
+    // ─── Distribution Table ───
+    html += '<div class="mb-section-title">📊 Distribusi Posisi Stok</div>';
+    html += '<table class="mb-dist">';
+    html += '<thead><tr>';
+    html += '<th class="icon-col"></th>';
+    html += '<th>Posisi</th>';
+    html += '<th class="num">Qty / KG</th>';
+    html += '<th class="num" style="width:80px;">%</th>';
+    html += '<th style="width:80px;"></th>';
+    html += '</tr></thead><tbody>';
+
+    var visibleRowIds = [];
+    for (var pi = 0; pi < mb.positions.length; pi++) {
+      var p = mb.positions[pi];
+      if (!p.visible) continue;
+
+      var rowId = 'mb-pos-' + pi;
+      visibleRowIds.push(rowId);
+
+      var hasDetails = p.details && p.details.length > 0;
+      var isEmpty = (p.kg === 0 && p.qty === 0);
+      var rowClass = hasDetails ? 'expandable' : '';
+      var emptyClass = isEmpty ? 'mb-empty-pos' : '';
+
+      var qtyKgDisplay = p.qty > 0 || p.kg > 0
+        ? fmtQtyKg(p.qty, p.details.length > 0 ? p.details[0].qty_unit : (p.key === 'STOK_COIL' ? 'Kg' : 'Sht'), p.kg, 'Kg')
+        : '0';
+
+      html += '<tr id="' + rowId + '" class="' + rowClass + ' ' + emptyClass + '"' +
+              (hasDetails ? ' onclick="tr_toggleMBDetail(\'' + rowId + '\')"' : '') + '>';
+      html += '<td class="icon-col">' + p.icon + '</td>';
+      html += '<td>' + escapeHtml(p.label) + (hasDetails ? ' <span style="color:#6b7785; font-size:10px;">(' + p.details.length + ' batch)</span>' : '') + '</td>';
+      html += '<td class="num qtykg">' + escapeHtml(qtyKgDisplay) + '</td>';
+      html += '<td class="pct">' + fmtPct(p.pct) + '</td>';
+      html += '<td>' + (hasDetails ? '<i class="ti ti-chevron-down" style="color:#6b7785;"></i>' : '') + '</td>';
+      html += '</tr>';
+
+      // Detail row (hidden by default)
+      if (hasDetails) {
+        html += '<tr class="mb-detail-row" id="' + rowId + '-detail" style="display:none;"><td colspan="5">';
+        html += '<div class="mb-detail-content">';
+        for (var di = 0; di < p.details.length; di++) {
+          var d = p.details[di];
+          if (p.key === 'DELIVERED') {
+            html += '<div class="mb-detail-item">';
+            html += '<span class="mb-detail-batch" onclick="tr_loadDetail(\'' + escapeHtml(d.batch_id) + '\')">' + escapeHtml(d.sj_no || '-') + '</span>';
+            html += '<span class="mb-detail-desc">' + escapeHtml(d.cust || '-') + ' · ' + escapeHtml(d.tgl_label || d.tgl || '-') + ' · SO: ' + escapeHtml(d.so_no || '-') + '</span>';
+            html += '<span class="mb-detail-qty">' + escapeHtml(fmtQtyKg(d.qty, d.qty_unit, d.kg, d.kg_unit)) + '</span>';
+            html += '<span class="mb-detail-loc">📦 ' + escapeHtml(d.batch_id) + (d.description ? ' — ' + escapeHtml(d.description) : '') + '</span>';
+            html += '<span class="mb-detail-status mb-status-Shipped">Shipped</span>';
+            html += '</div>';
+          } else {
+            html += '<div class="mb-detail-item">';
+            html += '<span class="mb-detail-batch" onclick="tr_loadDetail(\'' + escapeHtml(d.batch_id) + '\')">' + escapeHtml(d.batch_id) + '</span>';
+            html += '<span class="mb-detail-desc">' + escapeHtml(d.description || d.item_code || '-') + (d.owner ? ' · ' + escapeHtml(d.owner) : '') + '</span>';
+            html += '<span class="mb-detail-qty">' + escapeHtml(fmtQtyKg(d.qty, d.qty_unit, d.kg, d.kg_unit)) + '</span>';
+            html += '<span class="mb-detail-loc">📍 ' + escapeHtml(d.lokasi || '-') + '</span>';
+            var statusKey = String(d.status || 'Available').split(' ')[0];
+            html += '<span class="mb-detail-status mb-status-' + escapeHtml(statusKey) + '">' + escapeHtml(d.status || 'Available') + '</span>';
+            html += '</div>';
+          }
+        }
+        html += '</div></td></tr>';
+      }
+    }
+
+    // Total row
+    html += '<tr class="total-row"><td></td>';
+    html += '<td>TOTAL TERCATAT</td>';
+    html += '<td class="num qtykg">— / ' + fmtNum2(mb.summary.total_tercatat_kg) + ' Kg</td>';
+    html += '<td class="pct">' + fmtPct(mb.summary.total_tercatat_pct) + '</td>';
+    html += '<td></td></tr>';
+
+    // Selisih row (kalau ada)
+    if (Math.abs(mb.summary.selisih_kg) > 0.01) {
+      var selisihLabel = mb.summary.selisih_kg < 0 ? '⚠ Loss / Scrap' : '⚠ Over (Surplus)';
+      html += '<tr><td></td>';
+      html += '<td style="color:#b45309;">' + selisihLabel + '</td>';
+      html += '<td class="num qtykg" style="color:#b45309;">— / ' + fmtNum2(Math.abs(mb.summary.selisih_kg)) + ' Kg</td>';
+      html += '<td class="pct" style="color:#b45309;">' + fmtPct(Math.abs(mb.summary.selisih_pct)) + '</td>';
+      html += '<td></td></tr>';
+    }
+
+    // Initial row
+    html += '<tr class="initial-row"><td></td>';
+    html += '<td>INITIAL</td>';
+    html += '<td class="num qtykg">' + escapeHtml(initialDisplay) + '</td>';
+    html += '<td class="pct">100.00%</td>';
+    html += '<td></td></tr>';
+
+    html += '</tbody></table>';
+
+    // ─── Alerts Section ───
+    if (mb.alerts && mb.alerts.length > 0) {
+      html += '<div class="mb-section-title">🚨 Status Threshold Alert</div>';
+      html += '<div class="mb-alerts">';
+      for (var ai = 0; ai < mb.alerts.length; ai++) {
+        var a = mb.alerts[ai];
+        var icon = a.level === 'OK' ? '✓' : a.level === 'WARNING' ? '⚠' : '🔴';
+        html += '<div class="mb-alert lvl-' + a.level + '">';
+        html += '<div class="mb-alert-icon">' + icon + '</div>';
+        html += '<div class="mb-alert-content">';
+        html += '<div class="mb-alert-title">' + escapeHtml(a.description || a.metric) + '</div>';
+        html += '<div class="mb-alert-msg">' + escapeHtml(a.message) + '</div>';
+        if (a.threshold_warning !== null && a.threshold_warning !== undefined) {
+          html += '<div class="mb-alert-thr">Threshold: Warning ' + a.threshold_warning + (a.unit === 'percent' ? '%' : ' ' + a.unit) +
+                  ' · Alert ' + a.threshold_alert + (a.unit === 'percent' ? '%' : ' ' + a.unit) + '</div>';
+        }
+        html += '</div></div>';
+      }
+      html += '</div>';
+    }
+
+    // ─── Footer info ───
+    html += '<div style="font-size:10px; color:#94a3b8; margin-top:14px; text-align:right;">';
+    html += 'Generated ' + new Date().toLocaleTimeString('id-ID') + ' · ' + mb.query_duration_ms + ' ms · ' + mb.total_descendants + ' descendants';
+    html += '</div>';
+
+    root.innerHTML = html;
+  }
+
+  // Helper: find alert by metric name
+  function tr_findAlert(alerts, metricName) {
+    if (!alerts) return null;
+    for (var i = 0; i < alerts.length; i++) {
+      if (alerts[i].metric === metricName) return alerts[i];
+    }
+    return null;
+  }
+
+  // Expand/collapse mass balance detail row
+  window.tr_toggleMBDetail = function(rowId) {
+    var detailRow = document.getElementById(rowId + '-detail');
+    var mainRow = document.getElementById(rowId);
+    if (!detailRow) return;
+    if (detailRow.style.display === 'none') {
+      detailRow.style.display = 'table-row';
+      mainRow.classList.add('expanded');
+      var icon = mainRow.querySelector('.ti-chevron-down');
+      if (icon) { icon.classList.remove('ti-chevron-down'); icon.classList.add('ti-chevron-up'); }
+    } else {
+      detailRow.style.display = 'none';
+      mainRow.classList.remove('expanded');
+      var icon2 = mainRow.querySelector('.ti-chevron-up');
+      if (icon2) { icon2.classList.remove('ti-chevron-up'); icon2.classList.add('ti-chevron-down'); }
+    }
+  };
+
+  // ======================================================================
+  // RENDER TREE
+  // ======================================================================
+  function tr_renderTree(traceRes, currentBatchId) {
+    var ancestors = (traceRes.flat || []).filter(function(n) { return n.depth_from_current < 0; });
+    ancestors.sort(function(a, b) { return a.depth_from_current - b.depth_from_current; });
+
+    var html = '';
+
+    if (ancestors.length > 0) {
+      html += '<div class="tr-tree-section">';
+      html += '<div class="tr-tree-section-title">📍 Asal-usul (Ancestors)</div>';
+      html += '<div class="tr-tree-ancestors">';
+      for (var i = 0; i < ancestors.length; i++) {
+        html += tr_buildTreeRow(ancestors[i], currentBatchId, false);
+      }
+      html += '<div style="border-left:2px dashed #f59e0b; margin-left:7px; height:10px;"></div>';
+      html += '</div></div>';
+    }
+
+    html += '<div class="tr-tree-section">';
+    html += '<div class="tr-tree-section-title">🌳 Genealogy Tree (Batch ini &amp; turunannya)</div>';
+    html += tr_buildTreeRecursive(traceRes.tree, currentBatchId);
+    html += '</div>';
+
+    document.getElementById('tr-tree-root').innerHTML = html;
+  }
+
+  function tr_buildTreeRow(node, currentBatchId, isExpandable) {
+    var isCurrent = node.batch_id === currentBatchId;
+    var qtyUnit = (node.type === 'GR') ? 'Kg' : 'Sht';
+    var qtyKgStr = fmtQtyKg(node.qty, qtyUnit, node.kg, 'Kg');
+    var html = '<div class="tr-tree-row' + (isCurrent ? ' current' : '') + '">';
+    html += '<span class="tr-tree-toggle' + (isExpandable ? '' : ' empty') + '">' + (isExpandable ? '▾' : '·') + '</span>';
+    html += '<span class="b-badge b-' + escapeHtml(node.type) + '" style="font-size:9px;">' + escapeHtml(node.type) + '</span>';
+    html += '<span class="tr-tree-id" onclick="tr_loadDetail(\'' + escapeHtml(node.batch_id) + '\')">' + escapeHtml(node.batch_id) + '</span>';
+    html += '<span class="tr-tree-info">' + escapeHtml(node.description || node.item_code || '-') + ' · ' + escapeHtml(qtyKgStr) + '</span>';
+    if (isCurrent) {
+      html += '<span style="margin-left:auto; font-size:10px; color:#92400e; font-weight:700;">← BATCH INI</span>';
+    } else if (node.spk_ref) {
+      html += '<span style="margin-left:auto; font-size:10px; color:#6b7785; font-family:ui-monospace,monospace;">via ' + escapeHtml(node.spk_ref) + '</span>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function tr_buildTreeRecursive(node, currentBatchId) {
+    if (!node) return '<div class="tr-empty">Tree kosong</div>';
+    var hasChildren = node.children && node.children.length > 0;
+    var html = '<div class="tr-tree-node">';
+    html += tr_buildTreeRow(node, currentBatchId, hasChildren);
+    if (hasChildren) {
+      html += '<div class="tr-tree-children">';
+      for (var i = 0; i < node.children.length; i++) {
+        html += tr_buildTreeRecursive(node.children[i], currentBatchId);
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  // ======================================================================
+  // RENDER FLAT
+  // ======================================================================
+  function tr_renderFlat(flat) {
+    if (!flat || flat.length === 0) {
+      document.getElementById('tr-flat-tbody').innerHTML = '<tr><td colspan="9" class="tr-empty">Tidak ada data</td></tr>';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < flat.length; i++) {
+      var n = flat[i];
+      var depthLabel = n.depth_from_current === 0 ? '◉ self' :
+                       (n.depth_from_current > 0 ? '↓ +' + n.depth_from_current : '↑ ' + n.depth_from_current);
+      var rowClass = n.depth_from_current === 0 ? ' class="self"' : '';
+      var specCombined = safe(n.spec) + ' (' + safe(n.t) + '×' + safe(n.p) + '×' + safe(n.l) + ')';
+      var qtyUnit = (n.type === 'GR') ? 'Kg' : 'Sht';
+      html += '<tr' + rowClass + '>';
+      html += '<td>' + escapeHtml(depthLabel) + '</td>';
+      html += '<td class="mono"><span class="tr-tree-id" onclick="tr_loadDetail(\'' + escapeHtml(n.batch_id) + '\')">' + escapeHtml(n.batch_id) + '</span></td>';
+      html += '<td><span class="b-badge b-' + escapeHtml(n.type) + '">' + escapeHtml(n.type) + '</span></td>';
+      html += '<td>' + escapeHtml(n.item_code || '-') + '</td>';
+      html += '<td>' + escapeHtml(specCombined) + '</td>';
+      html += '<td class="num">' + fmtNum2(n.qty) + ' ' + qtyUnit + '</td>';
+      html += '<td class="num">' + fmtNum2(n.kg) + ' Kg</td>';
+      html += '<td class="mono">' + escapeHtml(n.spk_ref || '-') + '</td>';
+      html += '<td>' + escapeHtml(n.owner || '-') + '</td>';
+      html += '</tr>';
+    }
+    document.getElementById('tr-flat-tbody').innerHTML = html;
+  }
+
+  // ======================================================================
+  // RENDER TIMELINE
+  // ======================================================================
+  function tr_renderTimeline(events) {
+    var root = document.getElementById('tr-timeline-root');
+    if (!events || events.length === 0) {
+      root.innerHTML = '<div class="tr-empty">Belum ada riwayat aktivitas</div>';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < events.length; i++) {
+      var e = events[i];
+      html += '<div class="tr-event e-' + escapeHtml(e.event_type) + '">';
+      html += '<div class="tr-event-head">';
+      html += '<span class="tr-event-time">' + escapeHtml(e.tgl_label) + '</span>';
+      html += '<span class="tr-event-label">' + escapeHtml(e.event_label) + '</span>';
+      if (e.ref) html += '<span class="tr-event-ref">' + escapeHtml(e.ref) + '</span>';
+      if ((e.qty && e.qty > 0) || (e.kg && e.kg > 0)) {
+        html += '<span class="tr-event-qty">· ' + fmtNum2(e.qty) + ' / ' + fmtNum2(e.kg) + ' Kg</span>';
+      }
+      html += '</div>';
+      if (e.note) html += '<div class="tr-event-note">' + escapeHtml(e.note) + '</div>';
+      html += '</div>';
+    }
+    root.innerHTML = html;
+  }
+
+  // ======================================================================
+  // RENDER DELIVERY
+  // ======================================================================
+  function tr_renderDelivery(deliveries) {
+    if (!deliveries || deliveries.length === 0) {
+      document.getElementById('tr-delv-tbody').innerHTML = '<tr><td colspan="8" class="tr-empty">Batch ini (dan turunannya) belum pernah dikirim</td></tr>';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < deliveries.length; i++) {
+      var d = deliveries[i];
+      html += '<tr>';
+      html += '<td>' + escapeHtml(fmtDate(d.tgl)) + '</td>';
+      html += '<td class="mono">' + escapeHtml(d.sj_no || '-') + '</td>';
+      html += '<td class="mono">' + escapeHtml(d.so_no || '-') + '</td>';
+      html += '<td>' + escapeHtml(d.cust || '-') + '</td>';
+      html += '<td class="mono"><span class="tr-tree-id" onclick="tr_loadDetail(\'' + escapeHtml(d.batch_id) + '\')">' + escapeHtml(d.batch_id) + '</span></td>';
+      html += '<td class="num">' + fmtNum2(d.qty) + ' Sht</td>';
+      html += '<td class="num">' + fmtNum2(d.kg) + ' Kg</td>';
+      html += '<td>' + escapeHtml(d.armada || '-') + ' / ' + escapeHtml(d.driver || '-') + '</td>';
+      html += '</tr>';
+    }
+    document.getElementById('tr-delv-tbody').innerHTML = html;
+  }
+
+  // ======================================================================
+  // TAB SWITCH
+  // ======================================================================
+  window.tr_switchTab = function(tabName) {
+    TR_STATE.activeTab = tabName;
+    document.querySelectorAll('.tr-tab').forEach(function(t) {
+      t.classList.toggle('active', t.getAttribute('data-tab') === tabName);
+    });
+    document.querySelectorAll('.tr-tab-content').forEach(function(c) { c.classList.remove('active'); });
+    var content = document.getElementById('tr-content-' + tabName);
+    if (content) content.classList.add('active');
+  };
+
+  window.tr_closeDetail = function() {
+    document.getElementById('tr-detail-card').style.display = 'none';
+    TR_STATE.currentBatch = null;
+    TR_STATE.currentDetail = null;
+    document.querySelectorAll('#tr-results-tbody tr').forEach(function(tr) { tr.classList.remove('selected'); });
+  };
+
+  // ======================================================================
+  // EXPORT CSV — sesuai tab aktif
+  // ======================================================================
+  window.tr_export = function() {
+    if (!TR_STATE.currentDetail) {
+      showToast('Pilih batch dulu sebelum export', 'error');
+      return;
+    }
+    var tab = TR_STATE.activeTab;
+    var rows = [];
+    var filename = 'trace_' + TR_STATE.currentBatch.replace(/[^a-zA-Z0-9_-]/g, '_') + '_' + tab + '.csv';
+
+    if (tab === 'mass') {
+      if (!TR_STATE.currentDetail.mass) { showToast('Mass balance belum termuat', 'error'); return; }
+      var mb = TR_STATE.currentDetail.mass;
+      rows.push(['Batch_ID','Description','Type','Initial_Qty','Initial_Unit','Initial_KG','Total_Tercatat_KG','Selisih_KG','Selisih_PCT','Yield_PCT','NG_Rate_PCT','Status']);
+      rows.push([
+        mb.batch_id, mb.description || '', mb.batch_type,
+        mb.initial_qty, mb.initial_qty_unit, mb.initial_kg,
+        mb.summary.total_tercatat_kg, mb.summary.selisih_kg, mb.summary.selisih_pct,
+        mb.summary.yield_pct, mb.summary.ng_rate_pct, mb.overall_status
+      ]);
+      rows.push([]);
+      rows.push(['Posisi','Total_Qty','Qty_Unit','Total_KG','Pct']);
+      for (var pp = 0; pp < mb.positions.length; pp++) {
+        var ps = mb.positions[pp];
+        if (!ps.visible) continue;
+        var unit = ps.details.length > 0 ? ps.details[0].qty_unit : (ps.key === 'STOK_COIL' ? 'Kg' : 'Sht');
+        rows.push([ps.label, ps.qty, unit, ps.kg, ps.pct + '%']);
+      }
+      rows.push([]);
+      rows.push(['Posisi','Batch_ID','Description','Item_Code','Qty','Qty_Unit','KG','KG_Unit','Lokasi','Status','Cust/Owner','SJ_No/SO_No']);
+      for (var pp2 = 0; pp2 < mb.positions.length; pp2++) {
+        var ps2 = mb.positions[pp2];
+        if (!ps2.visible) continue;
+        for (var dd = 0; dd < ps2.details.length; dd++) {
+          var dt = ps2.details[dd];
+          if (ps2.key === 'DELIVERED') {
+            rows.push([ps2.label, dt.batch_id, dt.description || '', dt.item_code || '', dt.qty, dt.qty_unit, dt.kg, dt.kg_unit, dt.lokasi, dt.status, dt.cust || '', (dt.sj_no || '') + '/' + (dt.so_no || '')]);
+          } else {
+            rows.push([ps2.label, dt.batch_id, dt.description || '', dt.item_code || '', dt.qty, dt.qty_unit, dt.kg, dt.kg_unit, dt.lokasi, dt.status, dt.owner || '', '']);
+          }
+        }
+      }
+    } else if (tab === 'flat' || tab === 'tree') {
+      if (!TR_STATE.currentDetail.trace) { showToast('Tree belum termuat', 'error'); return; }
+      var flat = TR_STATE.currentDetail.trace.flat || [];
+      rows.push(['Depth','Batch_ID','Type','Item_Code','Description','Spec','T','P','L','Qty','KG','Owner','SPK_Ref','Source_Batch','Root_Batch','Tgl_Buat']);
+      for (var i = 0; i < flat.length; i++) {
+        var n = flat[i];
+        rows.push([
+          n.depth_from_current, n.batch_id, n.type, n.item_code || '', n.description || '',
+          n.spec || '', n.t || '', n.p || '', n.l || '', n.qty || 0, n.kg || 0,
+          n.owner || '', n.spk_ref || '', n.source_batch || '', n.root_batch || '', n.tgl_buat || ''
+        ]);
+      }
+    } else if (tab === 'timeline') {
+      if (!TR_STATE.currentDetail.mutasi) { showToast('Timeline belum termuat', 'error'); return; }
+      var events = TR_STATE.currentDetail.mutasi.events || [];
+      rows.push(['Tgl','Event_Type','Event_Label','Source_Sheet','Ref','Qty','KG','Note']);
+      for (var j = 0; j < events.length; j++) {
+        var e = events[j];
+        rows.push([e.tgl_iso || '', e.event_type, e.event_label, e.source_sheet, e.ref || '', e.qty || 0, e.kg || 0, e.note || '']);
+      }
+    } else if (tab === 'delivery') {
+      if (!TR_STATE.currentDetail.trace) { showToast('Delivery belum termuat', 'error'); return; }
+      var dlv = TR_STATE.currentDetail.trace.deliveries || [];
+      rows.push(['Tgl','SJ_No','SO_No','Cust','Batch_ID','Item_Code','Qty','KG','Armada','Driver']);
+      for (var k = 0; k < dlv.length; k++) {
+        var d = dlv[k];
+        rows.push([d.tgl || '', d.sj_no || '', d.so_no || '', d.cust || '', d.batch_id || '', d.item_code || '', d.qty || 0, d.kg || 0, d.armada || '', d.driver || '']);
+      }
+    }
+
+    // To CSV (with UTF-8 BOM for Excel compatibility)
+    var csv = rows.map(function(r) {
+      return r.map(function(c) {
+        var s = String(c == null ? '' : c);
+        if (s.indexOf(',') > -1 || s.indexOf('"') > -1 || s.indexOf('\n') > -1) {
+          s = '"' + s.replace(/"/g, '""') + '"';
+        }
+        return s;
+      }).join(',');
+    }).join('\n');
+
+    var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+
+    showToast('CSV ' + filename + ' diunduh', 'success');
+  };
+
+  // ======================================================================
+  // INITIAL LOAD — auto search tanpa filter saat halaman dibuka
+  // ======================================================================
+  tr_search();
+
+})();
+</script>

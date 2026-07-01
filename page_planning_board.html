@@ -1,0 +1,708 @@
+<style>
+#pb-wrap * { box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; }
+
+.pb-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px; background: #1a2035; border-radius: 4px; margin-bottom: 14px;
+}
+.pb-title { color: #fff; font-size: 14px; font-weight: 700; letter-spacing: 0.5px; }
+.pb-subtitle { color: #8899bb; font-size: 11px; margin-top: 2px; }
+.pb-topbar-right { display: flex; gap: 8px; align-items: center; }
+.pb-dirty {
+  color: #ffb74d; font-size: 11px; font-weight: 600; display: none;
+  animation: pb-blink 1.5s ease-in-out infinite;
+}
+@keyframes pb-blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+.btn-refresh-pb {
+  background: transparent; border: 1px solid #8899bb; color: #ccd6f0;
+  border-radius: 3px; padding: 5px 12px; cursor: pointer; font-size: 11px;
+  transition: background .15s;
+}
+.btn-refresh-pb:hover { background: #2a3550; }
+.btn-save-pb {
+  background: #1b6b45; color: #fff; border: none; border-radius: 3px;
+  padding: 6px 16px; font-weight: 700; font-size: 12px; cursor: pointer;
+  transition: background .15s;
+}
+.btn-save-pb:hover  { background: #145236; }
+.btn-save-pb:disabled { background: #555; cursor: not-allowed; }
+
+.pb-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; align-items: start; }
+
+.pb-col { border-radius: 6px; overflow: hidden; border: 1.5px solid #dde4f0; }
+.pb-col-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 12px; font-weight: 700; font-size: 12px; color: #fff; user-select: none;
+}
+.pb-col-header.ctl { background: #1565c0; }
+.pb-col-header.shr { background: #1b6b45; }
+.pb-col-hint { font-size: 9px; color: rgba(255,255,255,.55); font-weight: 400; margin-top: 1px; }
+.pb-col-count { background: rgba(255,255,255,.25); border-radius: 99px; padding: 2px 8px; font-size: 11px; }
+
+/* Card list */
+.pb-card-list {
+  background: #f5f7fc; min-height: 80px; padding: 6px;
+  transition: background .2s;
+}
+.pb-card-list.dv { background: #deeeff; }
+.pb-card-list.di { background: #ffeaea; }
+
+/* Card */
+.pb-card {
+  background: #fff; border: 1.5px solid #dde4f0; border-left: 4px solid #90a4ae;
+  border-radius: 4px; margin-bottom: 6px;
+  will-change: transform;
+  transition: transform 0s, box-shadow .15s, opacity .15s;
+  cursor: pointer;
+}
+.pb-card.pb-anim { transition: transform .28s cubic-bezier(.2,0,0,1), box-shadow .15s, opacity .2s; }
+.pb-card:not(.pb-running):hover { box-shadow: 0 3px 10px rgba(0,0,0,.12); cursor: grab; }
+.pb-card.pb-running { border-left-color: #1b6b45; cursor: pointer; }
+.pb-card.pb-dimmed  { opacity: .25; }
+
+/* Drop indicators */
+.pb-card.di-before { box-shadow: 0 -3px 0 0 #1565c0; margin-top: 3px; }
+.pb-card.di-after  { box-shadow: 0 3px 0 0 #1565c0; margin-bottom: 9px; }
+
+/* Drop end zone */
+.pb-drop-end {
+  height: 36px; border-radius: 4px; border: 2px dashed transparent;
+  transition: all .2s; margin: 2px 0;
+}
+.pb-drop-end.active { border-color: #1565c0; background: #deeeff; }
+
+/* Card top */
+.pb-card-top {
+  display: flex; align-items: center; gap: 5px;
+  padding: 6px 8px 4px; border-bottom: 1px solid #f0f0f0;
+}
+.pb-tl { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.pb-tl.green  { background: #2e7d32; box-shadow: 0 0 0 2px #e8f5e9; }
+.pb-tl.yellow { background: #f9a825; box-shadow: 0 0 0 2px #fffde7; }
+.pb-tl.red    { background: #c62828; box-shadow: 0 0 0 2px #fbe9e7; }
+.pb-tl.grey   { background: #bdbdbd; box-shadow: 0 0 0 2px #f5f5f5; }
+.pb-spk-no { font-weight: 700; color: #1a3a6e; font-size: 12px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pb-status-badge { font-size: 10px; padding: 1px 6px; border-radius: 99px; font-weight: 600; flex-shrink: 0; }
+.pb-status-badge.running { background: #e8f5e9; color: #1b6b45; }
+.pb-status-badge.antrian { background: #e8eaf6; color: #3949ab; }
+.pb-seq { font-size: 10px; font-weight: 700; color: #fff; background: #546e7a; border-radius: 99px; padding: 1px 6px; min-width: 18px; text-align: center; flex-shrink: 0; }
+.pb-seq.u { background: #e0e0e0; color: #888; }
+.prio-u { font-size: 9px; padding: 0 5px; border-radius: 99px; background: #fbe9e7; color: #c62828; font-weight: 700; }
+.prio-h { font-size: 9px; padding: 0 5px; border-radius: 99px; background: #fff3e0; color: #e65100; font-weight: 700; }
+
+/* Card body */
+.pb-card-body { padding: 5px 8px 6px; }
+.pb-spec { font-weight: 600; color: #222; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+.pb-cust { font-size: 11px; color: #1565c0; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pb-row  { display: flex; justify-content: space-between; font-size: 10px; color: #666; margin-bottom: 1px; }
+.pb-row b { color: #333; }
+.do-ok    { color: #2e7d32; font-weight: 600; }
+.do-tight { color: #f9a825; font-weight: 600; }
+.do-late  { color: #c62828; font-weight: 600; }
+.do-none  { color: #aaa; }
+
+/* Floating drag clone */
+#pb-drag-clone {
+  position: fixed; pointer-events: none; z-index: 99999;
+  box-shadow: 0 16px 40px rgba(0,0,0,.22);
+  border-radius: 4px; opacity: .96;
+  transform: rotate(2deg) scale(1.03);
+  transition: transform .12s ease;
+}
+
+.pb-feedback { padding: 8px 14px; border-radius: 4px; margin-bottom: 10px; font-weight: 600; font-size: 12px; display: none; }
+.pb-feedback.ok  { background: #e8f5e9; color: #1b6b45; border: 1px solid #a5d6a7; }
+.pb-feedback.err { background: #fbe9e7; color: #c62828; border: 1px solid #ef9a9a; }
+.pb-loading { text-align: center; padding: 40px; color: #888; font-style: italic; }
+
+/* ── POPUP ── */
+#pb-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.45); z-index: 99998;
+}
+#pb-popup {
+  display: none; position: fixed;
+  top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: #fff; border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.25);
+  z-index: 99999; width: 92%; max-width: 560px;
+  max-height: 82vh; overflow-y: auto;
+  padding: 18px 20px 16px;
+}
+.pp-hdr { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 2px solid #f0f0f0; }
+.pp-spk { font-size: 15px; font-weight: 700; color: #1a3a6e; }
+.pp-sub { font-size: 11px; color: #666; margin-top: 3px; }
+.pp-badge { font-size: 11px; padding: 3px 10px; border-radius: 99px; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+.pp-badge.running { background: #e8f5e9; color: #1b6b45; }
+.pp-badge.antrian { background: #e8eaf6; color: #3949ab; }
+.pp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 16px; margin-bottom: 12px; font-size: 11px; }
+.pp-lbl { color: #999; font-size: 10px; }
+.pp-val { font-weight: 600; color: #222; }
+.pp-section { font-size: 11px; font-weight: 700; color: #333; margin: 10px 0 6px; padding-top: 8px; border-top: 1px solid #f0f0f0; }
+.pp-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.pp-table th { background: #f5f7fc; color: #555; font-weight: 600; padding: 5px 6px; text-align: left; }
+.pp-table td { padding: 5px 6px; border-bottom: 1px solid #f5f5f5; color: #333; }
+.pp-table tr:last-child td { border-bottom: none; }
+.pp-table .num { text-align: right; }
+.pp-done { color: #2e7d32; font-size: 10px; font-weight: 600; }
+.pp-antrian { color: #3949ab; font-size: 10px; }
+.btn-pp-close {
+  margin-top: 14px; width: 100%; padding: 8px; background: #f0f2f8;
+  border: none; border-radius: 4px; cursor: pointer;
+  font-weight: 600; font-size: 12px; color: #333;
+  transition: background .15s;
+}
+.btn-pp-close:hover { background: #dde3f0; }
+</style>
+
+<!-- ── POPUP OVERLAY & MODAL ── -->
+<div id="pb-overlay" onclick="closePopup()"></div>
+<div id="pb-popup">
+  <div id="pb-popup-body"></div>
+  <button class="btn-pp-close" onclick="closePopup()">✕ Tutup</button>
+</div>
+
+<div id="pb-wrap">
+  <div class="pb-topbar">
+    <div>
+      <div class="pb-title">📋 Planning Board — Antrian Mesin</div>
+      <div class="pb-subtitle">Tahan &amp; geser kartu untuk atur urutan · SHR-01 ↔ SHR-02 bisa saling tukar · Klik kartu untuk detail</div>
+    </div>
+    <div class="pb-topbar-right">
+      <span class="pb-dirty" id="pb-dirty">● Perubahan belum disimpan</span>
+      <button class="btn-refresh-pb" onclick="loadBoard()">🔄 Refresh</button>
+      <button class="btn-save-pb" id="btn-save-pb" onclick="saveBoard()">💾 Simpan Urutan</button>
+    </div>
+  </div>
+
+  <div class="pb-feedback" id="pb-feedback"></div>
+  <div id="pb-loading" class="pb-loading">⏳ Memuat data antrian...</div>
+
+  <div id="pb-content" style="display:none">
+    <div class="pb-grid">
+      <div class="pb-col">
+        <div class="pb-col-header ctl">
+          <div><div>✂️ CTL-01</div><div class="pb-col-hint">Hanya reorder di kolom ini</div></div>
+          <span class="pb-col-count" id="count-CTL-01">0 SPK</span>
+        </div>
+        <div class="pb-card-list" id="list-CTL-01"></div>
+      </div>
+      <div class="pb-col">
+        <div class="pb-col-header shr">
+          <div><div>✂️ SHR-01</div><div class="pb-col-hint">Drag ke SHR-02 untuk pindah mesin</div></div>
+          <span class="pb-col-count" id="count-SHR-01">0 SPK</span>
+        </div>
+        <div class="pb-card-list" id="list-SHR-01"></div>
+      </div>
+      <div class="pb-col">
+        <div class="pb-col-header shr">
+          <div><div>✂️ SHR-02</div><div class="pb-col-hint">Drag ke SHR-01 untuk pindah mesin</div></div>
+          <span class="pb-col-count" id="count-SHR-02">0 SPK</span>
+        </div>
+        <div class="pb-card-list" id="list-SHR-02"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+
+var _board   = { 'CTL-01': [], 'SHR-01': [], 'SHR-02': [] };
+var _isDirty = false;
+
+// ── Drag state ──
+var _d = {
+  on: false, dragging: false,         // on=pointer down, dragging=gerakan sudah cukup
+  spkNo: null, fromMc: null, fromIdx: null,
+  clone: null, originEl: null,
+  ox: 0, oy: 0,                       // offset pointer dalam kartu
+  startX: 0, startY: 0,              // posisi awal (untuk deteksi klik vs drag)
+  curMc: null, curIdx: null
+};
+
+// ══════════════════════════════════════
+// LOAD & RENDER
+// ══════════════════════════════════════
+window.loadBoard = function() {
+  document.getElementById('pb-loading').style.display = 'block';
+  document.getElementById('pb-content').style.display = 'none';
+  hideFeedback();
+  google.script.run
+    .withSuccessHandler(function(res) {
+      document.getElementById('pb-loading').style.display = 'none';
+      if (!res.success) { showFeedback('❌ ' + res.message, 'err'); return; }
+      _board = res.data;
+      _isDirty = false; updateDirty();
+      renderBoard();
+      document.getElementById('pb-content').style.display = 'block';
+    })
+    .withFailureHandler(function(err) {
+      document.getElementById('pb-loading').style.display = 'none';
+      showFeedback('❌ ' + err.message, 'err');
+    })
+    .getPlanningBoardData();
+};
+
+function renderBoard() {
+  ['CTL-01','SHR-01','SHR-02'].forEach(renderColumn);
+}
+
+function renderColumn(mc) {
+  var items = _board[mc] || [];
+  document.getElementById('count-' + mc).textContent = items.length + ' SPK';
+  var list = document.getElementById('list-' + mc);
+  if (!list) return;
+  var seq = 0;
+  var html = items.length === 0
+    ? '<div style="text-align:center;color:#bbb;font-style:italic;padding:20px 8px;font-size:11px">Tidak ada antrian</div>'
+    : items.map(function(item, idx) {
+        if (item.status !== 'RUNNING') seq++;
+        return buildCard(item, mc, idx, item.status === 'RUNNING' ? 0 : seq);
+      }).join('');
+  html += '<div class="pb-drop-end" id="de-' + mc + '"></div>';
+  list.innerHTML = html;
+}
+
+// ── buildCard: kartu lebih clean, spec dari OUT pertama, klik → popup ──
+function buildCard(item, mc, idx, seqN) {
+  var run  = item.status === 'RUNNING';
+  var tl   = trafficLight(item);
+  var doi  = deliveryInfo(item);
+  var prio = item.priority === 'URGENT' ? '<span class="prio-u">URGENT</span>'
+           : item.priority === 'HIGH'   ? '<span class="prio-h">HIGH</span>' : '';
+
+  var seqHtml = run
+    ? '<span title="Sedang berjalan" style="font-size:13px">🔒</span>'
+    : seqN > 0 ? '<span class="pb-seq">' + seqN + '</span>'
+               : '<span class="pb-seq u">—</span>';
+
+  var badge = run ? '<span class="pb-status-badge running">RUNNING</span>'
+                  : '<span class="pb-status-badge antrian">ANTRIAN</span>';
+
+  var wgt = mc.indexOf('CTL') !== -1 && item.kg_target > 0
+    ? Math.round(item.kg_target) + ' kg'
+    : item.qty_target > 0 ? item.qty_target + ' Sht' : '';
+
+  // Tampilkan jam mulai → selesai
+  var jamMulai   = item.est_mulai   || '—';
+  var jamSelesai = item.est_selesai || '—';
+  var jamRow = jamMulai === '—' && jamSelesai === '—'
+    ? '<span style="color:#bbb;font-style:italic;">Jadwal belum dihitung</span>'
+    : '🕐 <b>' + jamMulai + '</b> → <b>' + jamSelesai + '</b>';
+
+  var evtAttr = run
+    ? ' onclick="showPopup(\'' + item.spk_no + '\')"'
+    : ' onpointerdown="pbDown(event,\'' + item.spk_no + '\',\'' + mc + '\',' + idx + ')"';
+
+  return '<div class="pb-card' + (run ? ' pb-running' : '') + '"' +
+    ' id="card-' + item.spk_no + '"' +
+    ' data-spk="' + item.spk_no + '" data-mc="' + mc + '" data-idx="' + idx + '"' +
+    evtAttr + '>' +
+    '<div class="pb-card-top">' +
+      '<div class="pb-tl ' + tl + '"></div>' + seqHtml +
+      '<span class="pb-spk-no" title="' + item.spk_no + '">' + item.spk_no + '</span>' +
+      prio + badge +
+    '</div>' +
+    '<div class="pb-card-body">' +
+      '<div class="pb-spec" title="' + item.input_spec + '">' + item.input_spec + '</div>' +
+      '<div class="pb-cust">👤 ' + item.cust_list + '</div>' +
+      '<div class="pb-row" style="font-size:11px;">' + jamRow + '</div>' +
+      '<div class="pb-row">' +
+        '<span>⏱ ' + (item.total_durasi || '—') + ' mnt</span>' +
+        '<span>' + (wgt ? '📦 ' + wgt : '') + '</span>' +
+      '</div>' +
+      '<div class="pb-row"><span class="' + doi.cls + '">🚚 ' + doi.text + '</span></div>' +
+    '</div>' +
+  '</div>';
+}
+
+// ══════════════════════════════════════
+// POINTER DRAG  (klik vs drag)
+// ══════════════════════════════════════
+window.pbDown = function(e, spkNo, mc, idx) {
+  if (e.button !== undefined && e.button !== 0) return;
+  e.preventDefault();
+  var card = document.getElementById('card-' + spkNo);
+  if (!card) return;
+  var rect = card.getBoundingClientRect();
+
+  _d.on       = true;
+  _d.dragging = false;   // belum drag, tunggu gerakan > threshold
+  _d.spkNo    = spkNo;
+  _d.fromMc   = mc;
+  _d.fromIdx  = parseInt(idx);
+  _d.originEl = card;
+  _d.ox       = e.clientX - rect.left;
+  _d.oy       = e.clientY - rect.top;
+  _d.startX   = e.clientX;
+  _d.startY   = e.clientY;
+  _d.curMc    = null;
+  _d.curIdx   = null;
+  _d.clone    = null;   // clone dibuat NANTI di startDrag(), bukan di sini
+
+  document.addEventListener('pointermove',   pbMove);
+  document.addEventListener('pointerup',     pbUp);
+  document.addEventListener('pointercancel', pbUp);
+};
+
+// Buat clone & mulai drag (dipanggil saat gerakan > threshold)
+function startDrag() {
+  if (_d.dragging || !_d.originEl) return;
+  _d.dragging = true;
+
+  var card = _d.originEl;
+  var rect = card.getBoundingClientRect();
+  var clone = card.cloneNode(true);
+  clone.id           = 'pb-drag-clone';
+  clone.style.width  = rect.width + 'px';
+  clone.style.left   = rect.left + 'px';
+  clone.style.top    = rect.top  + 'px';
+  document.body.appendChild(clone);
+  _d.clone = clone;
+  card.classList.add('pb-dimmed');
+}
+
+function pbMove(e) {
+  if (!_d.on) return;
+
+  // Cek threshold: jika belum drag dan belum bergerak cukup, tunggu
+  if (!_d.dragging) {
+    var dx = Math.abs(e.clientX - _d.startX);
+    var dy = Math.abs(e.clientY - _d.startY);
+    if (dx < 8 && dy < 8) return;
+    startDrag();
+  }
+  if (!_d.clone) return;
+
+  _d.clone.style.left = (e.clientX - _d.ox) + 'px';
+  _d.clone.style.top  = (e.clientY - _d.oy) + 'px';
+
+  // Hit-test target drop
+  _d.clone.style.display = 'none';
+  var below = document.elementFromPoint(e.clientX, e.clientY);
+  _d.clone.style.display = '';
+
+  clearIndicators();
+  if (!below) return;
+
+  var card = below.closest('.pb-card');
+  var list = below.closest('.pb-card-list');
+  var targetMc = null;
+
+  if (card && !card.classList.contains('pb-running')) {
+    var parentList = card.closest('.pb-card-list');
+    if (parentList) {
+      targetMc = parentList.id.replace('list-', '');
+      if (isOk(_d.fromMc, targetMc)) {
+        setListCls(targetMc, 'dv');
+        var r = card.getBoundingClientRect();
+        var above = e.clientY < r.top + r.height / 2;
+        card.classList.add(above ? 'di-before' : 'di-after');
+        _d.curMc  = targetMc;
+        _d.curIdx = parseInt(card.dataset.idx || 0) + (above ? 0 : 1);
+      } else {
+        if (targetMc) setListCls(targetMc, 'di');
+      }
+    }
+  } else if (list) {
+    targetMc = list.id.replace('list-', '');
+    if (isOk(_d.fromMc, targetMc)) {
+      setListCls(targetMc, 'dv');
+      var de = document.getElementById('de-' + targetMc);
+      if (de) de.classList.add('active');
+      _d.curMc  = targetMc;
+      _d.curIdx = (_board[targetMc] || []).length;
+    } else {
+      setListCls(targetMc, 'di');
+    }
+  }
+}
+
+function pbUp(e) {
+  if (!_d.on) return;
+  document.removeEventListener('pointermove',   pbMove);
+  document.removeEventListener('pointerup',     pbUp);
+  document.removeEventListener('pointercancel', pbUp);
+
+  var wasDragging = _d.dragging;
+  var spkNo       = _d.spkNo;
+  var fromMc      = _d.fromMc;
+  var targetMc    = _d.curMc;
+  var targetIdx   = _d.curIdx;
+
+  // Hapus clone
+  if (_d.clone) {
+    _d.clone.style.transition = 'transform .2s ease, opacity .2s ease';
+    _d.clone.style.transform  = 'scale(0.9)';
+    _d.clone.style.opacity    = '0';
+    var cloneRef = _d.clone;
+    setTimeout(function() { if (cloneRef && cloneRef.parentNode) cloneRef.parentNode.removeChild(cloneRef); }, 220);
+    _d.clone = null;
+  }
+
+  clearIndicators();
+  if (_d.originEl) { _d.originEl.classList.remove('pb-dimmed'); _d.originEl = null; }
+
+  // Reset state
+  _d.on = false; _d.dragging = false; _d.spkNo = null;
+  _d.fromMc = null; _d.curMc = null; _d.curIdx = null;
+
+  // Tidak bergerak cukup → ini klik → tampilkan popup
+  if (!wasDragging) {
+    showPopup(spkNo);
+    return;
+  }
+
+  // Bergerak → ini drag → lakukan drop
+  if (targetMc && targetIdx !== null && isOk(fromMc, targetMc)) {
+    performDrop(spkNo, fromMc, targetMc, targetIdx);
+  }
+}
+
+// ══════════════════════════════════════
+// DROP + FLIP ANIMATION
+// ══════════════════════════════════════
+function performDrop(spkNo, fromMc, toMc, toIdx) {
+  var affected = fromMc === toMc ? [fromMc] : [fromMc, toMc];
+
+  var pre = {};
+  affected.forEach(function(mc) {
+    document.querySelectorAll('#list-' + mc + ' .pb-card').forEach(function(el) {
+      pre[el.dataset.spk] = el.getBoundingClientRect();
+    });
+  });
+
+  var fromArr = _board[fromMc];
+  var toArr   = _board[toMc];
+  var fromIdx = -1;
+  for (var i = 0; i < fromArr.length; i++) {
+    if (fromArr[i].spk_no === spkNo) { fromIdx = i; break; }
+  }
+  if (fromIdx === -1) return;
+
+  var item = fromArr.splice(fromIdx, 1)[0];
+  if (fromMc === toMc && fromIdx < toIdx) toIdx--;
+  toIdx = Math.max(0, Math.min(toIdx, toArr.length));
+  item.mc_no = toMc;
+  toArr.splice(toIdx, 0, item);
+
+  markDirty();
+  affected.forEach(renderColumn);
+
+  affected.forEach(function(mc) {
+    document.querySelectorAll('#list-' + mc + ' .pb-card').forEach(function(el) {
+      var spk  = el.dataset.spk;
+      var oldR = pre[spk];
+
+      if (!oldR) {
+        el.style.transition = 'none';
+        el.style.opacity    = '0';
+        el.style.transform  = 'translateY(-8px)';
+        el.getBoundingClientRect();
+        el.classList.add('pb-anim');
+        el.style.opacity   = '1';
+        el.style.transform = '';
+        el.addEventListener('transitionend', cleanAnim);
+        return;
+      }
+      var newR = el.getBoundingClientRect();
+      var dy = oldR.top  - newR.top;
+      var dx = oldR.left - newR.left;
+      if (Math.abs(dy) < 1 && Math.abs(dx) < 1) return;
+      el.style.transition = 'none';
+      el.style.transform  = 'translate(' + dx + 'px,' + dy + 'px)';
+      el.getBoundingClientRect();
+      el.classList.add('pb-anim');
+      el.style.transform = '';
+      el.addEventListener('transitionend', cleanAnim);
+    });
+  });
+}
+
+function cleanAnim() {
+  this.style.transform  = '';
+  this.style.transition = '';
+  this.style.opacity    = '';
+  this.classList.remove('pb-anim');
+  this.removeEventListener('transitionend', cleanAnim);
+}
+
+// ══════════════════════════════════════
+// POPUP DETAIL
+// ══════════════════════════════════════
+window.showPopup = function(spkNo) {
+  var item = null;
+  ['CTL-01','SHR-01','SHR-02'].forEach(function(mc) {
+    (_board[mc] || []).forEach(function(it) { if (it.spk_no === spkNo) item = it; });
+  });
+  if (!item) return;
+
+  var outs = item.out_details || [];
+  var prio = item.priority === 'URGENT'
+    ? '<span class="prio-u" style="font-size:10px;">URGENT</span> '
+    : item.priority === 'HIGH'
+    ? '<span class="prio-h" style="font-size:10px;">HIGH</span> '
+    : '';
+
+  var statusCls = item.status === 'RUNNING' ? 'running' : 'antrian';
+
+  var html = '';
+
+  // Header popup
+  html += '<div class="pp-hdr">';
+  html += '<div style="flex:1">';
+  html += '<div class="pp-spk">' + item.spk_no + '</div>';
+  html += '<div class="pp-sub">' + prio + '🖥️ ' + item.mc_no + ' &nbsp;·&nbsp; ' + item.spk_type + '</div>';
+  html += '</div>';
+  html += '<span class="pp-badge ' + statusCls + '">' + item.status + '</span>';
+  html += '</div>';
+
+  // Info grid
+  html += '<div class="pp-grid">';
+  html += '<div><div class="pp-lbl">Material Input</div><div class="pp-val">' + (item.parent_spk || '—') + '</div></div>';
+  html += '<div><div class="pp-lbl">Spec Input</div><div class="pp-val">' + (item.input_spec_header || '—') + '</div></div>';
+  html += '<div><div class="pp-lbl">Est. Mulai</div><div class="pp-val">' + (item.est_mulai || '—') + '</div></div>';
+  html += '<div><div class="pp-lbl">Est. Selesai</div><div class="pp-val">' + (item.est_selesai || '—') + '</div></div>';
+  html += '<div><div class="pp-lbl">Durasi</div><div class="pp-val">' + (item.total_durasi || 0) + ' mnt</div></div>';
+  html += '<div><div class="pp-lbl">Tgl Delivery</div><div class="pp-val">' + (item.tgl_delivery || 'No DO') + '</div></div>';
+  html += '</div>';
+
+  // Tabel output
+  if (outs.length > 0) {
+    html += '<div class="pp-section">Output (' + outs.length + ' item)</div>';
+    html += '<div style="overflow-x:auto"><table class="pp-table">';
+    html += '<tr><th>Produk / Spec</th><th>SO</th><th>Cust</th><th class="num">Qty</th><th class="num">KG</th><th>Tujuan</th><th>Sts</th></tr>';
+    outs.forEach(function(out) {
+      var stsCls  = out.status === 'DONE' ? 'pp-done' : 'pp-antrian';
+      var qtyAct  = out.qty_act > 0 ? '<br><span style="color:#1b6b45;font-size:10px;">✓ ' + out.qty_act + '</span>' : '';
+      html += '<tr>';
+      html += '<td style="font-weight:500;color:#1a3a6e;">' + (out.spec || '—') + '</td>';
+      html += '<td>' + (out.so_ref || '—') + '</td>';
+      html += '<td>' + (out.cust   || '—') + '</td>';
+      html += '<td class="num">' + out.qty_tgt + qtyAct + '</td>';
+      html += '<td class="num">' + (out.kg_tgt > 0 ? out.kg_tgt.toFixed(1) : '—') + '</td>';
+      html += '<td>' + (out.target_loc || '—') + '</td>';
+      html += '<td><span class="' + stsCls + '">' + out.status + '</span></td>';
+      html += '</tr>';
+    });
+    html += '</table></div>';
+  } else {
+    html += '<div style="color:#bbb;font-style:italic;text-align:center;padding:16px;font-size:11px;">Belum ada data output</div>';
+  }
+
+  document.getElementById('pb-popup-body').innerHTML = html;
+  document.getElementById('pb-overlay').style.display = 'block';
+  document.getElementById('pb-popup').style.display   = 'block';
+};
+
+window.closePopup = function() {
+  document.getElementById('pb-overlay').style.display = 'none';
+  document.getElementById('pb-popup').style.display   = 'none';
+};
+
+// ══════════════════════════════════════
+// SAVE
+// ══════════════════════════════════════
+window.saveBoard = function() {
+  var btn = document.getElementById('btn-save-pb');
+  btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
+  hideFeedback();
+  var updates = [];
+  ['CTL-01','SHR-01','SHR-02'].forEach(function(mc) {
+    var seq = 0;
+    (_board[mc] || []).forEach(function(item) {
+      if (item.status !== 'RUNNING') seq++;
+      updates.push({ spk_no: item.spk_no, plan_seq: item.status === 'RUNNING' ? 0 : seq, mc_no: item.mc_no });
+    });
+  });
+  google.script.run
+    .withSuccessHandler(function(res) {
+      btn.disabled = false; btn.textContent = '💾 Simpan Urutan';
+      if (res.success) {
+        _isDirty = false; updateDirty();
+        showFeedback('✅ Urutan disimpan & jadwal diperbarui (' + res.count + ' SPK)', 'ok');
+        setTimeout(loadBoard, 1800);
+      } else { showFeedback('❌ ' + res.message, 'err'); }
+    })
+    .withFailureHandler(function(err) {
+      btn.disabled = false; btn.textContent = '💾 Simpan Urutan';
+      showFeedback('❌ ' + err.message, 'err');
+    })
+    .savePlanningBoard({ updates: updates });
+};
+
+// ══════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════
+function isOk(from, to) {
+  if (from === to) return true;
+  return from.indexOf('SHR') !== -1 && to.indexOf('SHR') !== -1;
+}
+function clearIndicators() {
+  document.querySelectorAll('.di-before,.di-after').forEach(function(el){ el.classList.remove('di-before','di-after'); });
+  document.querySelectorAll('.pb-card-list.dv,.pb-card-list.di').forEach(function(el){ el.classList.remove('dv','di'); });
+  document.querySelectorAll('.pb-drop-end.active').forEach(function(el){ el.classList.remove('active'); });
+}
+function setListCls(mc, cls) {
+  var el = document.getElementById('list-' + mc);
+  if (el) { el.classList.remove('dv','di'); el.classList.add(cls); }
+}
+function trafficLight(item) {
+  if (!item.tgl_delivery) return 'grey';
+  var est = parseEst(item.est_selesai), del = parseDO(item.tgl_delivery);
+  if (!est || !del) return 'grey';
+  var d = (del - est) / 86400000;
+  return d < 0 ? 'red' : d < 1 ? 'yellow' : 'green';
+}
+function deliveryInfo(item) {
+  if (!item.tgl_delivery) return { cls: 'do-none', text: 'No DO' };
+  var del = parseDO(item.tgl_delivery);
+  var now = new Date(); now.setHours(0,0,0,0);
+  if (!del) return { cls: 'do-none', text: item.tgl_delivery };
+  var diff = Math.round((del - now) / 86400000);
+  var sfx = diff < 0 ? '(' + Math.abs(diff) + ' hr lalu!)'
+          : diff === 0 ? '(Hari ini!)' : diff === 1 ? '(Besok)' : '(+' + diff + ' hr)';
+  var est = parseEst(item.est_selesai);
+  var cls = 'do-none';
+  if (est && del) { var d = (del-est)/86400000; cls = d<0?'do-late':d<1?'do-tight':'do-ok'; }
+  return { cls: cls, text: item.tgl_delivery + ' ' + sfx };
+}
+function parseEst(s) {
+  if (!s) return null;
+  // Format baru: "02 Jun 08:07" (dd MMM HH:mm)
+  var mNew = s.match(/^(\d+)\s+([A-Za-z]+)\s+(\d+):(\d+)/);
+  if (mNew) {
+    var MONTHS = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11,
+                  Mei:4,Agt:7,Okt:9,Des:11};
+    var mo = MONTHS[mNew[2]];
+    if (mo === undefined) return null;
+    var yr = new Date().getFullYear();
+    if (mo < new Date().getMonth() - 1) yr++;
+    return new Date(yr, mo, parseInt(mNew[1]), parseInt(mNew[3]), parseInt(mNew[4]));
+  }
+  // Fallback format lama: "dd/MM HH:mm" atau "dd-MM HH:mm"
+  var mOld = s.match(/^(\d+)[\/\-](\d+)\s+(\d+):(\d+)/);
+  if (!mOld) return null;
+  var yr = new Date().getFullYear(), mo = parseInt(mOld[2]) - 1;
+  if (mo < new Date().getMonth() - 1) yr++;
+  return new Date(yr, mo, parseInt(mOld[1]), parseInt(mOld[3]), parseInt(mOld[4]));
+}
+function parseDO(s) {
+  if (!s) return null;
+  var m = s.match(/^(\d+)\/(\d+)\/(\d+)/);
+  return m ? new Date(parseInt(m[3]), parseInt(m[2])-1, parseInt(m[1]), 23, 59, 59) : null;
+}
+function markDirty()   { _isDirty = true;  updateDirty(); }
+function updateDirty() { document.getElementById('pb-dirty').style.display = _isDirty ? 'inline' : 'none'; }
+function showFeedback(msg, type) {
+  var el = document.getElementById('pb-feedback');
+  el.textContent = msg; el.className = 'pb-feedback ' + type; el.style.display = 'block';
+  if (type === 'ok') setTimeout(function(){ el.style.display='none'; }, 5000);
+}
+function hideFeedback() { document.getElementById('pb-feedback').style.display = 'none'; }
+
+loadBoard();
+})();
+</script>

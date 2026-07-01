@@ -1,0 +1,401 @@
+<style>
+/* ================================================================
+   GR SYSTEM — SPA (SEDOT PO VERSION - FINAL POKAYOKE)
+================================================================ */
+:root {
+  --bg-app: #eef2f5; --bg-panel: #ffffff; --text-main: #202b3c; --text-muted: #6b7785;
+  --border-color: #cbd5e1; --primary-blue: #0265dc; --success-green: #108a4f; 
+  --danger-red: #d32f2f; --table-head: #f1f5f9; --warning-orange: #f97316;
+}
+
+body { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 12px; color: var(--text-main); background: var(--bg-app); margin: 0; padding: 16px; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; }
+* { box-sizing: border-box; }
+
+.view-container { display: none; flex-direction: column; gap: 12px; height: 100%; }
+.view-container.active { display: flex; }
+
+.panel { background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 4px; display: flex; flex-direction: column; flex-shrink: 0;}
+.panel-head { font-weight: 700; color: #0f172a; background: #f8fafc; padding: 10px 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+.panel-body { padding: 12px 16px; }
+.row { display: flex; gap: 12px; margin-bottom: 10px; } .row:last-child { margin-bottom: 0; }
+.col { flex: 1; display: flex; flex-direction: column; gap: 4px; } .col-2 { flex: 2; display: flex; flex-direction: column; gap: 4px; }
+label { font-weight: 600; color: var(--text-muted); font-size: 11px; }
+
+.f-inp { border: 1px solid var(--border-color); border-radius: 3px; padding: 6px 10px; font-size: 12px; height: 28px; width: 100%; transition: 0.1s;}
+.f-inp:focus { outline: none; border-color: var(--primary-blue); box-shadow: 0 0 0 2px rgba(2,101,220,0.15); }
+.f-inp:disabled { background: #f8fafc; color: #64748b; cursor: not-allowed; font-weight: 600; border-color: transparent;}
+input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; }
+input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary-blue); }
+
+.sd-wrap { position: relative; width: 100%; }
+.sd-list { display: none; position: absolute; top: calc(100% + 2px); left: 0; min-width: 300px; background: #fff; border: 1px solid var(--primary-blue); border-radius: 3px; max-height: 250px; overflow-y: auto; z-index: 999; box-shadow: 0 8px 16px rgba(0,0,0,0.15); }
+.sd-item { padding: 6px 10px; cursor: pointer; border-bottom: 1px solid #f1f5f9; }
+.sd-item:hover, .sd-item.active { background: #e2e8f0; border-left: 3px solid var(--primary-blue); }
+.sd-item .title { font-size: 12px; font-weight: 700; color: var(--primary-blue); margin-bottom: 2px; }
+.sd-item .desc { font-size: 10px; color: var(--text-muted); }
+
+.btn { padding: 0 16px; height: 28px; border-radius: 3px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; display: inline-flex; align-items: center; justify-content: center; transition: 0.1s; gap:6px;}
+.btn-primary { background: var(--primary-blue); color: #fff; } .btn-primary:hover { background: #014da8; }
+.btn-success { background: var(--success-green); color: #fff; } .btn-success:hover { background: #0c6b3d; }
+.btn-outline { background: #fff; color: var(--text-main); border: 1px solid var(--border-color); } .btn-outline:hover { background: #f1f5f9; }
+
+.table-wrap { flex-grow: 1; overflow-y: auto; overflow-x: auto; background: #fff; border: 1px solid var(--border-color); border-radius: 4px; min-height: 280px; }
+table { width: 100%; border-collapse: collapse; text-align: left; table-layout: fixed; }
+th { background: var(--table-head); font-size: 11px; padding: 10px 12px; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 10; color: var(--text-muted); text-transform: uppercase;}
+td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
+.dash-row { cursor: pointer; transition: background 0.1s; } .dash-row:hover { background: #e2e8f0 !important; }
+.td-link { color: var(--primary-blue); font-weight: 700; text-decoration: none; } .td-link:hover { text-decoration: underline; }
+
+.dash-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px; flex-shrink: 0;}
+.dash-title { font-size: 20px; font-weight: 800; color: #0f172a; margin: 0;}
+.pagination { display: flex; align-items: center; gap: 12px; padding: 12px; background: #fff; border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 4px 4px; justify-content: center; flex-shrink: 0;}
+.gr-ov { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.8); z-index: 9999; justify-content: center; align-items: center; flex-direction: column; }
+.gr-ov.on { display: flex; }
+.spinner { width: 40px; height: 40px; border: 4px solid var(--border-color); border-top-color: var(--primary-blue); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.badge { padding: 2px 6px; border-radius: 3px; font-weight: 700; font-size: 10px; display: inline-block; text-align: center; }
+.badge-blue { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+.badge-green { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+</style>
+
+<div id="view-dashboard" class="view-container active">
+  <div class="dash-header">
+    <div>
+      <h1 class="dash-title">Penerimaan Material (GR)</h1>
+      <span style="color:var(--text-muted); font-size:12px;">Daftar riwayat material masuk ke gudang. (Klik Baris untuk Detail/Edit)</span>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-outline" onclick="syncAllData()">🔄 Refresh</button>
+      <button class="btn btn-primary" onclick="openCreateMulti()">➕ Penerimaan Baru</button>
+    </div>
+  </div>
+  <div class="table-wrap" style="border-radius: 4px 4px 0 0; min-height: unset;">
+    <table>
+      <thead>
+        <tr><th width="8%">Tanggal</th><th width="12%">Batch ID</th><th width="13%">Item Code</th><th width="23%">Deskripsi</th><th width="11%">Qty / KG</th><th width="15%">Vendor</th><th width="9%">No. DO</th><th width="9%">No. PO</th></tr>
+      </thead>
+      <tbody id="dash-tbody"></tbody>
+    </table>
+  </div>
+  <div class="pagination">
+    <button class="btn btn-outline" id="pg-prev" onclick="changePage(-1)">◀ Prev</button>
+    <span style="font-weight:700; font-size:12px;" id="pg-info">Halaman 1 / 1</span>
+    <button class="btn btn-outline" id="pg-next" onclick="changePage(1)">Next ▶</button>
+  </div>
+</div>
+
+<div id="view-create" class="view-container">
+  <div class="dash-header">
+    <h1 class="dash-title">➕ Buat Penerimaan Baru</h1>
+    <button class="btn btn-outline" onclick="showView('view-dashboard')">✖ Batal / Kembali</button>
+  </div>
+  <div class="panel">
+    <div class="panel-head">1. Tarik Data Dokumen PO</div>
+    <div class="panel-body">
+      <div class="row">
+        <div class="col-2">
+          <label>No. PO *</label>
+          <div class="sd-wrap">
+            <input class="f-inp" id="h-po" placeholder="Ketik No PO (Panah ↓)" autocomplete="off" style="font-weight:bold; color:var(--primary-blue);">
+            <div class="sd-list" id="sdl-po"></div>
+          </div>
+        </div>
+        <div class="col-2"><label>Vendor (Auto)</label><input class="f-inp" id="h-supp" disabled></div>
+        <div class="col"><label>Owner (Auto)</label><input class="f-inp" id="h-owner" disabled></div>
+        <div class="col"><label>No. Surat Jalan *</label><input class="f-inp" id="h-do" placeholder="Ketik SJ Supplier..."></div>
+        <div class="col"><label>Tanggal Terima *</label><input type="date" class="f-inp" id="h-tgl"></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel" style="flex-grow: 1; overflow: hidden;">
+    <div class="panel-head"><div style="display:flex; align-items:center; gap: 16px;"><span>2. Verifikasi Fisik Material yang Tiba</span></div></div>
+    <div class="table-wrap">
+      <table class="inline-table" style="table-layout: auto;">
+        <thead>
+          <tr><th width="3%" style="text-align:center;">✓</th><th width="15%">Item Code</th><th width="20%">Deskripsi (Balance)</th><th width="6%">UoM</th><th width="10%">Target Gudang</th><th width="8%">Qty Aktual</th><th width="8%">KG Aktual</th><th width="12%">No. Coil Fisik</th><th width="18%">Catatan</th></tr>
+        </thead>
+        <tbody id="item-tbody"><tr><td colspan="9" style="text-align:center; padding:30px; color:#94a3b8; font-style:italic;">Pilih Nomor PO di atas untuk memunculkan daftar material.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  <div style="display:flex; justify-content: flex-end; flex-shrink: 0;">
+    <button class="btn btn-success" style="height:36px; padding:0 40px; font-size:14px;" onclick="submitGR()">📥 Simpan Dokumen & Auto-Print Label</button>
+  </div>
+</div>
+
+<div id="view-detail" class="view-container">
+  <div class="dash-header">
+    <div><h1 class="dash-title" id="vd-title">Detail GR</h1><span style="color:var(--text-muted); font-size:12px;" id="vd-sub">Mode Read-Only</span></div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-outline" onclick="showView('view-dashboard')">◀ Kembali</button>
+      <button class="btn btn-outline" onclick="printSingleLabel()" title="Cetak ulang label thermal">🖨️ Re-Print Label</button>
+      <button class="btn btn-primary" id="btn-mode-edit" onclick="enableEditMode()">✏️ Edit Data</button>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-head">Informasi Penerimaan</div>
+    <div class="panel-body">
+      <div class="row"><div class="col"><label>Batch ID</label><input class="f-inp" id="v-batch" disabled></div><div class="col"><label>Tanggal GR</label><input type="date" class="f-inp" id="v-tgl" disabled></div><div class="col"><label>No. DO / Surat Jalan</label><input class="f-inp" id="v-do" disabled></div><div class="col"><label>No. PO</label><input class="f-inp" id="v-po" disabled></div></div>
+      <div class="row"><div class="col-2"><label>Vendor</label><input class="f-inp" id="v-vend" disabled></div><div class="col"><label>Jenis Material</label><input class="f-inp" id="v-jenis" disabled></div><div class="col"><label>Owner</label><input class="f-inp" id="v-own" disabled></div></div>
+      <div class="row"><div class="col"><label>Item Code</label><input class="f-inp" id="v-item" disabled></div><div class="col-2"><label>Deskripsi Material</label><input class="f-inp" id="v-desc" disabled></div><div class="col" id="vd-wrap-coil"><label>No. Label Fisik Coil</label><input class="f-inp" id="v-nocoil" disabled></div></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-head" style="background:#fff7ed; border-bottom-color:#fed7aa; color:#c2410c;">Area Bisa Diedit (Klik tombol Edit di atas)</div>
+    <div class="panel-body">
+      <div class="row"><div class="col" id="vd-wrap-qty"><label>Qty (Sht/Pcs)</label><input type="number" class="f-inp editable" id="v-qty" disabled oninput="autoCalcKgEdit()"></div><div class="col"><label>Berat Aktual (KG)</label><input type="number" class="f-inp editable" id="v-kg" step="0.01" disabled></div><div class="col-2"><label>Catatan</label><input type="text" class="f-inp editable" id="v-note" disabled></div></div>
+    </div>
+  </div>
+  <div style="display:flex; justify-content: flex-end; flex-shrink: 0;">
+    <button class="btn btn-success" id="btn-save-edit" style="display:none; height:36px; padding:0 40px; font-size:14px;" onclick="submitEdit()">💾 Simpan Perubahan</button>
+  </div>
+</div>
+
+<div class="gr-ov" id="gr-ov"><div class="spinner"></div><h4 style="margin-top:16px; color:#1e293b;" id="ov-msg">Memuat...</h4></div>
+
+<script>
+var DB = { pos: [] };
+var DASH = { data: [], page: 1, total: 1 };
+var SELECTED_PO_ITEMS = [];
+var CUR = { editingRow: null };
+
+function showView(viewId) {
+  document.querySelectorAll('.view-container').forEach(function(el){ el.classList.remove('active'); });
+  document.getElementById(viewId).classList.add('active');
+}
+
+function grOv(show, msg) { 
+  var ov = document.getElementById('gr-ov');
+  if (show) ov.classList.add('on'); else ov.classList.remove('on');
+  if (msg) document.getElementById('ov-msg').textContent = msg;
+}
+
+(function init() {
+  var d = new Date(); 
+  document.getElementById('h-tgl').value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  buildPODD(); 
+  syncAllData(); 
+})();
+
+function syncAllData(callback) {
+  grOv(true, "Sinkronisasi Master Data & Sisa PO...");
+  google.script.run.withSuccessHandler(function(jsonStr) {
+    grOv(false);
+    var res = JSON.parse(jsonStr);
+    if (res.error) return alert("Sistem Error: " + res.error);
+    DB.pos = res.form.pos || []; 
+    DASH.data = res.dash.data || []; DASH.page = res.dash.currentPage || 1; DASH.total = res.dash.totalPages || 1;
+    renderDashboardTable();
+    if(callback) callback(); 
+  }).withFailureHandler(function(e) { grOv(false); alert("Error Server: " + e.message); }).getInitData();
+}
+
+function loadDashboard(page) {
+  grOv(true, "Pindah Halaman...");
+  google.script.run.withSuccessHandler(function(jsonStr) {
+    grOv(false); var res = JSON.parse(jsonStr);
+    DASH.data = res.data; DASH.page = res.currentPage; DASH.total = res.totalPages;
+    renderDashboardTable();
+  }).getDashboardPage(page);
+}
+
+function changePage(dir) {
+  var target = DASH.page + dir;
+  if(target >= 1 && target <= DASH.total) loadDashboard(target);
+}
+
+function renderDashboardTable() {
+  var tbody = document.getElementById('dash-tbody');
+  document.getElementById('pg-info').textContent = 'Halaman ' + DASH.page + ' / ' + DASH.total;
+  document.getElementById('pg-prev').disabled = (DASH.page === 1);
+  document.getElementById('pg-next').disabled = (DASH.page === DASH.total);
+  if (DASH.data.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:#94a3b8; font-style:italic;">Belum ada riwayat penerimaan barang.</td></tr>'; return; }
+
+  tbody.innerHTML = DASH.data.map(function(r, index) {
+    var qtykg = r.jenis === 'COIL' ? `<b>${r.kg}</b> KG` : `<b>${r.qty}</b> Sht / ${r.kg} KG`;
+    return `<tr class="dash-row" onclick="openDetail(${index})">
+      <td>${r.tgl_str}</td><td class="td-link"><b>${r.batch_id}</b></td><td>${r.item_code}</td>
+      <td style="color:var(--primary-blue); font-weight:700;">${r.desc}</td><td>${qtykg}</td><td>${r.supplier}</td><td>${r.no_do}</td><td>${r.no_po}</td>
+    </tr>`;
+  }).join('');
+}
+
+function openCreateMulti() {
+  document.getElementById('item-tbody').innerHTML = '<tr><td colspan="9" style="text-align:center; padding:30px; color:#94a3b8; font-style:italic;">Pilih Nomor PO di atas untuk memunculkan daftar material.</td></tr>';
+  ['h-supp','h-owner','h-do','h-po'].forEach(function(id) { document.getElementById(id).value = ''; });
+  SELECTED_PO_ITEMS = []; showView('view-create');
+}
+
+function buildPODD() {
+  var inp = document.getElementById('h-po'); var lst = document.getElementById('sdl-po'); var actIdx = -1;
+  inp.addEventListener('input', function() {
+    actIdx = -1; var q = this.value.toLowerCase();
+    var res = DB.pos.filter(function(d){ return d.po_no.toLowerCase().includes(q) || d.vendor.toLowerCase().includes(q); }).slice(0, 30);
+    lst.innerHTML = res.map(function(d){ return `<div class="sd-item" data-p="${d.po_no}"><div class="title">${d.po_no}</div><div class="desc">${d.vendor} (${d.items.length} Item)</div></div>`; }).join('');
+    lst.style.display = res.length ? 'block' : 'none';
+  });
+  lst.addEventListener('mousedown', function(e) { var el = e.target.closest('.sd-item'); if (el) selectPO(el.dataset.p); });
+  inp.addEventListener('keydown', function(e) {
+    var items = lst.querySelectorAll('.sd-item'); 
+    if (e.key === 'ArrowDown') { e.preventDefault(); if (!items.length) return; actIdx = (actIdx + 1) % items.length; hiPO(items); } 
+    else if (e.key === 'ArrowUp') { e.preventDefault(); if (!items.length) return; actIdx = (actIdx - 1 + items.length) % items.length; hiPO(items); } 
+    else if (e.key === 'Enter' || e.key === 'Tab') { if (lst.style.display === 'block' && items.length > 0) { e.preventDefault(); selectPO(items[Math.max(0, actIdx)].dataset.p); } }
+  });
+  function hiPO(items) { items.forEach(function(el, i) { if (i === actIdx) { el.classList.add('active'); el.scrollIntoView({block:'nearest'}); } else { el.classList.remove('active'); } }); }
+}
+
+function selectPO(poNo) { 
+  var selectedData = DB.pos.find(function(p){ return p.po_no === poNo; }); if (!selectedData) return;
+  document.getElementById('h-po').value = selectedData.po_no; document.getElementById('h-supp').value = selectedData.vendor; 
+  document.getElementById('h-owner').value = selectedData.owner; document.getElementById('sdl-po').style.display = 'none'; 
+  SELECTED_PO_ITEMS = selectedData.items; renderPOItemsToTable(); document.getElementById('h-do').focus(); 
+}
+
+function renderPOItemsToTable() {
+  var tbody = document.getElementById('item-tbody'); tbody.innerHTML = '';
+  SELECTED_PO_ITEMS.forEach(function(itm, i) {
+    var tr = document.createElement('tr'); var isCoil = itm.target_loc === 'Stok_Coil';
+    tr.innerHTML = `
+      <td style="text-align:center;"><input type="checkbox" class="inp-chk" onchange="toggleRow(this, ${i})"></td>
+      <td><b>${itm.item_code}</b></td>
+      <td><div style="font-weight:700; color:var(--primary-blue);">${itm.description}</div><div style="font-size:10px; color:var(--danger-red);">Sisa PO: ${itm.bal_qty} ${itm.uom} / ${itm.bal_kg} KG</div></td>
+      <td>${itm.uom}</td><td><span class="badge ${isCoil ? 'badge-blue' : 'badge-green'}">${itm.target_loc}</span></td>
+      <td><input type="number" class="f-inp inp-qty" placeholder="Qty" disabled oninput="calcRowKg(${i})"></td>
+      <td><input type="number" class="f-inp inp-kg" placeholder="KG" disabled style="font-weight:bold;"></td>
+      <td><input type="text" class="f-inp inp-coil" placeholder="${isCoil ? 'Wajib Diisi...' : '-'}" ${isCoil ? '' : 'disabled style="background:transparent;border-color:transparent;"'}></td>
+      <td><input type="text" class="f-inp inp-note" placeholder="Note..." disabled></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function toggleRow(chkBox, index) {
+  var tr = chkBox.closest('tr'); var inputs = tr.querySelectorAll('.inp-qty, .inp-kg, .inp-note');
+  var isCoil = SELECTED_PO_ITEMS[index].target_loc === 'Stok_Coil'; var coilInput = tr.querySelector('.inp-coil');
+  if (chkBox.checked) {
+    inputs.forEach(function(el){ el.disabled = false; }); if(isCoil) coilInput.disabled = false;
+    tr.style.background = '#f0fdf4'; tr.querySelector('.inp-qty').focus();
+  } else {
+    inputs.forEach(function(el){ el.disabled = true; el.value = ''; }); if(isCoil) { coilInput.disabled = true; coilInput.value = ''; }
+    tr.style.background = '';
+  }
+}
+
+function calcRowKg(index) {
+  var tr = document.querySelectorAll('#item-tbody tr')[index]; var itm = SELECTED_PO_ITEMS[index];
+  var qty = parseFloat(tr.querySelector('.inp-qty').value) || 0;
+  if (qty > 0 && itm.wg_pce > 0) tr.querySelector('.inp-kg').value = (qty * itm.wg_pce).toFixed(2);
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// LOGIKA POKAYOKE OVER-DELIVERY (DRC 0%, COIL 10%, SHEET 5%)
+// ─────────────────────────────────────────────────────────────────────────
+function submitGR() {
+  var vendorName = document.getElementById('h-supp').value.toUpperCase();
+  var h = { no_po: document.getElementById('h-po').value, supplier: document.getElementById('h-supp').value, no_do: document.getElementById('h-do').value, tgl_masuk: document.getElementById('h-tgl').value, owner: document.getElementById('h-owner').value };
+  
+  if (!h.no_po || !h.no_do || !h.tgl_masuk) return alert('Pokayoke: Header No PO dan Surat Jalan wajib diisi!');
+
+  var isDRC = vendorName.indexOf("DIAN RAYA CIPTA") !== -1;
+  var rows = document.querySelectorAll('#item-tbody tr');
+  var finalItems = [];
+  var warningMessages = [];
+  
+  for (var i = 0; i < rows.length; i++) {
+    var tr = rows[i]; var chk = tr.querySelector('.inp-chk');
+    if (!chk || !chk.checked) continue; 
+
+    var itmRef = SELECTED_PO_ITEMS[i];
+    var isCoil = itmRef.target_loc === 'Stok_Coil';
+    var qty = parseInt(tr.querySelector('.inp-qty').value) || 0;
+    var kg = parseFloat(tr.querySelector('.inp-kg').value) || 0;
+    var noCoil = tr.querySelector('.inp-coil').value.trim();
+    
+    if (qty <= 0 || kg <= 0) return alert('Pokayoke: Baris ke-'+(i+1)+' ('+itmRef.item_code+') Qty/KG harus lebih dari 0!');
+    if (isCoil && !noCoil) return alert('Pokayoke: Baris ke-'+(i+1)+' ('+itmRef.item_code+') No. Coil fisik wajib diketik!');
+
+    var tol_pct = isDRC ? 0 : (isCoil ? 0.10 : 0.05);
+    var max_qty = itmRef.bal_qty + Math.ceil(itmRef.po_qty * tol_pct);
+    var max_kg = itmRef.bal_kg + (itmRef.po_kg * tol_pct);
+
+    if (qty > max_qty || kg > max_kg) {
+      var pctText = isDRC ? "0%" : (isCoil ? "10%" : "5%");
+      return alert('Pokayoke OVER-DELIVERY DITOLAK:\nBaris ke-'+(i+1)+' ('+itmRef.item_code+') melebihi batas toleransi '+pctText+' dari total PO!\n\nSisa PO: '+itmRef.bal_kg+' KG\nMaksimal Penerimaan Diizinkan: ' + max_kg.toFixed(2) + ' KG');
+    }
+
+    if (qty > itmRef.bal_qty || kg > itmRef.bal_kg) {
+      var diffKg = (kg - itmRef.bal_kg).toFixed(2);
+      warningMessages.push('- ' + itmRef.item_code + ' (Lebih ' + diffKg + ' KG dari sisa PO)');
+    }
+
+    finalItems.push({
+      item_code: itmRef.item_code, description: itmRef.description, uom: itmRef.uom, spec: itmRef.spec,
+      thick: itmRef.thick, lebar: itmRef.lebar, l_dim: itmRef.l_dim, target_loc: itmRef.target_loc,
+      qty_in: qty, kg_in: kg, no_coil: noCoil, note: tr.querySelector('.inp-note').value
+    });
+  }
+  
+  if (finalItems.length === 0) return alert('Pokayoke: Centang minimal 1 material yang datang!');
+
+  if (warningMessages.length > 0) {
+    var msg = "⚠️ PERINGATAN OVER-DELIVERY (Dalam Batas Toleransi) ⚠️\n\nMaterial berikut melebihi sisa PO namun masih dalam batas aman:\n" + warningMessages.join("\n") + "\n\nApakah Anda yakin ingin tetap menyimpan penerimaan berlebih ini?";
+    if (!confirm(msg)) return; 
+  }
+  
+  grOv(true, 'Menyimpan & Menyiapkan Print...');
+  google.script.run.withSuccessHandler(function(jsonStr) {
+    var res = JSON.parse(jsonStr);
+    if(res.error) { grOv(false); return alert("Sistem Error: " + res.error); }
+    showView('view-dashboard'); 
+    syncAllData(function() { setTimeout(function() { printLabels(res.labels); }, 500); });
+  }).withFailureHandler(function(e) { grOv(false); alert('Gagal: '+e.message); }).saveGR({ header: h, items: finalItems });
+}
+
+function openDetail(index) {
+  var r = DASH.data[index]; CUR.editingRow = r;
+  document.getElementById('v-batch').value = r.batch_id; document.getElementById('v-tgl').value = r.tgl_raw; document.getElementById('v-do').value = r.no_do; document.getElementById('v-po').value = r.no_po; document.getElementById('v-jenis').value = r.jenis; document.getElementById('v-own').value = r.owner; document.getElementById('v-item').value = r.item_code; document.getElementById('v-desc').value = r.desc; document.getElementById('v-vend').value = r.supplier;
+  document.getElementById('v-nocoil').value = r.no_coil; document.getElementById('vd-wrap-coil').style.display = (r.jenis === 'COIL') ? 'flex' : 'none';
+  document.getElementById('v-qty').value = r.qty; document.getElementById('vd-wrap-qty').style.display = (r.jenis !== 'COIL') ? 'flex' : 'none'; document.getElementById('v-kg').value = r.kg; document.getElementById('v-note').value = r.note;
+  document.querySelectorAll('.editable').forEach(function(el) { el.disabled = true; el.style.borderColor = 'transparent'; el.style.background = '#f8fafc'; });
+  document.getElementById('btn-mode-edit').style.display = 'inline-flex'; document.getElementById('btn-save-edit').style.display = 'none'; document.getElementById('vd-sub').textContent = 'Mode Read-Only';
+  showView('view-detail');
+}
+
+function enableEditMode() {
+  document.querySelectorAll('.editable').forEach(function(el) { el.disabled = false; el.style.borderColor = ''; el.style.background = '#fff'; });
+  document.getElementById('btn-mode-edit').style.display = 'none'; document.getElementById('btn-save-edit').style.display = 'inline-flex'; document.getElementById('vd-sub').innerHTML = '<span style="color:var(--warning-orange); font-weight:700;">✏️ Mode Edit Aktif</span>';
+}
+
+function autoCalcKgEdit() {
+  var r = CUR.editingRow; if(!r || r.jenis === 'COIL') return;
+  var qty = parseFloat(document.getElementById('v-qty').value) || 0; var t = parseFloat(r.t) || 0; var p = parseFloat(r.p) || 0; var l = parseFloat(r.l) || 0;
+  if (t > 0 && p > 0 && l > 0) document.getElementById('v-kg').value = ((t * p * l * 7.85) / 1000000 * qty).toFixed(2);
+}
+
+function submitEdit() {
+  var r = CUR.editingRow; var nQty = document.getElementById('v-qty').value; var nKg = document.getElementById('v-kg').value; var nNote = document.getElementById('v-note').value;
+  if (!nKg || nKg <= 0) return alert('KG tidak boleh kosong!');
+  if (r.jenis !== 'COIL' && (!nQty || nQty <= 0)) return alert('Qty tidak boleh kosong!');
+  grOv(true, "Menyimpan Perubahan...");
+  google.script.run.withSuccessHandler(function(jsonStr) {
+    grOv(false); var res = JSON.parse(jsonStr); if(res.error) return alert("Error Update: " + res.error);
+    showView('view-dashboard'); loadDashboard(DASH.page);
+  }).withFailureHandler(function(e) { grOv(false); alert("Error Server: " + e.message); }).updateSingleGR({ batch_id: r.batch_id, sheetName: r.sheetName, qty: r.jenis !== 'COIL' ? nQty : null, kg: nKg, note: nNote });
+}
+
+function printSingleLabel() {
+  var r = CUR.editingRow; var qk = r.jenis === 'COIL' ? r.kg + ' Kg' : r.qty + ' ' + r.uom + ' / ' + r.kg + ' Kg';
+  var lblData = [{ jenis: r.jenis, item_code: r.item_code, spec: r.spec || '-', dim: r.dim ? r.dim + ' mm' : '-', qty_kg: qk, tgl_gr: r.tgl_str, no_gr: r.batch_id }];
+  printLabels(lblData);
+}
+
+function printLabels(labelsData) {
+  var iframe = document.createElement('iframe'); iframe.style.display = 'none'; document.body.appendChild(iframe); var doc = iframe.contentWindow.document;
+  var html = '<html><head><style>@page{size:80mm 50mm;margin:0;} body{margin:0;padding:0;font-family:Arial,sans-serif;color:#000;} .label-box{width:80mm;height:50mm;padding:2mm;box-sizing:border-box;page-break-after:always;display:flex;flex-direction:column;} table{width:100%;height:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;} td{border:1px solid #000;padding:2px 4px;overflow:hidden;vertical-align:middle;} .logo-box{display:inline-block;border:2px solid #0265dc;color:#0265dc;font-weight:900;font-size:18px;padding:1px 4px;letter-spacing:1px;} .comp{font-weight:900;font-size:11px;text-align:center;font-style:italic;line-height:1.1;} .title{font-weight:900;font-size:14px;text-align:center;} .lbl{font-size:10px;} .val{font-size:12px;font-weight:bold;}</style></head><body>';
+  labelsData.forEach(function(lbl) {
+    html += '<div class="label-box"><table><tr><td width="20%" style="text-align:center;"><div class="logo-box">F/C</div></td><td width="45%" class="comp">FLAMBINDO<br>CORTAMA</td><td width="35%" class="title" colspan="2">LABEL ' + lbl.jenis + '</td></tr><tr><td class="lbl">ITEM CODE</td><td class="val">: ' + lbl.item_code + '</td><td class="lbl" width="12%">CUST</td><td class="val" width="23%">: </td></tr><tr><td class="lbl">SPEK</td><td class="val" colspan="3">: ' + lbl.spec + '</td></tr><tr><td class="lbl">SIZE (TxWxL)</td><td class="val" colspan="3">: ' + lbl.dim + '</td></tr><tr><td class="lbl">QTY/KG</td><td class="val" colspan="3">: ' + lbl.qty_kg + '</td></tr><tr><td class="lbl">TGL GR</td><td class="val">: ' + lbl.tgl_gr + '</td><td class="lbl">NO GR</td><td class="val" style="font-size:10px;">: ' + lbl.no_gr + '</td></tr></table></div>';
+  });
+  html += '</body></html>'; doc.open(); doc.write(html); doc.close();
+  setTimeout(function() { iframe.contentWindow.focus(); iframe.contentWindow.print(); setTimeout(function() { document.body.removeChild(iframe); }, 2000); }, 500);
+}
+</script>

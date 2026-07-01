@@ -1,0 +1,942 @@
+<style>
+/* ================================================================
+   LIVE STOK — Enterprise Light Theme
+   Step 4 FINAL: + Modal Trace + 4 improvements
+   Prefix: ls- (untuk hindari clash dengan shared_css)
+   ================================================================ */
+
+.ls-wrap {
+  padding: 18px 22px;
+  max-width: 100%;
+  background: #f8fafc;
+  min-height: 100vh;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+/* === HEADER === */
+.ls-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #e2e8f0;
+}
+.ls-title {
+  font-size: 20px; font-weight: 600; color: #1a3a6e;
+  display: flex; align-items: center; gap: 8px;
+}
+.ls-meta { display: flex; align-items: center; gap: 14px; font-size: 12px; color: #64748b; }
+.ls-btn-refresh {
+  background: #1a3a6e; color: #fff; border: none;
+  padding: 6px 14px; border-radius: 4px; font-size: 12px; font-weight: 500;
+  cursor: pointer; display: flex; align-items: center; gap: 4px;
+}
+.ls-btn-refresh:hover { background: #145236; }
+.ls-btn-refresh:disabled { background: #94a3b8; cursor: not-allowed; }
+
+/* === TOP STRIP — 5 KATEGORI CARDS === */
+.ls-strip {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  gap: 10px; margin-bottom: 14px;
+}
+.ls-card {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 6px;
+  padding: 12px 14px; cursor: pointer; transition: all 0.15s ease;
+  position: relative; user-select: none;
+}
+.ls-card:hover { border-color: #1a3a6e; box-shadow: 0 2px 6px rgba(26, 58, 110, 0.08); }
+.ls-card.ls-card-active {
+  border-color: #1a3a6e; border-width: 2px;
+  background: #f0f5fc; padding: 11px 13px;
+}
+.ls-card.ls-card-active::before {
+  content: '✓'; position: absolute; top: 6px; right: 8px;
+  font-size: 11px; color: #1a3a6e; font-weight: 700;
+}
+.ls-card-head {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+  color: #475569; margin-bottom: 6px;
+}
+.ls-card-icon { font-size: 14px; }
+.ls-card-batch { font-size: 22px; font-weight: 700; color: #0f172a; line-height: 1; }
+.ls-card-batch-lbl { font-size: 10px; color: #94a3b8; font-weight: 400; margin-left: 4px; }
+.ls-card-kg { font-size: 12px; color: #1b6b45; font-weight: 600; margin-top: 4px; }
+.ls-card-alert { display: flex; gap: 8px; margin-top: 6px; font-size: 11px; min-height: 16px; }
+.ls-alert-warn { color: #b78103; font-weight: 600; }
+.ls-alert-crit { color: #c62828; font-weight: 600; }
+.ls-alert-none { color: #cbd5e1; }
+
+/* === FILTER BAR === */
+.ls-filter-bar {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 6px;
+  padding: 10px 12px; margin-bottom: 12px;
+}
+.ls-filter-row { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; }
+.ls-filter-group { display: flex; flex-direction: column; gap: 3px; min-width: 110px; }
+.ls-filter-group.ls-filter-search { flex: 1; min-width: 200px; }
+.ls-filter-group label {
+  font-size: 10px; font-weight: 600; color: #64748b;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.ls-filter-group select,
+.ls-filter-group input {
+  border: 1px solid #cbd5e1; border-radius: 4px;
+  padding: 6px 8px; font-size: 12px; background: #fff;
+  font-family: inherit; color: #0f172a; height: 32px; box-sizing: border-box;
+}
+.ls-filter-group select:focus, .ls-filter-group input:focus {
+  outline: none; border-color: #1a3a6e;
+  box-shadow: 0 0 0 2px rgba(26, 58, 110, 0.1);
+}
+.ls-btn-clear {
+  background: #fff; color: #475569; border: 1px solid #cbd5e1;
+  padding: 0 12px; height: 32px; border-radius: 4px;
+  font-size: 12px; font-weight: 500; cursor: pointer;
+}
+.ls-btn-clear:hover { background: #f1f5f9; border-color: #1a3a6e; color: #1a3a6e; }
+.ls-filter-info {
+  margin-top: 10px; padding-top: 8px; border-top: 1px dashed #e2e8f0;
+  font-size: 11px; color: #64748b;
+  display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+}
+.ls-info-pill { display: inline-flex; align-items: center; gap: 4px; }
+.ls-info-pill b { color: #1a3a6e; font-variant-numeric: tabular-nums; }
+.ls-info-active {
+  background: #fef3c7; border: 1px solid #fde68a; color: #92400e;
+  padding: 2px 8px; border-radius: 3px; font-weight: 500;
+}
+
+/* === TABLE === */
+.ls-table-wrap { background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; }
+.ls-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ls-table thead { background: #f1f5f9; position: sticky; top: 0; z-index: 1; }
+.ls-table thead th {
+  text-align: left; padding: 9px 10px;
+  font-weight: 600; font-size: 11px; color: #475569;
+  letter-spacing: 0.3px; border-bottom: 1px solid #e2e8f0; white-space: nowrap;
+}
+.ls-table thead th .ls-th-sub {
+  display: block; font-size: 9px; font-weight: 400; color: #94a3b8;
+  text-transform: none; letter-spacing: 0;
+}
+.ls-table tbody td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; color: #1e293b; }
+.ls-table tbody tr:hover { background: #f8fafc; cursor: pointer; }
+.ls-num { text-align: right; font-variant-numeric: tabular-nums; font-family: 'SF Mono', Menlo, Consolas, monospace; }
+.ls-num .ls-num-qty { font-weight: 600; color: #0f172a; }
+.ls-num .ls-num-kg  { font-size: 10px; color: #94a3b8; margin-top: 1px; }
+.ls-num-avail .ls-num-qty { color: #1b6b45; }
+.ls-num-keep  .ls-num-qty { color: #b78103; }
+.ls-sub { font-size: 10px; color: #94a3b8; margin-top: 1px; }
+.ls-item-main { font-weight: 600; color: #0f172a; }
+.ls-item-code { font-size: 10px; color: #64748b; margin-top: 2px; font-family: 'SF Mono', Menlo, Consolas, monospace; }
+
+/* === BADGES === */
+.ls-cat-badge {
+  display: inline-block; padding: 2px 7px; border-radius: 3px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.5px; color: #fff;
+}
+.ls-cat-coil  { background: #0369a1; }
+.ls-cat-sheet { background: #047857; }
+.ls-cat-wip   { background: #c2410c; }
+.ls-cat-fg    { background: #1a3a6e; }
+.ls-cat-ng    { background: #991b1b; }
+
+.ls-age {
+  display: inline-block; padding: 2px 6px; border-radius: 3px;
+  font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums;
+}
+.ls-age-fresh { background: #dcfce7; color: #166534; }
+.ls-age-warn  { background: #fef3c7; color: #92400e; }
+.ls-age-crit  { background: #fee2e2; color: #991b1b; }
+
+.ls-status {
+  display: inline-block; padding: 2px 7px; border-radius: 3px;
+  font-size: 11px; font-weight: 500;
+}
+.ls-status-avail { background: #ecfdf5; color: #047857; }
+.ls-status-keep  { background: #fffbeb; color: #b78103; }
+.ls-status-habis { background: #f1f5f9; color: #64748b; }
+
+/* === STATES === */
+.ls-empty { text-align: center; padding: 40px; color: #94a3b8; font-style: italic; }
+.ls-error { text-align: center; padding: 40px; color: #c62828; background: #fef2f2; font-weight: 500; }
+.ls-loading { text-align: center; padding: 40px; color: #94a3b8; font-style: italic; }
+
+/* === MODAL TRACE === */
+.ls-modal-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 23, 42, 0.55); z-index: 9000;
+  display: none; align-items: center; justify-content: center;
+  padding: 20px; box-sizing: border-box;
+}
+.ls-modal-overlay.is-open { display: flex; }
+.ls-modal {
+  background: #fff; border-radius: 8px; width: 100%; max-width: 720px;
+  max-height: 88vh; display: flex; flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+.ls-modal-header {
+  padding: 14px 18px; border-bottom: 1px solid #e2e8f0;
+  display: flex; justify-content: space-between; align-items: center;
+  background: #f8fafc; border-radius: 8px 8px 0 0;
+}
+.ls-modal-title { display: flex; align-items: center; gap: 10px; }
+.ls-modal-id { font-size: 16px; font-weight: 600; color: #0f172a; font-family: 'SF Mono', Menlo, monospace; }
+.ls-modal-close {
+  background: transparent; border: none; cursor: pointer;
+  font-size: 18px; color: #64748b; padding: 4px 10px; border-radius: 4px;
+}
+.ls-modal-close:hover { background: #e2e8f0; color: #0f172a; }
+.ls-modal-body { padding: 16px 18px; overflow-y: auto; flex: 1; }
+.ls-modal-footer {
+  padding: 12px 18px; border-top: 1px solid #e2e8f0;
+  display: flex; justify-content: flex-end; gap: 8px;
+  background: #f8fafc; border-radius: 0 0 8px 8px;
+}
+.ls-btn-tracker {
+  background: #1a3a6e; color: #fff; border: none;
+  padding: 7px 14px; border-radius: 4px; font-size: 12px;
+  font-weight: 500; cursor: pointer;
+}
+.ls-btn-tracker:hover { background: #145236; }
+.ls-btn-close-foot {
+  background: #fff; color: #475569; border: 1px solid #cbd5e1;
+  padding: 7px 14px; border-radius: 4px; font-size: 12px;
+  font-weight: 500; cursor: pointer;
+}
+.ls-btn-close-foot:hover { background: #f1f5f9; }
+
+/* Modal Meta Grid */
+.ls-modal-section { margin-bottom: 18px; }
+.ls-modal-section-title {
+  font-size: 11px; font-weight: 700; color: #1a3a6e;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #e2e8f0;
+}
+.ls-modal-meta {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 10px 16px;
+}
+.ls-meta-item { display: flex; flex-direction: column; }
+.ls-meta-label { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.3px; }
+.ls-meta-value { font-size: 12px; color: #0f172a; font-weight: 500; margin-top: 2px; }
+
+/* Modal Tree */
+.ls-tree-empty { padding: 20px; text-align: center; color: #94a3b8; font-style: italic; font-size: 12px; }
+.ls-tree-node { margin: 0; }
+.ls-tree-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px; border-radius: 4px; transition: background 0.15s;
+  font-size: 12px;
+}
+.ls-tree-row:hover { background: #f0f9ff; }
+.ls-tree-row.is-current {
+  background: #fef3c7; border-left: 3px solid #f59e0b; padding-left: 7px;
+}
+.ls-tree-type {
+  display: inline-block; padding: 1px 5px; border-radius: 3px;
+  font-size: 9px; font-weight: 700; color: #fff; min-width: 35px; text-align: center;
+}
+.ls-tree-type-COIL    { background: #0369a1; }
+.ls-tree-type-SHEET   { background: #047857; }
+.ls-tree-type-WIP     { background: #c2410c; }
+.ls-tree-type-FG      { background: #1a3a6e; }
+.ls-tree-type-NG      { background: #991b1b; }
+.ls-tree-type-default { background: #64748b; }
+.ls-tree-id {
+  font-family: 'SF Mono', Menlo, monospace; font-size: 12px;
+  font-weight: 600; color: #0f172a;
+}
+.ls-tree-info { font-size: 11px; color: #64748b; }
+.ls-tree-current-tag { margin-left: auto; font-size: 10px; color: #92400e; font-weight: 700; }
+.ls-tree-spkref { margin-left: auto; font-size: 10px; color: #6b7280; font-family: 'SF Mono', Menlo, monospace; }
+.ls-tree-children { margin-left: 16px; border-left: 1px dashed #cbd5e1; padding-left: 8px; }
+
+/* Responsive */
+@media (max-width: 1100px) { .ls-strip { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 700px) {
+  .ls-strip { grid-template-columns: repeat(2, 1fr); }
+  .ls-filter-group { min-width: 100%; }
+  .ls-modal-meta { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+
+
+<div class="ls-wrap">
+
+  <!-- ===== HEADER ===== -->
+  <div class="ls-header">
+    <div class="ls-title">📦 Live Stok</div>
+    <div class="ls-meta">
+      <span id="ls-meta-info">Loading...</span>
+      <button class="ls-btn-refresh" id="ls-btn-refresh">🔄 Refresh</button>
+    </div>
+  </div>
+
+  <!-- ===== TOP STRIP — 5 CARDS ===== -->
+  <div class="ls-strip" id="ls-strip">
+    <div class="ls-loading" style="grid-column:1/-1">Memuat data stok...</div>
+  </div>
+
+  <!-- ===== FILTER BAR ===== -->
+  <div class="ls-filter-bar">
+    <div class="ls-filter-row">
+
+      <div class="ls-filter-group">
+        <label>Owner</label>
+        <select id="ls-flt-owner">
+          <option value="all">Semua</option>
+          <option value="FC">FC</option>
+          <option value="DRC">DRC</option>
+        </select>
+      </div>
+
+      <div class="ls-filter-group">
+        <label>Kategori</label>
+        <select id="ls-flt-cat">
+          <option value="all">Semua</option>
+          <option value="coil">Coil</option>
+          <option value="sheet">Sheet</option>
+          <option value="wip">WIP</option>
+          <option value="fg">FG</option>
+          <option value="ng">NG</option>
+        </select>
+      </div>
+
+      <div class="ls-filter-group">
+        <label>Status</label>
+        <select id="ls-flt-status">
+          <option value="all">Semua</option>
+          <option value="avail" selected>Available</option>
+          <option value="keep">Keep</option>
+          <option value="habis">Habis</option>
+        </select>
+      </div>
+
+      <div class="ls-filter-group">
+        <label>Aging</label>
+        <select id="ls-flt-aging">
+          <option value="all">Semua</option>
+          <option value="fresh">🟢 Fresh</option>
+          <option value="warn">🟡 Warning</option>
+          <option value="crit">🔴 Kritis</option>
+        </select>
+      </div>
+
+      <div class="ls-filter-group ls-filter-search">
+        <label>Search (Batch / Item / Spec / SO / Cust)</label>
+        <input id="ls-flt-search" type="text" placeholder="Ketik untuk cari...">
+      </div>
+
+      <button class="ls-btn-clear" id="ls-btn-clear">↻ Clear All</button>
+    </div>
+
+    <div class="ls-filter-info" id="ls-filter-info">
+      <span>Memuat...</span>
+    </div>
+  </div>
+
+  <!-- ===== TABEL BATCH ===== -->
+  <div class="ls-table-wrap">
+    <table class="ls-table">
+      <thead>
+        <tr>
+          <th style="width:60px">Kat</th>
+          <th style="width:70px">Age</th>
+          <th style="min-width:130px">Batch_ID</th>
+          <th style="min-width:280px">Spec / Item</th>
+          <th style="width:55px">Owner</th>
+          <th style="width:95px" class="ls-num">In <span class="ls-th-sub">Qty / Kg</span></th>
+          <th style="width:95px" class="ls-num">Avail <span class="ls-th-sub">Qty / Kg</span></th>
+          <th style="width:95px" class="ls-num">Keep <span class="ls-th-sub">Qty / Kg</span></th>
+          <th style="width:95px">Status</th>
+        </tr>
+      </thead>
+      <tbody id="ls-tbody">
+        <tr><td colspan="9" class="ls-loading">⏳ Memuat data...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+
+<!-- ===== MODAL TRACE ===== -->
+<div class="ls-modal-overlay" id="ls-modal-overlay">
+  <div class="ls-modal" id="ls-modal">
+    <div class="ls-modal-header">
+      <div class="ls-modal-title">
+        <span class="ls-cat-badge" id="ls-modal-cat">—</span>
+        <span class="ls-modal-id" id="ls-modal-id">—</span>
+      </div>
+      <button class="ls-modal-close" id="ls-modal-close" title="Tutup (Esc)">✕</button>
+    </div>
+    <div class="ls-modal-body" id="ls-modal-body">
+      <div class="ls-loading">⏳ Memuat trace...</div>
+    </div>
+    <div class="ls-modal-footer">
+      <button class="ls-btn-tracker" id="ls-btn-tracker">📋 Buka di Tracker</button>
+      <button class="ls-btn-close-foot" id="ls-btn-close-foot">Tutup</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+(function() {
+  'use strict';
+
+  // ================================================================
+  // STATE
+  // ================================================================
+  var LS_DATA = null;
+  var LS_LOADING = false;
+  var LS_MODAL_BATCH = null; // currently open batch in modal
+
+  var LS_FILTER_DEFAULT = {
+    cat   : 'all',
+    owner : 'all',
+    status: 'avail',
+    aging : 'all',
+    search: ''
+  };
+
+  var LS_FILTER = {
+    cat   : LS_FILTER_DEFAULT.cat,
+    owner : LS_FILTER_DEFAULT.owner,
+    status: LS_FILTER_DEFAULT.status,
+    aging : LS_FILTER_DEFAULT.aging,
+    search: LS_FILTER_DEFAULT.search
+  };
+
+  var LS_SEARCH_TIMER = null;
+
+  // ================================================================
+  // LOAD DATA
+  // ================================================================
+  function ls_load() {
+    if (LS_LOADING) return;
+    LS_LOADING = true;
+
+    var btn = document.getElementById('ls-btn-refresh');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Loading...'; }
+
+    document.getElementById('ls-meta-info').textContent = 'Memuat data...';
+    document.getElementById('ls-tbody').innerHTML =
+      '<tr><td colspan="9" class="ls-loading">⏳ Memuat data stok...</td></tr>';
+
+    google.script.run
+      .withSuccessHandler(ls_onLoad)
+      .withFailureHandler(ls_onError)
+      .getLiveStockData();
+  }
+
+  function ls_onLoad(res) {
+    LS_LOADING = false;
+    var btn = document.getElementById('ls-btn-refresh');
+    if (btn) { btn.disabled = false; btn.innerHTML = '🔄 Refresh'; }
+
+    if (!res || !res.success) {
+      ls_showError(res ? (res.message || 'Unknown error') : 'No response');
+      return;
+    }
+
+    LS_DATA = res;
+    ls_renderStrip();
+    ls_renderTable();
+
+    document.getElementById('ls-meta-info').textContent =
+      'Last update: ' + res.generated_at +
+      ' · Total ' + ls_formatNum(res.summary.total.total_batch) + ' batch';
+  }
+
+  function ls_onError(e) {
+    LS_LOADING = false;
+    var btn = document.getElementById('ls-btn-refresh');
+    if (btn) { btn.disabled = false; btn.innerHTML = '🔄 Refresh'; }
+    ls_showError(e && e.message ? e.message : String(e));
+  }
+
+  function ls_showError(msg) {
+    document.getElementById('ls-meta-info').textContent = '❌ Error';
+    document.getElementById('ls-tbody').innerHTML =
+      '<tr><td colspan="9" class="ls-error">⚠️ Error: ' + ls_escapeHtml(msg) + '</td></tr>';
+  }
+
+  // ================================================================
+  // RENDER STRIP
+  // ================================================================
+  function ls_renderStrip() {
+    var s = LS_DATA.summary;
+    var cats = [
+      { key: 'coil',  name: 'COIL',  icon: '🧻' },
+      { key: 'sheet', name: 'SHEET', icon: '📄' },
+      { key: 'wip',   name: 'WIP',   icon: '🔧' },
+      { key: 'fg',    name: 'FG',    icon: '✅' },
+      { key: 'ng',    name: 'NG',    icon: '⚠️' }
+    ];
+
+    var html = '';
+    cats.forEach(function(c) {
+      var cs = s[c.key] || {};
+      var warnHtml = (cs.warn_count > 0) ? '<span class="ls-alert-warn">🟡 ' + cs.warn_count + '</span>' : '';
+      var critHtml = (cs.crit_count > 0) ? '<span class="ls-alert-crit">🔴 ' + cs.crit_count + '</span>' : '';
+      var alertHtml = (warnHtml || critHtml) ? (warnHtml + ' ' + critHtml) : '<span class="ls-alert-none">— no aging alert</span>';
+      var activeClass = (LS_FILTER.cat === c.key) ? ' ls-card-active' : '';
+
+      html +=
+        '<div class="ls-card' + activeClass + '" data-cat="' + c.key + '" title="Klik untuk filter ' + c.name + '">' +
+          '<div class="ls-card-head"><span class="ls-card-icon">' + c.icon + '</span><span>' + c.name + '</span></div>' +
+          '<div class="ls-card-batch">' + ls_formatNum(cs.total_batch || 0) +
+            '<span class="ls-card-batch-lbl">batch</span></div>' +
+          '<div class="ls-card-kg">' + ls_formatKg(cs.kg_avail || 0) + ' avail</div>' +
+          '<div class="ls-card-alert">' + alertHtml + '</div>' +
+        '</div>';
+    });
+    document.getElementById('ls-strip').innerHTML = html;
+
+    var cards = document.querySelectorAll('#ls-strip .ls-card');
+    for (var i = 0; i < cards.length; i++) {
+      cards[i].addEventListener('click', ls_onCardClick);
+    }
+  }
+
+  function ls_onCardClick(ev) {
+    var card = ev.currentTarget;
+    var cat = card.getAttribute('data-cat');
+    if (!cat) return;
+    LS_FILTER.cat = (LS_FILTER.cat === cat) ? 'all' : cat;
+    var selCat = document.getElementById('ls-flt-cat');
+    if (selCat) selCat.value = LS_FILTER.cat;
+    ls_renderStrip();
+    ls_renderTable();
+  }
+
+  // ================================================================
+  // FILTER + RENDER TABLE
+  // ================================================================
+  function ls_applyFilters(batches) {
+    var q = (LS_FILTER.search || '').toLowerCase().trim();
+    return batches.filter(function(b) {
+      if (LS_FILTER.cat    !== 'all' && b._category !== LS_FILTER.cat) return false;
+      if (LS_FILTER.owner  !== 'all' && String(b.owner || '').toUpperCase() !== LS_FILTER.owner) return false;
+      if (LS_FILTER.status !== 'all' && b.status !== LS_FILTER.status) return false;
+      if (LS_FILTER.aging  !== 'all' && b.aging_tier !== LS_FILTER.aging) return false;
+      if (q) {
+        var hay = [
+          b.batch_id, b.item_code, b.description, b.spec, b.spec_composite,
+          b.no_coil, b.spk_ref, b.so_ref, b.cust, b.supplier
+        ].join(' ').toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      return true;
+    });
+  }
+
+  function ls_renderTable() {
+    if (!LS_DATA) return;
+
+    var all = [];
+    ['coil','sheet','wip','fg','ng'].forEach(function(cat) {
+      var arr = LS_DATA.batches[cat] || [];
+      arr.forEach(function(b) {
+        b._category = cat;
+        all.push(b);
+      });
+    });
+
+    var filtered = ls_applyFilters(all);
+
+    var tierWeight = { crit: 3, warn: 2, fresh: 1 };
+    filtered.sort(function(a, b) {
+      var ta = tierWeight[a.aging_tier] || 0;
+      var tb = tierWeight[b.aging_tier] || 0;
+      if (ta !== tb) return tb - ta;
+      return (b.age_days || 0) - (a.age_days || 0);
+    });
+
+    ls_renderFilterInfo(all, filtered);
+
+    var tbody = document.getElementById('ls-tbody');
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" class="ls-empty">Tidak ada batch sesuai filter. Coba klik <b>Clear All</b> untuk reset.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(ls_renderRow).join('');
+  }
+
+  function ls_renderFilterInfo(allBatches, filtered) {
+    var sumKgAvail = 0, sumKgKeep = 0, sumKgIn = 0;
+    var sumQtyAvail = 0;
+    var cntWarn = 0, cntCrit = 0;
+    filtered.forEach(function(b) {
+      sumKgIn     += parseFloat(b.kg_in)     || 0;
+      sumKgAvail  += parseFloat(b.kg_avail)  || 0;
+      sumKgKeep   += parseFloat(b.kg_keep)   || 0;
+      sumQtyAvail += parseFloat(b.qty_avail) || 0;
+      if (b.aging_tier === 'warn') cntWarn++;
+      if (b.aging_tier === 'crit') cntCrit++;
+    });
+
+    var chips = [];
+    if (LS_FILTER.cat    !== 'all') chips.push('Kat: <b>' + LS_FILTER.cat.toUpperCase() + '</b>');
+    if (LS_FILTER.owner  !== 'all') chips.push('Owner: <b>' + LS_FILTER.owner + '</b>');
+    if (LS_FILTER.status !== 'all') chips.push('Status: <b>' + LS_FILTER.status + '</b>');
+    if (LS_FILTER.aging  !== 'all') chips.push('Aging: <b>' + LS_FILTER.aging + '</b>');
+    if (LS_FILTER.search)           chips.push('Search: <b>"' + ls_escapeHtml(LS_FILTER.search) + '"</b>');
+
+    var chipsHtml = chips.length > 0
+      ? '<span class="ls-info-active">🔎 ' + chips.join(' · ') + '</span>'
+      : '<span class="ls-info-pill">📋 <b>Semua</b> data</span>';
+
+    var html =
+      chipsHtml +
+      '<span class="ls-info-pill">Showing <b>' + ls_formatNum(filtered.length) + '</b> of <b>' + ls_formatNum(allBatches.length) + '</b> batch</span>' +
+      '<span class="ls-info-pill">KG In <b>' + ls_formatNum(sumKgIn) + '</b></span>' +
+      '<span class="ls-info-pill" style="color:#1b6b45">Avail <b>' + ls_formatNum(sumQtyAvail) + '</b> pc · <b>' + ls_formatNum(sumKgAvail) + '</b> kg</span>' +
+      '<span class="ls-info-pill" style="color:#b78103">Keep <b>' + ls_formatNum(sumKgKeep) + '</b> kg</span>';
+
+    if (cntWarn > 0 || cntCrit > 0) {
+      html += '<span class="ls-info-pill">Aging:' +
+        (cntWarn > 0 ? ' <b style="color:#b78103">🟡 ' + cntWarn + '</b>' : '') +
+        (cntCrit > 0 ? ' <b style="color:#c62828">🔴 ' + cntCrit + '</b>' : '') +
+      '</span>';
+    }
+    document.getElementById('ls-filter-info').innerHTML = html;
+  }
+
+  // ================================================================
+  // RENDER ROW — Improvement #1, #2, #4 applied
+  // ================================================================
+  function ls_renderRow(b) {
+    var cat = (b._category || '').toLowerCase();
+    var catBadge = '<span class="ls-cat-badge ls-cat-' + cat + '">' + cat.toUpperCase() + '</span>';
+
+    var ageBadge = ls_renderAgeBadge(b.age_days, b.aging_tier);
+    var statusBadge = ls_renderStatusBadge(b.status);
+
+    // Improvement #1+#2: Spec di atas (description rich/spec_composite), Item_Code di bawah
+    var specMain = b.description || b.spec_composite || '—';
+    var itemCode = b.item_code || '';
+
+    // Improvement #4: Qty / KG stacked
+    var inCell    = ls_renderQtyKg(b.qty_in,    b.kg_in,    '');
+    var availCell = ls_renderQtyKg(b.qty_avail, b.kg_avail, 'ls-num-avail');
+    var keepCell  = ls_renderQtyKg(b.qty_keep,  b.kg_keep,  'ls-num-keep');
+
+    return '<tr data-batch="' + ls_escapeHtml(b.batch_id) + '" data-cat="' + cat + '">' +
+      '<td>' + catBadge + '</td>' +
+      '<td>' + ageBadge + '</td>' +
+      '<td><b>' + ls_escapeHtml(b.batch_id) + '</b>' +
+        (b.tgl_masuk ? '<div class="ls-sub">' + b.tgl_masuk + '</div>' : '') +
+      '</td>' +
+      '<td>' +
+        '<div class="ls-item-main">' + ls_escapeHtml(specMain) + '</div>' +
+        (itemCode ? '<div class="ls-item-code">' + ls_escapeHtml(itemCode) + '</div>' : '') +
+      '</td>' +
+      '<td>' + ls_escapeHtml(b.owner || '—') + '</td>' +
+      inCell + availCell + keepCell +
+      '<td>' + statusBadge + '</td>' +
+    '</tr>';
+  }
+
+  function ls_renderQtyKg(qty, kg, extraClass) {
+    var q = parseFloat(qty) || 0;
+    var k = parseFloat(kg)  || 0;
+    return '<td class="ls-num ' + (extraClass || '') + '">' +
+      '<div class="ls-num-qty">' + ls_formatNum(q) + '</div>' +
+      '<div class="ls-num-kg">' + ls_formatNum(k) + ' kg</div>' +
+    '</td>';
+  }
+
+  function ls_renderAgeBadge(days, tier) {
+    if (days === null || days === undefined) return '<span class="ls-age">—</span>';
+    var cls  = (tier === 'crit') ? 'crit' : (tier === 'warn') ? 'warn' : 'fresh';
+    var icon = (tier === 'crit') ? '🔴'   : (tier === 'warn') ? '🟡'   : '🟢';
+    return '<span class="ls-age ls-age-' + cls + '">' + icon + ' ' + days + 'd</span>';
+  }
+
+  function ls_renderStatusBadge(status) {
+    var map = {
+      avail: { txt: 'Available', cls: 'avail', ic: '✓' },
+      keep:  { txt: 'Keep',      cls: 'keep',  ic: '📌' },
+      habis: { txt: 'Habis',     cls: 'habis', ic: '✕' }
+    };
+    var m = map[status] || { txt: status || '—', cls: 'habis', ic: '' };
+    return '<span class="ls-status ls-status-' + m.cls + '">' + m.ic + ' ' + m.txt + '</span>';
+  }
+
+  // ================================================================
+  // MODAL TRACE — Step 4
+  // ================================================================
+  function ls_openTrace(batchId) {
+    if (!batchId) return;
+    LS_MODAL_BATCH = batchId;
+
+    // Find batch dari LS_DATA untuk basic info display
+    var found = ls_findBatch(batchId);
+    var cat = found ? (found._category || '') : '';
+
+    document.getElementById('ls-modal-cat').textContent = cat ? cat.toUpperCase() : 'BATCH';
+    document.getElementById('ls-modal-cat').className =
+      'ls-cat-badge' + (cat ? ' ls-cat-' + cat : '');
+    document.getElementById('ls-modal-id').textContent = batchId;
+
+    document.getElementById('ls-modal-body').innerHTML =
+      '<div class="ls-loading">⏳ Memuat trace untuk ' + ls_escapeHtml(batchId) + '...</div>';
+
+    document.getElementById('ls-modal-overlay').classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+
+    google.script.run
+      .withSuccessHandler(function(res) { ls_onTraceLoad(res, batchId, found); })
+      .withFailureHandler(function(e) {
+        document.getElementById('ls-modal-body').innerHTML =
+          '<div class="ls-error">⚠️ Error: ' + ls_escapeHtml(e.message || String(e)) + '</div>';
+      })
+      .getLiveStockTrace(batchId);
+  }
+
+  function ls_findBatch(batchId) {
+    if (!LS_DATA) return null;
+    var cats = ['coil','sheet','wip','fg','ng'];
+    for (var i = 0; i < cats.length; i++) {
+      var arr = LS_DATA.batches[cats[i]] || [];
+      for (var j = 0; j < arr.length; j++) {
+        if (arr[j].batch_id === batchId) {
+          arr[j]._category = cats[i];
+          return arr[j];
+        }
+      }
+    }
+    return null;
+  }
+
+  function ls_onTraceLoad(res, batchId, batchInfo) {
+    if (!res || !res.success) {
+      document.getElementById('ls-modal-body').innerHTML =
+        '<div class="ls-error">⚠️ ' + ls_escapeHtml(res ? (res.message || 'Gagal load trace') : 'No response') + '</div>';
+      return;
+    }
+
+    var html = '';
+
+    // === SECTION 1: BASIC INFO ===
+    html += '<div class="ls-modal-section">';
+    html += '<div class="ls-modal-section-title">📋 Info Batch</div>';
+    html += '<div class="ls-modal-meta">';
+
+    if (batchInfo) {
+      var ageBadge = ls_renderAgeBadge(batchInfo.age_days, batchInfo.aging_tier);
+      var specMain = batchInfo.description || batchInfo.spec_composite || '—';
+
+      html += ls_metaItem('Spec / Description', specMain);
+      if (batchInfo.item_code) html += ls_metaItem('Item Code', batchInfo.item_code);
+      html += ls_metaItem('Tgl Masuk', batchInfo.tgl_masuk || '—');
+      html += ls_metaItem('Age', (batchInfo.age_days !== null ? ageBadge + ' (' + batchInfo.age_days + ' hari)' : '—'), true);
+      html += ls_metaItem('Owner', batchInfo.owner || '—');
+      if (batchInfo.owner_used) html += ls_metaItem('Owner Used', batchInfo.owner_used);
+      html += ls_metaItem('Qty In / KG In', ls_formatNum(batchInfo.qty_in) + ' pc · ' + ls_formatNum(batchInfo.kg_in) + ' kg');
+      html += ls_metaItem('Qty Avail / KG Avail', ls_formatNum(batchInfo.qty_avail) + ' pc · ' + ls_formatNum(batchInfo.kg_avail) + ' kg');
+      html += ls_metaItem('Qty Keep / KG Keep', ls_formatNum(batchInfo.qty_keep) + ' pc · ' + ls_formatNum(batchInfo.kg_keep) + ' kg');
+      if (batchInfo.supplier) html += ls_metaItem('Supplier', batchInfo.supplier);
+      if (batchInfo.no_coil)  html += ls_metaItem('No Coil', batchInfo.no_coil);
+      if (batchInfo.cust)     html += ls_metaItem('Customer', batchInfo.cust);
+      if (batchInfo.spk_ref)  html += ls_metaItem('SPK Ref', batchInfo.spk_ref);
+      if (batchInfo.so_ref)   html += ls_metaItem('SO Ref', batchInfo.so_ref);
+    }
+
+    if (res.meta) {
+      html += ls_metaItem('Root Batch', res.meta.root_batch || '—');
+      html += ls_metaItem('Ancestors', String(res.meta.total_ancestors || 0));
+      html += ls_metaItem('Descendants', String(res.meta.total_descendants || 0));
+      html += ls_metaItem('Delivered', res.meta.is_delivered ? '✓ Yes' : '◯ In Stock');
+    }
+
+    html += '</div></div>';
+
+    // === SECTION 2: TREE ===
+    html += '<div class="ls-modal-section">';
+    html += '<div class="ls-modal-section-title">🌳 Genealogy Tree</div>';
+
+    // Ancestors flat (if any) — show above tree
+    if (res.flat && res.flat.length > 0) {
+      var ancestors = res.flat.filter(function(n) { return (n.depth_from_current || 0) < 0; });
+      ancestors.sort(function(a, b) { return a.depth_from_current - b.depth_from_current; });
+      if (ancestors.length > 0) {
+        html += '<div style="margin-bottom:10px;padding:8px;background:#fff7ed;border-left:3px solid #f59e0b;border-radius:4px;">';
+        html += '<div style="font-size:10px;color:#92400e;font-weight:600;margin-bottom:4px;">📍 ASAL-USUL (Ancestors)</div>';
+        for (var a = 0; a < ancestors.length; a++) {
+          html += ls_renderTreeRow(ancestors[a], batchId, false);
+        }
+        html += '</div>';
+      }
+    }
+
+    if (res.tree) {
+      html += ls_renderTreeRecursive(res.tree, batchId);
+    } else {
+      html += '<div class="ls-tree-empty">Tidak ada history trace untuk batch ini.</div>';
+    }
+
+    html += '</div>';
+
+    document.getElementById('ls-modal-body').innerHTML = html;
+  }
+
+  function ls_metaItem(label, value, isHtml) {
+    return '<div class="ls-meta-item">' +
+      '<div class="ls-meta-label">' + ls_escapeHtml(label) + '</div>' +
+      '<div class="ls-meta-value">' + (isHtml ? value : ls_escapeHtml(value)) + '</div>' +
+    '</div>';
+  }
+
+  function ls_renderTreeRecursive(node, currentBatchId) {
+    if (!node) return '<div class="ls-tree-empty">Tree kosong</div>';
+    var hasChildren = node.children && node.children.length > 0;
+    var html = '<div class="ls-tree-node">';
+    html += ls_renderTreeRow(node, currentBatchId, hasChildren);
+    if (hasChildren) {
+      html += '<div class="ls-tree-children">';
+      for (var i = 0; i < node.children.length; i++) {
+        html += ls_renderTreeRecursive(node.children[i], currentBatchId);
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function ls_renderTreeRow(node, currentBatchId, hasChildren) {
+    var isCurrent = node.batch_id === currentBatchId;
+    var typeUpper = String(node.type || '').toUpperCase();
+    var typeClass = ['COIL','SHEET','WIP','FG','NG'].indexOf(typeUpper) >= 0
+      ? 'ls-tree-type-' + typeUpper : 'ls-tree-type-default';
+
+    var html = '<div class="ls-tree-row' + (isCurrent ? ' is-current' : '') + '">';
+    html += '<span class="ls-tree-type ' + typeClass + '">' + ls_escapeHtml(typeUpper || '-') + '</span>';
+    html += '<span class="ls-tree-id">' + ls_escapeHtml(node.batch_id || '-') + '</span>';
+    html += '<span class="ls-tree-info">' + ls_escapeHtml(node.item_code || '-') +
+            ' · ' + ls_formatNum(node.qty) + ' pc / ' + ls_formatNum(node.kg) + ' kg</span>';
+    if (isCurrent) {
+      html += '<span class="ls-tree-current-tag">← BATCH INI</span>';
+    } else if (node.spk_ref) {
+      html += '<span class="ls-tree-spkref">via ' + ls_escapeHtml(node.spk_ref) + '</span>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function ls_closeTrace() {
+    document.getElementById('ls-modal-overlay').classList.remove('is-open');
+    document.body.style.overflow = '';
+    LS_MODAL_BATCH = null;
+  }
+
+  function ls_openInTracker() {
+    var batchId = LS_MODAL_BATCH;
+    ls_closeTrace();
+    if (!batchId) return;
+
+    // Coba navigate via goSubPage kalau ada (sidebar Index.html)
+    // Pass batch_id via global var biar page_tracker bisa pickup
+    try {
+      window.LS_TRACKER_PENDING_BATCH = batchId;
+    } catch(e) {}
+
+    if (typeof window.goSubPage === 'function') {
+      window.goSubPage('tracker', null);
+    } else {
+      alert('Untuk lanjut ke tracker, klik menu Tracker di sidebar lalu search: ' + batchId);
+    }
+  }
+
+  // ================================================================
+  // FORMATTERS
+  // ================================================================
+  function ls_formatNum(n) {
+    n = parseFloat(n) || 0;
+    return Math.round(n).toLocaleString('id-ID');
+  }
+  function ls_formatKg(n) {
+    n = parseFloat(n) || 0;
+    if (n >= 1000) return (n / 1000).toFixed(1) + ' t';
+    return Math.round(n).toLocaleString('id-ID') + ' kg';
+  }
+  function ls_escapeHtml(s) {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // ================================================================
+  // FILTER HANDLERS
+  // ================================================================
+  function ls_onFilterChange(field, value) {
+    LS_FILTER[field] = value;
+    if (field === 'cat') ls_renderStrip();
+    ls_renderTable();
+  }
+  function ls_onSearchInput(value) {
+    if (LS_SEARCH_TIMER) clearTimeout(LS_SEARCH_TIMER);
+    LS_SEARCH_TIMER = setTimeout(function() {
+      LS_FILTER.search = value;
+      ls_renderTable();
+    }, 250);
+  }
+  function ls_clearAllFilters() {
+    LS_FILTER.cat    = LS_FILTER_DEFAULT.cat;
+    LS_FILTER.owner  = LS_FILTER_DEFAULT.owner;
+    LS_FILTER.status = LS_FILTER_DEFAULT.status;
+    LS_FILTER.aging  = LS_FILTER_DEFAULT.aging;
+    LS_FILTER.search = LS_FILTER_DEFAULT.search;
+    document.getElementById('ls-flt-owner').value  = LS_FILTER.owner;
+    document.getElementById('ls-flt-cat').value    = LS_FILTER.cat;
+    document.getElementById('ls-flt-status').value = LS_FILTER.status;
+    document.getElementById('ls-flt-aging').value  = LS_FILTER.aging;
+    document.getElementById('ls-flt-search').value = LS_FILTER.search;
+    ls_renderStrip();
+    ls_renderTable();
+  }
+
+  // ================================================================
+  // WIRE EVENTS
+  // ================================================================
+  document.getElementById('ls-btn-refresh').addEventListener('click', ls_load);
+  document.getElementById('ls-btn-clear').addEventListener('click', ls_clearAllFilters);
+
+  document.getElementById('ls-flt-owner').addEventListener('change', function() { ls_onFilterChange('owner', this.value); });
+  document.getElementById('ls-flt-cat').addEventListener('change',   function() { ls_onFilterChange('cat',   this.value); });
+  document.getElementById('ls-flt-status').addEventListener('change',function() { ls_onFilterChange('status',this.value); });
+  document.getElementById('ls-flt-aging').addEventListener('change', function() { ls_onFilterChange('aging', this.value); });
+  document.getElementById('ls-flt-search').addEventListener('input', function() { ls_onSearchInput(this.value); });
+
+  // Row click → open modal (event delegation)
+  document.getElementById('ls-tbody').addEventListener('click', function(ev) {
+    var tr = ev.target;
+    while (tr && tr.tagName !== 'TR') tr = tr.parentNode;
+    if (!tr) return;
+    var batchId = tr.getAttribute && tr.getAttribute('data-batch');
+    if (batchId) ls_openTrace(batchId);
+  });
+
+  // Modal close handlers
+  document.getElementById('ls-modal-close').addEventListener('click', ls_closeTrace);
+  document.getElementById('ls-btn-close-foot').addEventListener('click', ls_closeTrace);
+  document.getElementById('ls-btn-tracker').addEventListener('click', ls_openInTracker);
+
+  // Click overlay (outside modal) → close
+  document.getElementById('ls-modal-overlay').addEventListener('click', function(ev) {
+    if (ev.target === this) ls_closeTrace();
+  });
+
+  // ESC key → close modal
+  document.addEventListener('keydown', function(ev) {
+    if (ev.key === 'Escape' && LS_MODAL_BATCH) ls_closeTrace();
+  });
+
+  // ================================================================
+  // INITIAL LOAD
+  // ================================================================
+  ls_load();
+
+})();
+</script>

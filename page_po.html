@@ -1,0 +1,555 @@
+<style>
+/* ================================================================
+   PO CONTROL PANEL SYSTEM — STYLE UI
+================================================================ */
+:root {
+  --bg-app: #eef2f5; --bg-panel: #ffffff;
+  --text-main: #202b3c; --text-muted: #6b7785;
+  --border-color: #cbd5e1; --primary-blue: #0265dc;
+  --success-green: #108a4f; --danger-red: #d32f2f;
+  --table-head: #f1f5f9; --warning-orange: #f97316;
+}
+
+body { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 12px; color: var(--text-main); background: var(--bg-app); margin: 0; padding: 16px; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; }
+* { box-sizing: border-box; }
+
+.view-container { display: none; flex-direction: column; gap: 12px; height: 100%; }
+.view-container.active { display: flex; }
+
+.panel { background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 4px; display: flex; flex-direction: column; flex-shrink: 0;}
+.panel-head { font-weight: 700; color: #0f172a; background: #f8fafc; padding: 10px 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+.panel-body { padding: 12px 16px; }
+.row { display: flex; gap: 12px; margin-bottom: 10px; } .row:last-child { margin-bottom: 0; }
+.col { flex: 1; display: flex; flex-direction: column; gap: 4px; } .col-2 { flex: 2; display: flex; flex-direction: column; gap: 4px; }
+label { font-weight: 600; color: var(--text-muted); font-size: 11px; }
+.f-inp { border: 1px solid var(--border-color); border-radius: 3px; padding: 6px 10px; font-size: 12px; height: 28px; width: 100%; transition: 0.1s; box-sizing: border-box;}
+.f-inp:focus { outline: none; border-color: var(--primary-blue); box-shadow: 0 0 0 2px rgba(2,101,220,0.15); }
+.f-inp:disabled { background: #f1f5f9; color: #64748b; font-weight: 600; cursor: not-allowed; }
+
+/* Menghilangkan panah spinner pada input angka */
+input[type="number"]::-webkit-inner-spin-button, 
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; }
+
+.btn { padding: 0 16px; height: 28px; border-radius: 3px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; display: inline-flex; align-items: center; justify-content: center; transition: 0.1s; gap:6px;}
+.btn-primary { background: var(--primary-blue); color: #fff; } .btn-primary:hover { background: #014da8; }
+.btn-success { background: var(--success-green); color: #fff; } .btn-success:hover { background: #0c6b3d; }
+.btn-outline { background: #fff; color: var(--text-main); border: 1px solid var(--border-color); } .btn-outline:hover { background: #f1f5f9; }
+.btn-danger { background: #fee2e2; color: var(--danger-red); border: 1px solid #fca5a5; } .btn-danger:hover { background: #fca5a5; }
+
+.table-wrap { flex-grow: 1; overflow-y: auto; overflow-x: auto; background: #fff; border: 1px solid var(--border-color); border-radius: 4px; min-height: 150px; }
+table { width: 100%; border-collapse: collapse; text-align: left; table-layout: fixed; }
+th { background: var(--table-head); font-size: 11px; padding: 10px 12px; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 10; color: var(--text-muted); text-transform: uppercase;}
+td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
+
+.badge { padding: 2px 6px; border-radius: 3px; font-weight: 700; font-size: 10px; display: inline-block; text-align: center;}
+.badge-red { background: #fef2f2; color: var(--danger-red); border: 1px solid #fca5a5; }
+.badge-yellow { background: #fffbeb; color: var(--warning-orange); border: 1px solid #fcd34d; }
+.badge-green { background: #f0fdf4; color: var(--success-green); border: 1px solid #86efac; }
+.badge-muted { background: #f1f5f9; color: var(--text-muted); border: 1px solid var(--border-color); }
+
+/* ==== AUTOCOMPLETE SEARCH & TOMBOLS ==== */
+.search-container { position: relative; width: 100%; }
+.search-results { 
+    position: absolute; top: 100%; left: 0; right: 0; 
+    background: white; border: 1px solid var(--border-color); 
+    z-index: 1000; max-height: 200px; overflow-y: auto; 
+    border-radius: 4px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); display: none;
+}
+.search-item { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 12px;}
+.search-item:hover, .search-item.selected { background: #e2e8f0; color: var(--primary-blue); font-weight: bold; }
+
+/* Tombol Owner Header */
+.btn-owner {
+    width: 100%; height: 28px; border-radius: 3px; border: 2px dashed var(--border-color);
+    background: #f8fafc; color: var(--text-muted); font-weight: 700; cursor: pointer;
+    transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+}
+.btn-owner.fc { background: var(--primary-blue); color: white; border-style: solid; border-color: #014da8; }
+.btn-owner.drc { background: var(--warning-orange); color: white; border-style: solid; border-color: #c2410c; }
+
+/* Tombol Target Gudang (Coil/Sheet) per Baris */
+.btn-type { 
+    width: 100%; height: 28px; border-radius: 3px; border: 2px dashed var(--border-color); 
+    background: #f8fafc; color: var(--text-muted); font-weight: 700; cursor: pointer; 
+    transition: all 0.2s; display: flex; align-items: center; justify-content: center; font-size: 11px;
+}
+.btn-type.coil { border-color: var(--primary-blue); background: var(--primary-blue); color: white; border-style: solid; }
+.btn-type.sheet { border-color: var(--success-green); background: var(--success-green); color: white; border-style: solid; }
+
+.so-ov { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.8); z-index: 9999; justify-content: center; align-items: center; flex-direction: column; }
+.so-ov.on { display: flex; }
+.spinner { width: 40px; height: 40px; border: 4px solid var(--border-color); border-top-color: var(--primary-blue); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
+<div id="view-po-dashboard" class="view-container active">
+  <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-shrink:0;">
+    <div>
+      <h1 style="font-size:20px; font-weight:800; color:#0f172a; margin:0;">PO / Order Control Board</h1>
+      <span style="color:var(--text-muted); font-size:12px;">Pantau realisasi pengiriman bahan baku dari Supplier dan status sisa saldo pesanan.</span>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-outline" onclick="loadPOData()">🔄 Refresh</button>
+      <button class="btn btn-primary" onclick="openCreatePOForm()">➕ Input PO Baru</button>
+    </div>
+  </div>
+
+  <div class="panel" style="flex: 1; min-height: 220px; margin-bottom: 4px;">
+    <div class="panel-head">⚠️ Papan Pengawasan Kedatangan Open PO (Traffic Light)</div>
+    <div class="table-wrap" style="border:none; border-radius:0;">
+      <table>
+        <thead>
+          <tr>
+            <th width="12%">No. PO</th>
+            <th width="15%">Supplier / Vendor</th>
+            <th width="10%">Estimasi Tiba</th>
+            <th width="11%">Urgensi</th>
+            <th width="12%">Item Code</th>
+            <th width="10%">Order KG</th>
+            <th width="10%">GR Kirim KG</th>
+            <th width="10%">Sisa KG (BL)</th>
+            <th width="10%">Owner</th>
+          </tr>
+        </thead>
+        <tbody id="po-pool-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel" style="flex: 1; min-height: 200px;">
+    <div class="panel-head">📋 Histori Log Seluruh Transaksi PO</div>
+    <div class="table-wrap" style="border:none; border-radius:0;">
+      <table>
+        <thead>
+          <tr>
+            <th width="10%">Tgl PO</th>
+            <th width="15%">No. PO</th>
+            <th width="20%">Supplier / Vendor</th>
+            <th width="12%">Target Tiba</th>
+            <th width="15%">Item Code</th>
+            <th width="10%">Total KG</th>
+            <th width="10%">Status</th>
+            <th width="8%">Owner</th>
+          </tr>
+        </thead>
+        <tbody id="po-log-tbody"></tbody>
+      </table>
+    </div>
+    <div style="display:flex; justify-content:center; align-items:center; gap:12px; background:#f8fafc; padding:6px; border-top:1px solid var(--border-color);">
+      <button class="btn btn-outline" id="po-pg-prev" onclick="changePOPage(-1)">◀ Prev</button>
+      <span style="font-weight:700;" id="po-pg-info">Halaman 1 / 1</span>
+      <button class="btn btn-outline" id="po-pg-next" onclick="changePOPage(1)">Next ▶</button>
+    </div>
+  </div>
+</div>
+
+<div id="view-po-form" class="view-container">
+  <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-shrink:0;">
+    <div>
+      <h1 style="font-size:20px; font-weight:800; color:#0f172a; margin:0;">Buat Rencana PO Material</h1>
+      <span style="color:var(--text-muted); font-size:12px;">Mendaftarkan komitmen jadwal kedatangan material dari pihak Supplier.</span>
+    </div>
+    <button class="btn btn-outline" onclick="showView('view-po-dashboard')">✖ Batal / Kembali</button>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">1. Header Informasi PO &amp; Supplier</div>
+    <div class="panel-body">
+      <div class="row">
+        <div class="col"><label>Tanggal PO *</label><input type="date" class="f-inp" id="f-po-date"></div>
+        <div class="col"><label>No. PO / Kontrak *</label><input type="text" class="f-inp" id="f-po-no" placeholder="Contoh: PO/FCM/26/001"></div>
+        <div class="col-2">
+            <label>Nama Vendor / Supplier *</label>
+            <div class="search-container">
+                <input type="text" class="f-inp" id="f-vendor-search" placeholder="Ketik nama vendor (Panah ↓)" oninput="handleVendorFilter(this)" onkeydown="handleVendorNav(this, event)">
+                <div id="vendor-results" class="search-results"></div>
+            </div>
+        </div>
+        <div class="col"><label>Jadwal Estimasi Tiba *</label><input type="date" class="f-inp" id="f-po-schedule"></div>
+        <div class="col">
+          <label>Owner Perusahaan *</label>
+          <button id="f-owner-btn" class="btn-owner" onclick="toggleOwnerButton(this)">-- Pilih Owner --</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="flex-grow:1; overflow:hidden;">
+    <div class="panel-head">
+      <span>2. Detail Item Spesifikasi Material</span>
+      <button class="btn btn-primary" style="height:24px; padding:0 10px;" onclick="addPORow()">➕ Tambah Baris Material</button>
+    </div>
+    <div class="table-wrap" style="border:none; border-radius:0; overflow:visible;">
+      <table style="table-layout: auto;">
+        <thead>
+          <tr>
+            <th width="20%">Item Code *</th>
+            <th width="30%">Deskripsi (Auto)</th>
+            <th width="10%">UoM</th>
+            <th width="10%">Wg/Pce</th>
+            <th width="9%">Qty Order *</th>
+            <th width="11%">KG Order *</th>
+            <th width="12%" style="text-align:center;">Target Gudang *</th>
+            <th width="5%" style="text-align:center;">Hapus</th>
+          </tr>
+        </thead>
+        <tbody id="f-po-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div style="display:flex; justify-content:flex-end; flex-shrink:0;">
+    <button class="btn btn-success" style="height:36px; padding:0 50px; font-size:14px;" onclick="submitPurchaseOrderForm()">📥 Simpan Dokumen PO ke Sistem</button>
+  </div>
+</div>
+
+<div class="so-ov" id="po-ov"><div class="spinner"></div><h4 style="margin-top:16px; color:#1e293b;" id="po-msg">Memuat...</h4></div>
+
+<script>
+// ==========================================
+// GLOBAL STATE & CORE FUNCTIONS
+// ==========================================
+var PO_POOL_DATA = [];
+var PO_LOG_STATE = { data: [], page: 1, total: 1 };
+var MASTER_VENDORS = [];
+var MASTER_ITEMS = [];
+
+function showView(id) {
+  document.querySelectorAll('.view-container').forEach(function(el) { el.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+}
+function poOv(show, msg) {
+  document.getElementById('po-ov').classList[show?'add':'remove']('on');
+  if(msg) document.getElementById('po-msg').textContent = msg;
+}
+
+// Init awal modul
+(function initPOModule() {
+  document.getElementById('f-po-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('f-po-schedule').value = new Date().toISOString().split('T')[0];
+  loadPOData();
+})();
+
+function loadPOData() {
+  poOv(true, "Sinkronisasi Master Data & Papan Kontrol PO...");
+  google.script.run.withSuccessHandler(function(jsonStr) {
+    poOv(false);
+    var res = JSON.parse(jsonStr);
+    if(res.error) return alert("Error Basis Data: " + res.error);
+    
+    PO_POOL_DATA = res.pool || [];
+    PO_LOG_STATE.data = res.dash.data || [];
+    PO_LOG_STATE.page = res.dash.currentPage || 1;
+    PO_LOG_STATE.total = res.dash.totalPages || 1;
+    MASTER_VENDORS = res.vendors || [];
+    MASTER_ITEMS = res.items || [];
+    
+    renderPO_PoolTable();
+    renderPO_LogTable();
+  }).withFailureHandler(function(e){ poOv(false); alert("Gagal menghubungi server: "+e.message); }).getPOInitData();
+}
+
+// ==========================================
+// RENDER TABLES
+// ==========================================
+function renderPO_PoolTable() {
+  var tbody = document.getElementById('po-pool-tbody');
+  if(!PO_POOL_DATA.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#94a3b8; font-style:italic; padding:25px;">👍 Bersih! Semua Supplier tepat waktu / tidak ada sisa utang PO terbuka.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = PO_POOL_DATA.map(function(r) {
+    var bLabel = 'ON TRACK'; var bClass = 'badge-green';
+    if(r.urgency === 'RED') { bLabel = '🔴 OVERDUE'; bClass = 'badge-red'; }
+    else if(r.urgency === 'YELLOW') { bLabel = '🟡 DUE SOON'; bClass = 'badge-yellow'; }
+    
+    return `
+      <tr style="background:${r.urgency==='RED'?'#fff5f5':''}">
+        <td style="font-weight:700; color:var(--primary-blue);">${r.po_no}</td>
+        <td style="font-weight:700;">${r.vendor}</td>
+        <td>${r.schedule_str}</td>
+        <td><span class="badge ${bClass}">${bLabel}</span></td>
+        <td><code>${r.item_code}</code></td>
+        <td>${r.po_kg.toLocaleString('id-ID')} KG</td>
+        <td style="color:var(--success-green); font-weight:600;">${r.gr_kg.toLocaleString('id-ID')} KG</td>
+        <td style="color:var(--danger-red); font-weight:700; background:rgba(211,47,47,0.05);">${r.bl_kg.toLocaleString('id-ID')} KG</td>
+        <td><span class="badge badge-muted">${r.owner}</span></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function loadPODashboardPage(page) {
+  poOv(true, "Memuat halaman histori...");
+  google.script.run.withSuccessHandler(function(jsonStr) {
+    poOv(false);
+    var res = JSON.parse(jsonStr);
+    PO_LOG_STATE.data = res.data; PO_LOG_STATE.page = res.currentPage; PO_LOG_STATE.total = res.totalPages;
+    renderPO_LogTable();
+  }).getPODashboardPage(page);
+}
+
+function changePOPage(dir) {
+  var t = PO_LOG_STATE.page + dir;
+  if(t >= 1 && t <= PO_LOG_STATE.total) loadPODashboardPage(t);
+}
+
+function renderPO_LogTable() {
+  var tbody = document.getElementById('po-log-tbody');
+  document.getElementById('po-pg-info').textContent = 'Halaman ' + PO_LOG_STATE.page + ' / ' + PO_LOG_STATE.total;
+  document.getElementById('po-pg-prev').disabled = (PO_LOG_STATE.page === 1);
+  document.getElementById('po-pg-next').disabled = (PO_LOG_STATE.page === PO_LOG_STATE.total);
+
+  if(!PO_LOG_STATE.data.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#94a3b8; font-style:italic; padding:20px;">Belum ada arsip transaksi PO terpantau.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = PO_LOG_STATE.data.map(function(r) {
+    return `
+      <tr>
+        <td>${r.po_date}</td>
+        <td style="font-weight:700;">${r.po_no}</td>
+        <td>${r.vendor}</td>
+        <td>${r.schedule}</td>
+        <td>${r.item_code}</td>
+        <td><b>${r.po_kg.toLocaleString('id-ID')}</b> KG</td>
+        <td><span class="badge ${r.status==='OPEN'?'badge-yellow':'badge-muted'}">${r.status}</span></td>
+        <td><b>${r.owner}</b></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// ==========================================
+// FITUR: AUTOCOMPLETE & TOMBOL POKAYOKE
+// ==========================================
+
+function toggleOwnerButton(btn) {
+  if (btn.textContent === "-- Pilih Owner --") {
+    btn.textContent = "FC";
+    btn.className = "btn-owner fc";
+  } else if (btn.textContent === "FC") {
+    btn.textContent = "DRC";
+    btn.className = "btn-owner drc";
+  } else {
+    btn.textContent = "-- Pilih Owner --";
+    btn.className = "btn-owner";
+  }
+}
+
+function handleSearchNavigation(resultsBox, e) {
+  var items = resultsBox.querySelectorAll('.search-item');
+  if(items.length === 0) return;
+  
+  var currentIdx = -1;
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].classList.contains('selected')) { currentIdx = i; break; }
+  }
+  
+  items.forEach(function(i) { i.classList.remove('selected'); });
+  
+  if (e.key === "ArrowDown") currentIdx = (currentIdx + 1) % items.length;
+  else if (e.key === "ArrowUp") currentIdx = (currentIdx - 1 + items.length) % items.length;
+  
+  if(currentIdx !== -1) {
+    items[currentIdx].classList.add('selected');
+    items[currentIdx].scrollIntoView({ block: 'nearest' });
+  }
+}
+
+// Search Vendor (Header)
+function handleVendorFilter(el) {
+  var resultsBox = document.getElementById('vendor-results');
+  var query = el.value.toLowerCase().trim();
+  
+  if (!query) { resultsBox.style.display = 'none'; return; }
+  var filtered = MASTER_VENDORS.filter(function(v) { return v.name.toLowerCase().includes(query) || v.code.toLowerCase().includes(query); });
+  if(filtered.length === 0) { resultsBox.style.display = 'none'; return; }
+  
+  resultsBox.innerHTML = filtered.map(function(v) {
+    return `<div class="search-item" onclick="selectVendor('${v.name}')">${v.code} - ${v.name}</div>`;
+  }).join('');
+  
+  resultsBox.style.display = 'block';
+  if(resultsBox.firstChild) resultsBox.firstChild.classList.add('selected');
+}
+
+function handleVendorNav(el, e) {
+  var resultsBox = document.getElementById('vendor-results');
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault();
+    handleSearchNavigation(resultsBox, e);
+  } 
+  else if (e.key === "Enter" || e.key === "Tab") {
+    var sel = resultsBox.querySelector('.selected');
+    if (sel && resultsBox.style.display === 'block') {
+      e.preventDefault(); 
+      sel.click();
+    }
+  }
+}
+
+function selectVendor(name) {
+  document.getElementById('f-vendor-search').value = name;
+  document.getElementById('vendor-results').style.display = 'none';
+  document.getElementById('f-po-schedule').focus(); 
+}
+
+// Search Item (Tabel Baris)
+function handleItemFilter(el) {
+  var row = el.closest('tr');
+  var resultsBox = row.querySelector('.item-results');
+  var query = el.value.toLowerCase().trim();
+  
+  if (!query) { resultsBox.style.display = 'none'; return; }
+  var filtered = MASTER_ITEMS.filter(function(i) { return i.code.toLowerCase().includes(query) || i.desc.toLowerCase().includes(query); });
+  if(filtered.length === 0) { resultsBox.style.display = 'none'; return; }
+  
+  resultsBox.innerHTML = filtered.map(function(i) {
+    return `<div class="search-item" onclick="selectItem(this, '${i.code}')">${i.code} - ${i.desc}</div>`;
+  }).join('');
+  
+  resultsBox.style.display = 'block';
+  if(resultsBox.firstChild) resultsBox.firstChild.classList.add('selected');
+}
+
+function handleItemNav(el, e) {
+  var row = el.closest('tr');
+  var resultsBox = row.querySelector('.item-results');
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault();
+    handleSearchNavigation(resultsBox, e);
+  } 
+  else if (e.key === "Enter" || e.key === "Tab") {
+    var sel = resultsBox.querySelector('.selected');
+    if (sel && resultsBox.style.display === 'block') {
+      e.preventDefault();
+      sel.click();
+    }
+  }
+}
+
+function selectItem(clickedEl, code) {
+  var row = clickedEl.closest('tr');
+  var itemData = MASTER_ITEMS.find(function(i) { return i.code === code; });
+  if(itemData) {
+    row.querySelector('.f-item-code').value = itemData.code;
+    row.querySelector('.f-desc').value = itemData.desc;
+    row.querySelector('.f-uom').value = itemData.uom;
+    row.querySelector('.f-wg').value = itemData.wg;
+  }
+  row.querySelector('.item-results').style.display = 'none';
+  row.querySelector('.f-qty').focus(); 
+}
+
+// ==========================================
+// FORM ROW MANAGEMENT & POKAYOKE
+// ==========================================
+function openCreatePOForm() {
+  document.getElementById('f-po-no').value = '';
+  document.getElementById('f-vendor-search').value = '';
+  document.getElementById('f-owner-btn').textContent = '-- Pilih Owner --';
+  document.getElementById('f-owner-btn').className = 'btn-owner';
+  
+  document.getElementById('f-po-tbody').innerHTML = '';
+  addPORow(); 
+  showView('view-po-form');
+}
+
+function addPORow() {
+  var tbody = document.getElementById('f-po-tbody');
+  var tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>
+      <div class="search-container">
+        <input type="text" class="f-inp f-item-code" placeholder="Ketik Kode/Nama..." oninput="handleItemFilter(this)" onkeydown="handleItemNav(this, event)">
+        <div class="search-results item-results"></div>
+      </div>
+    </td>
+    <td><input type="text" class="f-inp f-desc" disabled></td>
+    <td><input type="text" class="f-inp f-uom" disabled></td>
+    <td><input type="number" class="f-inp f-wg" style="width:70px;" step="0.001" value="0" oninput="calculateRowKG_PO(this)"></td>
+    <td><input type="number" class="f-inp f-qty" style="width:70px;" value="0" oninput="calculateRowKG_PO(this)"></td>
+    <td><input type="number" class="f-inp f-kg" style="font-weight:bold;" value="0" step="0.01"></td>
+    <td><button class="btn-type f-target" onclick="toggleTargetLoc(this)">-- Pilih --</button></td>
+    <td style="text-align:center;"><button class="btn btn-danger" style="height:24px; padding:0 6px;" onclick="this.closest('tr').remove()">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+// Logika 3 Klik Target Gudang
+function toggleTargetLoc(btn) {
+  if (btn.textContent === "-- Pilih --") {
+    btn.textContent = "Stok_Coil";
+    btn.className = "btn-type coil f-target";
+  } else if (btn.textContent === "Stok_Coil") {
+    btn.textContent = "Stok_Sheet";
+    btn.className = "btn-type sheet f-target";
+  } else {
+    btn.textContent = "-- Pilih --";
+    btn.className = "btn-type f-target";
+  }
+}
+
+function calculateRowKG_PO(inputEl) {
+  var row = inputEl.closest('tr');
+  var wg = parseFloat(row.querySelector('.f-wg').value) || 0;
+  var qty = parseInt(row.querySelector('.f-qty').value) || 0;
+  var kgBox = row.querySelector('.f-kg');
+  
+  if(wg > 0 && qty > 0) kgBox.value = (wg * qty).toFixed(2);
+  else kgBox.value = "0";
+}
+
+function submitPurchaseOrderForm() {
+  var info = {
+    po_date: document.getElementById('f-po-date').value,
+    po_no: document.getElementById('f-po-no').value,
+    vendor: document.getElementById('f-vendor-search').value,
+    schedule: document.getElementById('f-po-schedule').value,
+    owner: document.getElementById('f-owner-btn').textContent
+  };
+
+  if(!info.po_no || !info.vendor || !info.schedule) return alert("Pokayoke System: Kolom No PO, Supplier, dan Jadwal Tiba wajib diisi!");
+  if(info.owner === "-- Pilih Owner --") return alert("Pokayoke System: Anda wajib memilih Owner (FC atau DRC)!");
+
+  var rows = document.querySelectorAll('#f-po-tbody tr');
+  var items = [];
+  
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    var item_code = r.querySelector('.f-item-code').value.trim();
+    var qty = parseInt(r.querySelector('.f-qty').value) || 0;
+    var kg = parseFloat(r.querySelector('.f-kg').value) || 0;
+    var target = r.querySelector('.f-target').textContent;
+    
+    if(!item_code || qty <= 0 || kg <= 0) return alert("Pokayoke Baris " + (i+1) + ": Kode Item, Qty, dan Berat KG harus diisi dan lebih dari 0!");
+    if(target === "-- Pilih --") return alert("Pokayoke Baris " + (i+1) + ": Target Gudang (Stok_Coil / Stok_Sheet) wajib diklik!");
+    
+    items.push({
+      item_code: item_code,
+      description: r.querySelector('.f-desc').value,
+      uom: r.querySelector('.f-uom').value || 'Pcs',
+      wg_pce: parseFloat(r.querySelector('.f-wg').value) || 0,
+      po_q: qty,
+      po_kg: kg,
+      target_loc: target
+    });
+  }
+
+  if(!items.length) return alert("Peringatan: Tambahkan minimal 1 baris material!");
+
+  poOv(true, "Menulis data PO baru ke server...");
+  google.script.run.withSuccessHandler(function(jsonStr) {
+    poOv(false);
+    var res = JSON.parse(jsonStr);
+    if(res.error) return alert("Gagal Simpan PO: " + res.error);
+    
+    alert("Sukses! Dokumen PO dengan nomor " + info.po_no + " telah berhasil didaftarkan ke sistem.");
+    showView('view-po-dashboard');
+    loadPOData(); 
+  }).withFailureHandler(function(e){ poOv(false); alert("Gagal koneksi: "+e.message); })
+  .savePurchaseOrder({ info: info, items: items });
+}
+</script>

@@ -1,0 +1,1717 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Board CTL</title>
+<style>
+/* ===== DARK THEME PALETTE & POKA-YOKE VARIABLES ===== */
+:root {
+  --bg-base: #020617;        
+  --bg-card: #0f172a;        
+  --bg-card-alt: #1e293b;    
+  --border: #334155;
+  --border-soft: #475569;
+  --text-primary: #ffffff;   
+  --text-secondary: #e2e8f0; 
+  --text-muted: #cbd5e1;     
+  
+  --andon-running: #22c55e;
+  --andon-setup: #f59e0b;
+  --andon-idle: #22d3ee;
+  --andon-down: #ef4444;
+  
+  --accent-yellow: #fde047;  
+  --accent-orange: #f97316;
+  
+  /* Theme CTL - Cyan */
+  --accent-machine: #22d3ee;
+  --accent-machine-glow: rgba(34, 211, 238, 0.4);
+  --accent-text: #082f49;
+  --watermark-text: "CTL";
+  --watermark-color: rgba(34, 211, 238, 0.04);
+}
+
+/* Transisi halus */
+.board-shell, .modal-box, .modal-head, .active-spkno, .popup-table th, td, span {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* ===== BASE ===== */
+body { margin: 0; padding: 0; background: var(--bg-base); }
+.board-shell, .board-shell *, .modal-overlay, .modal-overlay * { box-sizing: border-box; }
+.board-shell, .modal-overlay { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+.board-shell {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+}
+
+/* ===== ZONE 1: STATUS BAR ===== */
+.zone-status {
+  display: flex;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 16px; /* Tinggi sangat ditekan */
+  gap: 16px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.machine-status { display:flex; align-items:center; gap:12px; flex: 1; }
+.led {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 10px currentColor;
+}
+.led-running { background: var(--andon-running); color: var(--andon-running); animation: pulse 1.5s ease-in-out infinite; }
+.led-setup   { background: var(--andon-setup);   color: var(--andon-setup); }
+.led-idle    { background: var(--andon-idle);    color: var(--andon-idle); }
+.led-down    { background: var(--andon-down);    color: var(--andon-down); }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 10px currentColor; }
+  50%      { opacity: 0.7; transform: scale(1.15); box-shadow: 0 0 20px currentColor; }
+}
+
+.status-state {
+  font-size: 13px; font-weight: 900;
+  padding: 4px 12px; border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: var(--bg-card-alt);
+  border: 1px solid var(--border-soft);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  margin-bottom: 2px;
+}
+.status-state.s-running { border-color: var(--andon-running); color: var(--andon-running); }
+.status-state.s-setup   { border-color: var(--andon-setup); color: var(--andon-setup); }
+.status-state.s-idle    { border-color: var(--andon-idle); color: var(--andon-idle); }
+
+.status-spk { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+
+/* NAMA MESIN TENGAH */
+.machine-title-center {
+  flex: 1;
+  text-align: center;
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--accent-machine);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-shadow: 0 2px 10px var(--accent-machine-glow);
+}
+
+/* KANAN: HORIZONTAL (Antrean > Selesai > Refresh) */
+.counter-pills { 
+  display: flex; 
+  flex-direction: row; /* Dibuat menyamping */
+  gap: 10px; 
+  flex: 1; 
+  align-items: center;
+  justify-content: flex-end;
+}
+.counter-pill {
+  background: var(--bg-card-alt);
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  padding: 0 12px;
+  height: 36px; /* Kunci ukuran sama tinggi dengan refresh */
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 12px;
+  color: var(--text-primary);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+.counter-pill:hover { background: #334155; border-color: var(--accent-machine); transform: translateY(-1px); }
+.counter-pill .counter-num { font-size: 16px; font-weight: 900; }
+.counter-pill.pill-antrian .counter-num { color: var(--accent-yellow); }
+.counter-pill.pill-done    .counter-num { color: var(--andon-running); }
+
+.btn-refresh {
+  background: var(--bg-card-alt);
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  padding: 0 12px;
+  height: 36px; /* Kunci ukuran sama tinggi dengan pill */
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 12px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+.btn-refresh:hover { background: #334155; border-color: var(--accent-machine); transform: translateY(-1px); color: var(--accent-machine); }
+.btn-refresh svg { width: 16px; height: 16px; }
+
+/* ===== LOADING OVERLAY ===== */
+@keyframes pulse-loading-text { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+.flash-active::after {
+  content: "Update data, Mohon Tunggu...";
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(2, 6, 23, 0.85); backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px); z-index: 999999; pointer-events: auto; 
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent-machine); font-size: 22px; font-weight: 900;
+  letter-spacing: 2px; text-transform: uppercase;
+  animation: pulse-loading-text 1.5s infinite ease-in-out;
+}
+
+/* ===== ZONE 2: ACTIVE CARD & POKA-YOKE WATERMARK ===== */
+.zone-active {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex-grow: 1;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  position: relative;
+  overflow: hidden; 
+}
+.zone-active::before {
+  content: var(--watermark-text);
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  font-size: 300px; font-weight: 900; color: var(--watermark-color);
+  z-index: 0; pointer-events: none; user-select: none; white-space: nowrap; line-height: 1;
+}
+
+#active-area { 
+  position: relative; 
+  z-index: 1; 
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* Mengisi ruang tersisa */
+  overflow: hidden; /* Mencegah card membesar, melempar scroll ke out-table-wrap */
+}
+
+.active-empty {
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 12px; padding: 40px 20px;
+  color: var(--text-muted); font-style: italic;
+  position: relative; z-index: 1;
+}
+.active-empty-icon { font-size: 48px; opacity: 0.4; }
+
+.active-head {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 20px;
+  align-items: center; padding-bottom: 12px; border-bottom: 2px solid var(--border);
+  flex-shrink: 0;
+}
+.active-spkno {
+  font-size: 26px; font-weight: 900; color: var(--accent-machine);
+  font-family: 'Consolas', 'Courier New', monospace; margin-bottom: 4px;
+}
+.active-meta-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 6px 16px; font-size: 13px;
+}
+.meta-label { color: var(--text-muted); font-weight: 600; }
+.meta-val   { color: var(--text-primary); font-weight: 700; }
+.meta-val.hl-yellow { color: var(--accent-yellow); font-size: 14px; }
+
+.badge { font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 4px; letter-spacing: 0.5px; text-transform: uppercase; border: none; }
+.badge-done    { background: #64748b; color: #ffffff; }
+
+.badge-owner {
+  background: #0c4a6e; color: #7dd3fc; border: 1px solid #38bdf8;
+  padding: 3px 10px; font-size: 11px; font-weight: 800; border-radius: 4px;
+  display: inline-block; letter-spacing: 0.5px;
+}
+
+/* PROGRESS BAR */
+.progress-section { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; margin-bottom: 8px; }
+.progress-bar-bg {
+  width: 100%; height: 20px; background: var(--bg-card-alt);
+  border: 1px solid var(--border-soft); border-radius: 10px;
+  overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+}
+.progress-bar-fill {
+  height: 100%; background: linear-gradient(90deg, var(--andon-running), #4ade80);
+  transition: width 0.4s ease; border-radius: 10px 0 0 10px; position: relative;
+}
+.progress-bar-fill::after {
+  content: ""; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(45deg, rgba(255,255,255,0.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.15) 75%, transparent 75%, transparent);
+  background-size: 20px 20px; animation: stripemove 1s linear infinite;
+}
+@keyframes stripemove { 0% { background-position: 0 0; } 100% { background-position: 20px 0; } }
+.progress-text { font-size: 13px; font-weight: 700; color: var(--text-primary); display: flex; justify-content: space-between; }
+
+/* ===== OUT TABLE (SCROLLABLE FLEX) ===== */
+.out-table-wrap {
+  flex: 1; /* Mengisi sisa ruang secara otomatis */
+  overflow-y: auto; 
+  max-height: 40vh; /* BATAS MAKSIMAL AGAR SELALU SCROLL */
+  border-radius: 6px; 
+  border: 1px solid var(--border); 
+}
+.out-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.out-table thead th {
+  background: #020617; color: var(--accent-machine); padding: 10px;
+  text-align: left; font-weight: 800; text-transform: uppercase;
+  font-size: 11px; letter-spacing: 1px; border-bottom: 2px solid var(--accent-machine);
+  position: sticky; top: 0; z-index: 10;
+}
+.out-table tbody td {
+  padding: 8px 10px; border-bottom: 1px solid var(--border-soft);
+  color: var(--text-primary); background: var(--bg-card); font-weight: 500;
+}
+.out-table tbody tr:nth-child(even) td { background: var(--bg-card-alt); }
+.out-table tbody tr:hover td { background: rgba(255, 255, 255, 0.05); }
+.out-table tbody tr:last-child td { border-bottom: none; }
+
+.td-spkno  { font-weight: 800; color: var(--accent-machine); font-family: 'Consolas', monospace; font-size: 14px; }
+.td-spec   { color: var(--accent-yellow); font-weight: 800; font-size: 13px; }
+.td-cust   { font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
+
+/* ===== BUTTONS ===== */
+.btn {
+  border: none; border-radius: 6px; font-weight: 800; cursor: pointer; transition: all 0.15s;
+  font-family: inherit; display: inline-flex; align-items: center; justify-content: center; gap: 6px; letter-spacing: 0.5px;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:hover:not(:disabled) { transform: translateY(-1px); }
+
+#btn-mulai-wrap { flex-shrink: 0; }
+.btn-mulai {
+  background: linear-gradient(135deg, var(--andon-running), #16a34a); color: white;
+  padding: 14px 24px; font-size: 16px; width: 100%; letter-spacing: 1.5px; box-shadow: 0 4px 15px rgba(34,197,94,0.4);
+}
+.btn-mulai:hover:not(:disabled) { box-shadow: 0 6px 20px rgba(34,197,94,0.6); }
+
+.btn-finish { background: var(--andon-running); color: white; padding: 6px 14px; font-size: 11px; box-shadow: 0 2px 8px rgba(34,197,94,0.3); white-space: nowrap; }
+.btn-finish:hover { background: #16a34a; box-shadow: 0 4px 12px rgba(34,197,94,0.5); }
+.btn-cancel-out {
+  background: transparent;
+  color: var(--andon-down);
+  border: 1.5px solid var(--andon-down);
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  box-shadow: none;
+  min-width: 32px;
+}
+.btn-cancel-out:hover {
+  background: rgba(239,68,68,0.12);
+  color: #f87171;
+  border-color: #f87171;
+  box-shadow: 0 2px 8px rgba(239,68,68,0.25);
+}
+.badge-cancelled { background: var(--andon-down); color: #ffffff; }
+.btn-pick { background: var(--accent-machine); color: var(--accent-text); padding: 6px 14px; font-size: 11px; box-shadow: 0 2px 8px var(--accent-machine-glow); }
+.btn-pick:hover { opacity: 0.85; transform: translateY(-1px); }
+
+.btn-secondary { background: var(--bg-card-alt); color: var(--text-primary); border: 1px solid var(--border-soft); padding: 6px 14px; font-size: 11px; }
+.btn-secondary:hover { background: #334155; border-color: var(--accent-machine); }
+
+/* ===== ZONE 3: QUEUE (COMPACT & LIMITED TO 2) ===== */
+.zone-queue {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px 16px; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.queue-head {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
+  font-weight: 800; font-size: 13px; color: var(--accent-machine); text-transform: uppercase; letter-spacing: 0.7px;
+}
+.queue-list { overflow: hidden; padding-right: 4px; }
+.queue-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 12px; background: var(--bg-card-alt); border: 1px solid var(--border-soft);
+  border-radius: 6px; margin-bottom: 6px; transition: all 0.2s;
+}
+.queue-item:hover { border-color: var(--accent-machine); }
+.queue-info { flex-grow: 1; display: flex; gap: 12px; align-items: center; font-size: 12px; }
+
+/* ===== MODAL OVERLAY & BOX ===== */
+.modal-overlay {
+  display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(8px); z-index: 99999;
+  align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay.show { display: flex; }
+.modal-box {
+  background: var(--bg-card); border: 2px solid var(--accent-machine-glow); border-radius: 10px;
+  max-width: 95vw; max-height: 90vh; display: flex; flex-direction: column;
+  box-shadow: 0 25px 70px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.05); color: var(--text-primary);
+}
+.modal-head {
+  display: flex; justify-content: space-between; align-items: center; padding: 16px 20px;
+  border-bottom: 2px solid var(--accent-machine); background: var(--bg-base); border-radius: 8px 8px 0 0;
+}
+.modal-title { font-weight: 900; font-size: 16px; color: var(--accent-machine); letter-spacing: 0.5px; text-transform: uppercase; }
+.modal-close {
+  background: none; border: none; color: var(--text-primary); font-size: 26px; cursor: pointer;
+  padding: 0 6px; line-height: 1; font-weight: bold; opacity: 0.8; transition: color 0.2s;
+}
+.modal-close:hover { color: var(--accent-machine); opacity: 1; }
+.modal-body { padding: 20px; overflow-y: auto; flex-grow: 1; background: var(--bg-card); }
+.modal-footer {
+  padding: 16px 20px; border-top: 1px solid var(--border); background: var(--bg-base);
+  border-radius: 0 0 8px 8px; display: flex; gap: 12px; justify-content: flex-end;
+}
+
+/* ===== FINISH MODAL FORM & NG SECTION (CTL SPECIFIC) ===== */
+#finish-modal .modal-box { width: 550px; }
+.form-row { margin-bottom: 16px; }
+.form-row label {
+  display: block; font-size: 12px; font-weight: 800; color: var(--text-secondary);
+  text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;
+}
+.form-row input[type="number"] {
+  width: 100%; background: #020617; color: var(--text-primary); border: 1px solid var(--border-soft);
+  border-radius: 6px; padding: 12px; font-size: 20px; font-weight: 800; font-family: 'Consolas', monospace;
+}
+.form-row input[type="number"]:focus { outline: none; border-color: var(--accent-machine); box-shadow: 0 0 0 3px var(--accent-machine-glow); background: #0f172a; }
+.form-row input[readonly] { background: #082f49 !important; color: var(--accent-machine) !important; border-color: var(--accent-machine-glow) !important; cursor: not-allowed; }
+
+.ng-section {
+  display: none; margin-top: 20px; padding: 16px; background: rgba(234, 88, 12, 0.08);
+  border: 2px solid rgba(234, 88, 12, 0.4); border-radius: 8px;
+}
+.ng-section.show { display: block; }
+.ng-title { color: var(--accent-orange); font-weight: 900; font-size: 14px; margin-bottom: 6px; }
+.ng-hint  { color: #fed7aa; font-size: 12px; margin-bottom: 12px; font-weight: 500; }
+.ng-table { width: 100%; font-size: 13px; color: #fef3c7; border-collapse: collapse; }
+.ng-table th, .ng-table td { border: 1px solid var(--border-soft); padding: 6px 8px; }
+.ng-table thead tr { background: var(--bg-base); }
+.ng-table th { font-size: 11px; text-transform: uppercase; color: var(--accent-orange); font-weight: 800; }
+.ng-input {
+  width: 100%; background: #020617; color: #fef3c7; border: 1px solid var(--border-soft);
+  border-radius: 4px; padding: 6px; font-size: 13px; font-weight: 700; font-family: 'Consolas', monospace;
+}
+.ng-input:focus { border-color: var(--accent-orange); outline: none; }
+.ng-cell-t { text-align: center; background: var(--bg-base); color: var(--accent-machine); font-weight: 800; font-family: 'Consolas', monospace; }
+.ng-cell-kg { text-align: right; background: var(--bg-base); }
+.ng-kg { color: var(--accent-yellow); font-weight: 800; font-family: 'Consolas', monospace; }
+.btn-ng-add {
+  margin-top: 12px; background: var(--accent-orange); color: white; padding: 8px 14px; font-size: 12px; font-weight: 800;
+  border: none; border-radius: 6px; cursor: pointer; box-shadow: 0 2px 8px rgba(234, 88, 12, 0.3);
+}
+.btn-ng-add:hover { background: #c2410c; }
+.btn-ng-del { background: var(--andon-down); color: white; padding: 4px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }
+.ng-total { margin-top: 12px; text-align: right; color: var(--accent-orange); font-weight: 900; font-size: 15px; }
+
+/* ===== POPUP TABLES ===== */
+#popup-antrian .modal-box { width: 900px; }
+#popup-antrian .modal-body { padding: 0; max-height: 70vh; } 
+.popup-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 0; }
+.popup-table thead th {
+  background: #020617; color: var(--accent-machine); padding: 14px 10px;
+  text-align: left; font-weight: 900; font-size: 11px; text-transform: uppercase;
+  letter-spacing: 1px; border-bottom: 2px solid var(--accent-machine); position: sticky; top: 0; z-index: 10;
+}
+.popup-table tbody td {
+  padding: 10px; border-bottom: 1px solid var(--border-soft);
+  color: var(--text-primary); background: var(--bg-card); font-weight: 600;
+}
+.popup-table th:first-child, .popup-table td:first-child { padding-left: 20px; }
+.popup-table th:last-child, .popup-table td:last-child { padding-right: 20px; }
+.popup-table tbody tr:nth-child(even) td { background: var(--bg-card-alt); }
+.popup-table tbody tr:hover td { background: rgba(255, 255, 255, 0.05); }
+.popup-table tbody tr:last-child td { border-bottom: none; }
+.popup-table .td-spkno { color: var(--accent-machine); font-weight: 900; font-family: 'Consolas', monospace; font-size: 14px; }
+.popup-table .td-spec { color: var(--accent-yellow); font-weight: 800; font-size: 14px; }
+
+/* ===== POPUP SELESAI KANBAN ===== */
+#popup-selesai .modal-box { width: 90vw; }
+#popup-selesai .modal-body { max-height: 75vh; }
+.kanban-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.kanban-card {
+  background: var(--bg-card-alt); border: 1px solid var(--border-soft);
+  border-left: 4px solid var(--andon-running); border-radius: 6px;
+  padding: 14px; font-size: 13px; box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+.kanban-card .kc-spk { font-weight: 900; color: var(--accent-machine); font-family: 'Consolas', monospace; font-size: 15px; margin-bottom: 4px; }
+.kanban-card .kc-item { color: var(--accent-yellow); font-weight: 800; margin: 6px 0; font-size: 14px; }
+.kanban-card .kc-meta { color: var(--text-secondary); font-size: 12px; margin-bottom: 4px; }
+.kanban-card .kc-qty { font-weight: 900; color: var(--text-primary); font-size: 16px; margin: 8px 0; }
+.kanban-card .kc-time {
+  color: var(--text-muted); font-size: 11px; font-weight: 600;
+  margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-soft);
+}
+</style>
+</head>
+<body>
+
+<div class="board-shell theme-acl">
+  <!-- ZONE 1: STATUS BAR (Lebih Ringkas, Mesin di Tengah) -->
+  <div class="zone-status">
+    <div class="machine-status">
+      <div class="led led-idle" id="status-led"></div>
+      <div style="display: flex; flex-direction: column; justify-content: center;">
+        <div><span class="status-state s-idle" id="status-state">IDLE</span></div>
+        <div class="status-spk" id="status-spk">— tidak ada job —</div>
+      </div>
+    </div>
+
+    <!-- POKA-YOKE: Nama Mesin Sentral Statis -->
+    <div class="machine-title-center">
+      CTL-01
+    </div>
+
+    <!-- Counters & Refresh (HORIZONTAL) -->
+    <div class="counter-pills">
+      <div class="counter-pill pill-antrian" onclick="window.openPopupAntrian()">
+        <span>📋 Antrian:</span> <span class="counter-num" id="cnt-antrian">0</span>
+      </div>
+      <div class="counter-pill pill-done" onclick="window.openPopupSelesai()">
+        <span>✅ Selesai:</span> <span class="counter-num" id="cnt-done">0</span>
+      </div>
+      <button class="btn-refresh" onclick="window.refreshBoard()" title="Muat Ulang Data">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 1 0 2.63-6.37L21 8"></path>
+        </svg>
+        <span>Refresh</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ZONE 2: ACTIVE CARD -->
+  <div class="zone-active">
+    <div id="active-empty" class="active-empty">
+      <div class="active-empty-icon">📭</div>
+      <div style="font-size: 16px; font-weight: 600;">Tidak ada job aktif</div>
+      <div style="font-size:13px;">Pilih dari antrian di bawah</div>
+    </div>
+    
+    <div id="active-area" style="display:none;">
+      <div class="active-head">
+        <div>
+          <div class="active-spkno" id="a-spkno">—</div>
+        </div>
+        <div class="active-meta-grid">
+          <div><span class="meta-label">Item:</span> <span class="meta-val" id="a-item">—</span></div>
+          <div><span class="meta-label">Spec:</span> <span class="meta-val hl-yellow" id="a-spec">—</span></div>
+          <div><span class="meta-label">Cust:</span> <span class="meta-val" id="a-cust">—</span></div>
+          <div><span class="meta-label">UsedBy:</span> <span class="badge-owner" id="a-owner">FC</span></div>
+          <div><span class="meta-label">KG Target:</span> <span class="meta-val" id="a-kgt">0</span></div>
+          <div><span class="meta-label">Priority:</span> <span class="meta-val" id="a-prio">Normal</span></div>
+        </div>
+        <div>
+          <!-- POKA-YOKE: Tombol ganti job disembunyikan otomatis jika RUNNING via JS -->
+          <button class="btn-secondary btn" id="btn-ganti-job" onclick="window.clearActive()">⟲ Ganti Job</button>
+        </div>
+      </div>
+
+      <div class="progress-section" id="progress-area" style="display:none;">
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progress-fill" style="width:0%;"></div>
+        </div>
+        <div class="progress-text">
+          <span>Progress</span>
+          <span id="progress-text">0% (0 / 0 sht)</span>
+        </div>
+      </div>
+
+      <div id="btn-mulai-wrap">
+        <button class="btn btn-mulai" id="btn-mulai" onclick="window.triggerStartJob()">▶ MULAI PROSES</button>
+      </div>
+
+      <!-- Tabel memuat 10 Baris dan Flex Grow untuk mengambil sisa layar, max height agar scrolling -->
+      <div class="out-table-wrap" id="out-area" style="display:none;">
+        <table class="out-table">
+          <thead>
+            <tr>
+              <th style="width:150px;">SPK OUT</th>
+              <th>SO / Cust</th>
+              <th>Spec Hasil</th> 
+              <th style="width:150px;">Target Loc</th>
+              <th style="width:90px;">Target (Sht)</th>
+              <th style="width:160px;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="out-tbody">
+            <tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:24px; font-style:italic;">Memuat...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ZONE 3: NEXT QUEUE (Dibatasi Maks 2 Baris) -->
+  <div class="zone-queue">
+    <div class="queue-head">
+      <span>📋 ANTRIAN BERIKUTNYA</span>
+      <span style="color:var(--text-secondary); font-weight:600; font-size:12px;" id="queue-count">0 jobs</span>
+    </div>
+    <div class="queue-list" id="queue-list">
+      <div class="queue-empty">Memuat antrian...</div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: FINISH OUT (CTL SPECIFIC dengan NG GRADE 2) -->
+<div id="finish-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title" id="m-title">INPUT AKTUAL</div>
+      <button class="modal-close" onclick="window.closeFinishModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="m-spkno"><input type="hidden" id="m-wgpce">
+      <div class="form-row">
+        <label>Qty Actual (Sht) <span style="color:var(--andon-down);">*</span></label>
+        <input type="number" id="m-qty" oninput="window.autoCalcKgActual()">
+      </div>
+      <div class="form-row">
+        <label>KG Actual (Kg) — AUTO</label>
+        <input type="number" id="m-kg" readonly>
+      </div>
+
+      <div class="ng-section" id="ng-section">
+        <div class="ng-title">⚠️ NG CUTTING (Sisa Potongan Coil)</div>
+        <div class="ng-hint">Ini OUT terakhir — input sisa potongan NG. Kosongkan kalau tidak ada.</div>
+        <table class="ng-table">
+          <thead>
+            <tr>
+              <th style="width:55px;">T</th>
+              <th>P (mm)</th>
+              <th>L (mm)</th>
+              <th style="width:70px;">Qty</th>
+              <th style="width:85px;">KG</th>
+              <th style="width:40px;">⨯</th>
+            </tr>
+          </thead>
+          <tbody id="ng-tbody"></tbody>
+        </table>
+        <button class="btn-ng-add" type="button" onclick="window.addNgRow()">➕ Tambah NG Item</button>
+        <div class="ng-total">Total NG: <span id="ng-total-kg">0</span> kg</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="window.closeFinishModal()">Batal</button>
+      <button class="btn" id="m-btn-save" onclick="window.submitActualData()" style="background:var(--andon-running); color:white; padding:12px 20px; font-weight:800; font-size:14px; box-shadow:0 4px 10px rgba(34,197,94,0.3);">💾 SIMPAN & CETAK</button>
+    </div>
+  </div>
+</div>
+<!-- MODAL: CANCEL CTL-OUT (per-OUT cancel dengan password PPIC) -->
+<div id="cancel-out-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-head" style="background: rgba(239,68,68,0.1); border-bottom: 2px solid var(--andon-down);">
+      <div class="modal-title" id="co-title" style="color: #fca5a5;">❌ CANCEL CTL-OUT</div>
+      <button class="modal-close" onclick="window.closeCancelOutModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="co-spkno">
+      <div class="form-row">
+        <label>SPK OUT</label>
+        <div id="co-spkno-display" style="font-size: 18px; font-weight: 800; color: #fca5a5; font-family: 'Consolas', monospace;"></div>
+      </div>
+      <div class="form-row">
+        <label>Spec</label>
+        <div id="co-spec-display" style="font-size: 14px; color: var(--text-muted);"></div>
+      </div>
+      <div class="form-row">
+        <label>Qty Target</label>
+        <div id="co-qty-display" style="font-size: 14px;"></div>
+      </div>
+
+      <div class="ng-section" id="cng-section">
+        <div class="ng-title">⚠️ NG CUTTING (Sisa Potongan Coil)</div>
+        <div class="ng-hint">Ini OUT terakhir — input sisa potongan NG. Boleh kosong kalau tidak ada NG.</div>
+        <table class="ng-table">
+          <thead>
+            <tr>
+              <th style="width:55px;">T</th>
+              <th>P (mm)</th>
+              <th>L (mm)</th>
+              <th style="width:70px;">Qty</th>
+              <th style="width:85px;">KG</th>
+              <th style="width:40px;">⨯</th>
+            </tr>
+          </thead>
+          <tbody id="cng-tbody"></tbody>
+        </table>
+        <button class="btn-ng-add" type="button" onclick="window.addCngRow()">➕ Tambah NG Item</button>
+        <div class="ng-total">Total NG: <span id="cng-total-kg">0</span> kg</div>
+      </div>
+
+      <div class="form-row" style="margin-top: 16px;">
+        <label>Password PPIC <span style="color: var(--andon-down);">*</span></label>
+        <input type="password" id="co-password" placeholder="Masukkan password PPIC" autocomplete="off">
+      </div>
+      <div id="co-error" style="display:none; color: #fca5a5; font-size: 12px; margin-top: 8px; padding: 8px; background: rgba(239,68,68,0.1); border-left: 3px solid var(--andon-down); border-radius: 4px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="window.closeCancelOutModal()">Batal</button>
+      <button class="btn" id="co-btn-submit" onclick="window.submitCancelOut()" style="background: var(--andon-down); color: white; padding: 12px 20px; font-weight: 800; font-size: 14px; box-shadow: 0 4px 10px rgba(239,68,68,0.3);">❌ CANCEL OUT</button>
+    </div>
+  </div>
+</div>
+<!-- POPUP: ANTRIAN (Sama Seperti SHR) -->
+<div id="popup-antrian" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title" id="popup-antrian-title">📋 ANTRIAN CTL-01</div>
+      <button class="modal-close" onclick="window.closePopupAntrian()">×</button>
+    </div>
+    <div class="modal-body">
+      <table class="popup-table">
+        <thead>
+          <tr>
+            <th style="width:90px;">Prio</th>
+            <th>SPK No</th>
+            <th>Item Input</th>
+            <th>Spec Input</th>
+            <th style="text-align:right;">Target</th>
+            <th style="text-align:right;">KG</th>
+            <th>Owner</th>
+            <th style="width:100px;">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="popup-antrian-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- POPUP: SELESAI HARI INI -->
+<div id="popup-selesai" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title" id="popup-selesai-title">✅ SELESAI HARI INI</div>
+      <button class="modal-close" onclick="window.closePopupSelesai()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="kanban-grid" id="popup-selesai-grid"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== INJECT MOCK UNTUK PREVIEW DI LUAR GOOGLE APPS SCRIPT =====
+if (typeof google === 'undefined') {
+  console.warn("Google Apps Script API tidak ditemukan. Menggunakan mock data untuk preview.");
+  window.google = {
+    script: {
+      run: {
+        withSuccessHandler: function(cb) { this._success = cb; return this; },
+        withFailureHandler: function(cb) { this._failure = cb; return this; },
+        fetchBoardQueueData: function(mc) {
+          var cb = this._success;
+          // MOCK DATA 5 SPK INDUK
+          setTimeout(function(){ cb && cb([
+            { SPK_No: 'CTL-260001', Status: 'RUNNING', Item_Code: 'COIL-01', Input_Spec: '2.0 x 1219 x Coil', Mat_Spec: '2.0 x 1219', Cust: 'PT ALPHA', Owner: 'FC', KG_Target: 5000, Priority: 'High', Plan_Seq: 1 },
+            { SPK_No: 'CTL-260002', Status: 'ANTRIAN', Item_Code: 'COIL-02', Input_Spec: '1.2 x 1000 x Coil', Mat_Spec: '1.2 x 1000', Cust: 'PT BETA', Owner: 'DRC', KG_Target: 2000, Priority: 'Normal', Plan_Seq: 2 },
+            { SPK_No: 'CTL-260003', Status: 'ANTRIAN', Item_Code: 'COIL-03', Input_Spec: '0.8 x 914 x Coil', Mat_Spec: '0.8 x 914', Cust: 'PT GAMMA', Owner: 'FC', KG_Target: 3500, Priority: 'Normal', Plan_Seq: 3 },
+            { SPK_No: 'CTL-260004', Status: 'ANTRIAN', Item_Code: 'COIL-04', Input_Spec: '3.0 x 1219 x Coil', Mat_Spec: '3.0 x 1219', Cust: 'PT DELTA', Owner: 'FC', KG_Target: 8000, Priority: 'Urgent', Plan_Seq: 4 },
+            { SPK_No: 'CTL-260005', Status: 'ANTRIAN', Item_Code: 'COIL-05', Input_Spec: '0.5 x 1219 x Coil', Mat_Spec: '0.5 x 1219', Cust: 'PT EPSILON', Owner: 'DRC', KG_Target: 1500, Priority: 'Normal', Plan_Seq: 5 }
+          ]); }, 200);
+        },
+        fetchTodayDoneJobs: function(mc) {
+          var cb = this._success;
+          setTimeout(function(){ cb && cb([
+            { SPK_No: 'CTL-260000', Item_Code: 'COIL-00', Input_Spec: '1.0 x 1219', Qty_Actual: 150, Qty_Target: 150, KG_Actual: 1800, Owner: 'FC', Selesai_DT: '12:30 WIB' }
+          ]); }, 200);
+        },
+        fetchBoardChildData: function(spk, type) {
+          var cb = this._success;
+          setTimeout(function(){ 
+            // DYNAMIC MOCK DATA 10 ANAK (OUT)
+            var dummyOuts = [];
+            for (var i = 1; i <= 10; i++) {
+              dummyOuts.push({
+                SPK_No: spk + '-' + String(i).padStart(2, '0'),
+                SO_Ref: 'SO-' + (100 + i),
+                Cust: 'CUST-0' + i,
+                Input_Spec: '2.0 x 1219 x ' + (1000 + (i*100)),
+                Target_Loc: (i % 2 === 0 ? 'FG_Cust' : 'WIP'),
+                Qty_Target: 20 + (i*5),
+                BQ: 15,
+                Status: (i <= 2 && spk === 'CTL-260001') ? 'DONE' : 'ANTRIAN' 
+              });
+            }
+            cb && cb(dummyOuts); 
+          }, 200);
+        },
+        updateStatusToRunning: function(spk) {
+          var cb = this._success;
+          setTimeout(function(){ cb && cb({success:true}); }, 200);
+        },
+        saveBoardActualData: function(payload) {
+          var cb = this._success;
+          setTimeout(function(){ cb && cb({success:true, ng_created:[]}); }, 200);
+        },
+        checkHeaderFinishedStatus: function(spk) {
+          var cb = this._success;
+          setTimeout(function(){ cb && cb(true); }, 200);
+        }
+      }
+    }
+  };
+}
+// ================================================================
+
+(function() {
+  // ============================================================
+  // STATE
+  // ============================================================
+  var _queueList = [];
+  var _doneToday = [];
+  var _activeHeader = null;
+  var _activeChildRows = [];
+  var _suggestedSpkNo = null;
+  var _modalChildIdx = -1;
+  var _ngRowSeq = 0;
+  var _activeRequests = 0; // State Loading Tracker
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[<>&"]/g, function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c];}); }
+  function formatSpecSpacing(text) {
+    if (!text) return '--';
+    return text.replace(/(\d)\s*[xX]\s*(?=\d)/g, '$1 X ');
+  }
+
+  // ============================================================
+  // LOADING OVERLAY CONTROLLER
+  // ============================================================
+  // 🟢 BUG-FIX #11 — Safety timeout: kalau hideLoadingScreen tidak dipanggil
+  // dalam 60 detik (anomali GAS / koneksi drop), paksa hide overlay + refresh
+  // state via loadAll(), supaya operator tidak perlu refresh browser.
+  var _loadingTimeoutId = null;
+  var LOADING_TIMEOUT_MS = 60000; // 60 detik
+
+  function _forceHideLoading() {
+    _activeRequests = 0;
+    var shell = document.querySelector('.board-shell');
+    if (shell) shell.classList.remove('flash-active');
+    _loadingTimeoutId = null;
+    // Auto-refresh state setelah force-hide, supaya data sync dengan sheet
+    if (typeof loadAll === 'function') {
+      try { loadAll(); } catch(e) { console.error('Force-refresh failed:', e); }
+    }
+  }
+
+  function showLoadingScreen() {
+    _activeRequests++;
+    var shell = document.querySelector('.board-shell');
+    if (shell) shell.classList.add('flash-active');
+    // Reset & start safety timer (cuma 1 timer aktif untuk seluruh overlay)
+    if (_loadingTimeoutId) clearTimeout(_loadingTimeoutId);
+    _loadingTimeoutId = setTimeout(_forceHideLoading, LOADING_TIMEOUT_MS);
+  }
+
+  function hideLoadingScreen() {
+    _activeRequests--;
+    if (_activeRequests <= 0) {
+      _activeRequests = 0;
+      var shell = document.querySelector('.board-shell');
+      if (shell) shell.classList.remove('flash-active');
+      // Counter sudah balik 0 → cancel safety timer
+      if (_loadingTimeoutId) {
+        clearTimeout(_loadingTimeoutId);
+        _loadingTimeoutId = null;
+      }
+    }
+  }
+
+  // ============================================================
+  // FETCH (event-driven)
+  // ============================================================
+  function loadAll() {
+    showLoadingScreen();
+    google.script.run
+      .withFailureHandler(function(err){ console.error(err); hideLoadingScreen(); })
+      .withSuccessHandler(function(rows) {
+        _queueList = rows || [];
+        var run = _queueList.find(function(j){ return j.Status === 'RUNNING'; });
+        if (run) {
+          setActive(run);
+        } else if (_suggestedSpkNo) {
+          var sugg = _queueList.find(function(j){ return j.SPK_No === _suggestedSpkNo; });
+          if (sugg) {
+            setActive(sugg);
+            _suggestedSpkNo = null;
+          } else {
+            _suggestedSpkNo = null;
+            if (!_activeHeader) renderAll();
+          }
+        } else {
+          if (_activeHeader) {
+            var stillThere = _queueList.find(function(j){ return j.SPK_No === _activeHeader.SPK_No; });
+            if (stillThere) _activeHeader = stillThere;
+            else { _activeHeader = null; _activeChildRows = []; }
+          }
+          renderAll();
+        }
+        hideLoadingScreen();
+      }).fetchBoardQueueData('CTL-01');
+
+    showLoadingScreen();
+    google.script.run
+      .withFailureHandler(function(err){ console.error(err); hideLoadingScreen(); })
+      .withSuccessHandler(function(rows) {
+        _doneToday = rows || [];
+        $('cnt-done').textContent = _doneToday.length;
+        hideLoadingScreen();
+      }).fetchTodayDoneJobs('CTL-01');
+  }
+
+  window.refreshBoard = function() {
+    var btn = document.querySelector('.btn-refresh');
+    if (btn) {
+      var svg = btn.querySelector('svg');
+      if (svg) {
+        svg.style.transition = 'transform 0.5s';
+        svg.style.transform = 'rotate(360deg)';
+        setTimeout(function(){
+          svg.style.transition = 'none';
+          svg.style.transform = 'rotate(0deg)';
+        }, 500);
+      }
+    }
+    loadAll();
+  };
+
+  function setActive(header) {
+    _activeHeader = header;
+    if (header.Status === 'RUNNING') {
+      loadChildren(header.SPK_No);
+    } else {
+      _activeChildRows = [];
+      renderAll();
+    }
+  }
+
+  function loadChildren(spkNo) {
+    showLoadingScreen();
+    google.script.run
+      .withFailureHandler(function(err){ console.error(err); hideLoadingScreen(); })
+      .withSuccessHandler(function(rows) {
+        _activeChildRows = rows || [];
+        renderAll();
+        hideLoadingScreen();
+      }).fetchBoardChildData(spkNo, 'CTL-OUT');
+  }
+
+  // ============================================================
+  // RENDER
+  // ============================================================
+  function renderAll() {
+    renderStatusBar();
+    renderActiveCard();
+    renderQueue();
+  }
+
+  function renderStatusBar() {
+    var state = _activeHeader ? _activeHeader.Status : 'IDLE';
+    var ledCls = 'led ';
+    var stateCls = 'status-state ';
+    if (state === 'RUNNING') { ledCls += 'led-running'; stateCls += 's-running'; }
+    else if (state === 'ANTRIAN') { ledCls += 'led-idle'; stateCls += 's-idle'; }
+    else { ledCls += 'led-idle'; stateCls += 's-idle'; }
+    $('status-led').className = ledCls;
+    $('status-state').className = stateCls;
+    $('status-state').textContent = state;
+
+    var spkInfo = '';
+    if (_activeHeader) {
+      spkInfo = _activeHeader.SPK_No;
+      if (state === 'RUNNING') {
+        var p = computeProgress();
+        spkInfo += ' · ' + p.pct + '% (' + p.actQty + '/' + p.tgtQty + ' sht)';
+      } else {
+        spkInfo += ' · siap mulai';
+      }
+    } else {
+      spkInfo = _queueList.length > 0 ? '— antri ' + _queueList.length + ' job —' : '— tidak ada job —';
+    }
+    $('status-spk').textContent = spkInfo;
+
+    var antrianCount = _queueList.filter(function(j){ return j.Status === 'ANTRIAN'; }).length;
+    $('cnt-antrian').textContent = antrianCount;
+  }
+
+  function renderActiveCard() {
+    if (!_activeHeader) {
+      $('active-area').style.display = 'none';
+      $('active-empty').style.display = 'flex';
+      return;
+    }
+    $('active-area').style.display = 'flex';
+    $('active-empty').style.display = 'none';
+
+    var h = _activeHeader;
+    $('a-spkno').textContent = h.SPK_No || '—';
+    $('a-item').textContent = h.Item_Code || '—';
+    $('a-spec').textContent = formatSpecSpacing(h.Input_Spec || h.Mat_Spec);
+    $('a-cust').textContent = h.Cust || '—';
+    $('a-owner').textContent = h.Owner_Used || h.Owner || 'FC';
+    $('a-kgt').textContent = (Math.round(h.KG_Target || 0)).toLocaleString('id-ID') + ' kg';
+    $('a-prio').textContent = h.Priority || 'Normal';
+
+    // POKA-YOKE: Menghilangkan Tombol Ganti Job saat sudah di RUNNING
+    var btnGanti = $('btn-ganti-job');
+    if (h.Status === 'RUNNING') {
+      $('btn-mulai-wrap').style.display = 'none';
+      $('out-area').style.display = 'block';
+      $('progress-area').style.display = 'flex';
+      if(btnGanti) btnGanti.style.display = 'none';
+      renderOutRows();
+      updateProgressBar();
+    } else {
+      $('btn-mulai-wrap').style.display = 'block';
+      $('out-area').style.display = 'none';
+      $('progress-area').style.display = 'none';
+      if(btnGanti) btnGanti.style.display = 'inline-flex';
+    }
+  }
+
+  function renderOutRows() {
+    var tbody = $('out-tbody');
+    if (!_activeChildRows.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">Memuat detail OUT…</td></tr>';
+      return;
+    }
+    var html = '';
+    _activeChildRows.forEach(function(r, idx) {
+      var stUp = String(r.Status).toUpperCase();
+      var isDone      = stUp === 'DONE';
+      var isCancelled = stUp === 'CANCELLED';
+
+      // Build action buttons:
+      // - DONE       → badge ✓ DONE
+      // - CANCELLED  → badge ✗ CANCELLED
+      // - RUNNING/ANTRIAN → SELESAI + X (dalam flex wrapper, horizontal)
+      var btn = '';
+      if (isDone) {
+        btn = '<span class="badge badge-done">✓ DONE</span>';
+      } else if (isCancelled) {
+        btn = '<span class="badge badge-cancelled">✗ CANCELLED</span>';
+      } else {
+        btn  = '<div style="display:flex; gap:6px; justify-content:flex-start; align-items:center; flex-wrap:nowrap;">';
+        btn += '<button class="btn btn-finish" onclick="window.openFinishModal(' + idx + ')">⏹ SELESAI</button>';
+        btn += '<button class="btn btn-cancel-out" onclick="window.openCancelOutModal(' + idx + ')" title="Cancel OUT ini (perlu password PPIC)">X</button>';
+        btn += '</div>';
+      }
+
+      html += '<tr>';
+      html += '<td class="td-spkno">' + esc(r.SPK_No) + '</td>';
+      html += '<td><b>' + esc(r.SO_Ref || '—') + '</b><div class="td-cust">' + esc(r.Cust || '—') + '</div></td>';
+      html += '<td class="td-spec">' + formatSpecSpacing(r.Input_Spec) + '</td>';
+      html += '<td style="font-weight:600; color:var(--accent-machine);">' + esc(r.Target_Loc || '—') + '</td>';
+      html += '<td style="font-weight:900; font-size:14px; font-family:\'Consolas\', monospace;">' + Math.round(r.Qty_Target || 0) + '</td>';
+      html += '<td>' + btn + '</td>';
+      html += '</tr>';
+    });
+    tbody.innerHTML = html;
+  }
+
+  function renderQueue() {
+    var listEl = $('queue-list');
+    var queue = _queueList.filter(function(j){
+      return !_activeHeader || j.SPK_No !== _activeHeader.SPK_No;
+    });
+    
+    var prioWeight = { 'Urgent': 3, 'High': 2, 'Normal': 1 };
+    queue.sort(function(a, b) {
+      var d = (prioWeight[b.Priority]||1) - (prioWeight[a.Priority]||1);
+      if (d !== 0) return d;
+      return (parseFloat(a.Plan_Seq) || 999) - (parseFloat(b.Plan_Seq) || 999);
+    });
+    
+    var totalQueue = queue.length;
+    $('queue-count').textContent = totalQueue + ' jobs';
+
+    if (!totalQueue) {
+      listEl.innerHTML = '<div class="queue-empty">Tidak ada antrian</div>';
+      return;
+    }
+    
+    // LIMITASI HANYA MAKSIMAL 2 ROW UNTUK MENGHEMAT TEMPAT (TAMPILAN COMPACT)
+    var displayQueue = totalQueue > 2 ? queue.slice(0, 2) : queue;
+    var hasMore = totalQueue > 2;
+    var html = '';
+    
+    displayQueue.forEach(function(j, idx) {
+      var suggested = (j.SPK_No === _suggestedSpkNo) ? ' suggested' : '';
+      html += '<div class="queue-item' + suggested + '">';
+      
+      html += '<div class="queue-info">';
+      html += '<span style="font-family:Consolas,monospace; font-weight:700; color:var(--text-primary); font-size:14px;">' + esc(j.SPK_No) + '</span>';
+      html += '<span style="color:var(--text-secondary); font-weight:600; font-size:13px;">' + formatSpecSpacing(j.Input_Spec || j.Mat_Spec) + '</span>';
+      html += '<span style="color:var(--text-muted); font-weight:500; font-size:12px;">' + Math.round(j.KG_Target||0) + ' kg</span>';
+      html += '</div>';
+      
+      html += '<button class="btn btn-pick" onclick="window.pickJob(\'' + j.SPK_No.replace(/'/g, "\\'") + '\')">PILIH</button>';
+      html += '</div>';
+    });
+    
+    if (hasMore) {
+      html += '<div class="queue-more" onclick="window.openPopupAntrian()">' +
+              '↗ Klik untuk lihat semua ' + totalQueue + ' antrian' +
+              '</div>';
+    }
+    listEl.innerHTML = html;
+  }
+
+  function computeProgress() {
+    var tgt = _activeChildRows.reduce(function(s,r){ return s + (parseFloat(r.Qty_Target)||0); }, 0);
+    var act = _activeChildRows.reduce(function(s,r){ return s + (parseFloat(r.Qty_Actual)||0); }, 0);
+    return {
+      tgtQty: Math.round(tgt),
+      actQty: Math.round(act),
+      pct: tgt > 0 ? Math.round((act/tgt)*100) : 0
+    };
+  }
+
+  function updateProgressBar() {
+    var p = computeProgress();
+    $('progress-fill').style.width = p.pct + '%';
+    $('progress-text').textContent = p.pct + '% (' + p.actQty + ' / ' + p.tgtQty + ' sht)';
+  }
+
+  // ============================================================
+  // ACTIONS
+  // ============================================================
+  window.pickJob = function(spkNo) {
+    var job = _queueList.find(function(j){ return j.SPK_No === spkNo; });
+    if (!job) { alert('Job tidak ditemukan.'); return; }
+    setActive(job);
+    $('popup-antrian').classList.remove('show');
+  };
+
+  window.clearActive = function() {
+    if (_activeHeader && _activeHeader.Status === 'RUNNING') {
+      alert('Poka-Yoke aktif: Anda tidak dapat mengganti job saat status RUNNING. Silakan proses hasil potongan Anda terlebih dahulu.');
+      return;
+    }
+    _activeHeader = null;
+    _activeChildRows = [];
+    _suggestedSpkNo = null;
+    renderAll();
+  };
+
+  window.triggerStartJob = function() {
+    if (!_activeHeader) return;
+    var btn = $('btn-mulai');
+    btn.disabled = true;
+    btn.textContent = '⏳ MEMPROSES...';
+    
+    google.script.run
+      .withFailureHandler(function(err){
+        btn.disabled = false;
+        btn.textContent = '▶ MULAI PROSES';
+        alert('❌ Gagal mulai: ' + (err && err.message ? err.message : err));
+      })
+      .withSuccessHandler(function(res) {
+        btn.disabled = false;
+        btn.textContent = '▶ MULAI PROSES';
+        if (res && res.success) {
+          loadAll();
+        } else {
+          alert('⚠️ Backend response: ' + (res ? JSON.stringify(res) : 'null'));
+        }
+      })
+      .updateStatusToRunning(_activeHeader.SPK_No);
+  };
+
+  // ============================================================
+  // MODAL: FINISH OUT (CTL) & NG GRADE 2
+  // ============================================================
+  window.openFinishModal = function(idx) {
+    _modalChildIdx = idx;
+    var r = _activeChildRows[idx];
+
+    $('m-title').textContent = 'INPUT AKTUAL CTL — ' + r.SPK_No;
+    $('m-spkno').value = r.SPK_No;
+    $('m-wgpce').value = r.BQ || 0;
+    $('m-qty').value = Math.round(r.Qty_Target || 0);
+    window.autoCalcKgActual();
+
+    // NG Grade 2 Handling — muncul cuma kalau ini OUT terakhir tersisa
+    // 🟢 BUG-FIX #7 — Filter exclude CANCELLED juga, bukan cuma DONE
+    resetNgSection();
+    var remaining = _activeChildRows.filter(function(rr, i){
+      var st = String(rr.Status).toUpperCase();
+      return i !== idx && st !== 'DONE' && st !== 'CANCELLED';
+    }).length;
+    if (remaining === 0) {
+      $('ng-section').classList.add('show');
+    }
+
+    $('finish-modal').classList.add('show');
+    setTimeout(function(){ $('m-qty').focus(); $('m-qty').select(); }, 100);
+  };
+
+  window.closeFinishModal = function() {
+    $('finish-modal').classList.remove('show');
+    resetNgSection();
+  };
+
+  window.autoCalcKgActual = function() {
+    var qty = parseFloat($('m-qty').value) || 0;
+    var wg  = parseFloat($('m-wgpce').value) || 0;
+    $('m-kg').value = Math.round(qty * wg);
+  };
+
+  window.addNgRow = function() {
+    _ngRowSeq++;
+    var t = parseFloat(_activeHeader && _activeHeader.T) || 0;
+    var rowId = 'ng-row-' + _ngRowSeq;
+    var tr = document.createElement('tr');
+    tr.id = rowId;
+    tr.innerHTML =
+      '<td class="ng-cell-t">' + t + '</td>' +
+      '<td><input type="number" class="ng-input ng-p" oninput="window.calcNgRow(this)"></td>' +
+      '<td><input type="number" class="ng-input ng-l" oninput="window.calcNgRow(this)"></td>' +
+      '<td><input type="number" class="ng-input ng-q" oninput="window.calcNgRow(this)"></td>' +
+      '<td class="ng-cell-kg"><span class="ng-kg">0</span></td>' +
+      '<td style="text-align:center;"><button type="button" class="btn-ng-del" onclick="window.removeNgRow(\'' + rowId + '\')">🗑</button></td>';
+    $('ng-tbody').appendChild(tr);
+  };
+
+  window.removeNgRow = function(rowId) {
+    var row = document.getElementById(rowId);
+    if (row) row.remove();
+    updateNgTotal();
+  };
+
+  window.calcNgRow = function(inp) {
+    var tr = inp.closest('tr');
+    var t = parseFloat(tr.querySelector('.ng-cell-t').textContent) || 0;
+    var p = parseFloat(tr.querySelector('.ng-p').value) || 0;
+    var l = parseFloat(tr.querySelector('.ng-l').value) || 0;
+    var q = parseFloat(tr.querySelector('.ng-q').value) || 0;
+    var kg = Math.round(t*p*l*q*7.85/1000000);
+    tr.querySelector('.ng-kg').textContent = kg;
+    updateNgTotal();
+  };
+
+  function updateNgTotal() {
+    var rows = document.querySelectorAll('#ng-tbody tr');
+    var total = 0;
+    rows.forEach(function(r){ total += parseFloat(r.querySelector('.ng-kg').textContent) || 0; });
+    $('ng-total-kg').textContent = Math.round(total);
+  }
+
+  function collectNgItems() {
+    var items = [];
+    document.querySelectorAll('#ng-tbody tr').forEach(function(r){
+      var t = parseFloat(r.querySelector('.ng-cell-t').textContent) || 0;
+      var p = parseFloat(r.querySelector('.ng-p').value) || 0;
+      var l = parseFloat(r.querySelector('.ng-l').value) || 0;
+      var q = parseFloat(r.querySelector('.ng-q').value) || 0;
+      var kg = parseFloat(r.querySelector('.ng-kg').textContent) || 0;
+      if (p > 0 && l > 0 && q > 0) {
+        items.push({ t: t, p: p, l: l, qty: q, kg: kg });
+      }
+    });
+    return items;
+  }
+
+  function resetNgSection() {
+    var tbody = $('ng-tbody');
+    if (tbody) tbody.innerHTML = '';
+    $('ng-total-kg').textContent = '0';
+    $('ng-section').classList.remove('show');
+    _ngRowSeq = 0;
+  }
+  // ============================================================
+  // CANCEL-OUT MODAL (per-OUT cancel dengan password PPIC)
+  // ============================================================
+  var _cngRowSeq = 0;
+
+  window.openCancelOutModal = function(idx) {
+    _modalChildIdx = idx;
+    var r = _activeChildRows[idx];
+    if (!r) return;
+
+    $('co-title').textContent = '❌ CANCEL OUT — ' + r.SPK_No;
+    $('co-spkno').value = r.SPK_No;
+    $('co-spkno-display').textContent = r.SPK_No;
+    $('co-spec-display').textContent = r.Input_Spec || '—';
+    $('co-qty-display').textContent = Math.round(r.Qty_Target || 0) + ' Sht';
+    $('co-password').value = '';
+    $('co-error').style.display = 'none';
+
+    // NG section muncul kalau ini OUT terakhir tersisa (semua lain sudah final)
+    resetCngSection();
+    var remaining = _activeChildRows.filter(function(rr, i){
+      var st = String(rr.Status).toUpperCase();
+      return i !== idx && st !== 'DONE' && st !== 'CANCELLED';
+    }).length;
+    if (remaining === 0) {
+      $('cng-section').classList.add('show');
+    }
+
+    $('cancel-out-modal').classList.add('show');
+    setTimeout(function(){ $('co-password').focus(); }, 100);
+  };
+
+  window.closeCancelOutModal = function() {
+    $('cancel-out-modal').classList.remove('show');
+    resetCngSection();
+  };
+
+  window.addCngRow = function() {
+    _cngRowSeq++;
+    var t = parseFloat(_activeHeader && _activeHeader.T) || 0;
+    var rowId = 'cng-row-' + _cngRowSeq;
+    var tr = document.createElement('tr');
+    tr.id = rowId;
+    tr.innerHTML =
+      '<td class="ng-cell-t">' + t + '</td>' +
+      '<td><input type="number" class="ng-input cng-p" oninput="window.calcCngRow(this)"></td>' +
+      '<td><input type="number" class="ng-input cng-l" oninput="window.calcCngRow(this)"></td>' +
+      '<td><input type="number" class="ng-input cng-q" oninput="window.calcCngRow(this)"></td>' +
+      '<td class="ng-cell-kg"><span class="cng-kg">0</span></td>' +
+      '<td style="text-align:center;"><button type="button" class="btn-ng-del" onclick="window.removeCngRow(\'' + rowId + '\')">🗑</button></td>';
+    $('cng-tbody').appendChild(tr);
+  };
+
+  window.removeCngRow = function(rowId) {
+    var row = document.getElementById(rowId);
+    if (row) row.remove();
+    updateCngTotal();
+  };
+
+  window.calcCngRow = function(inp) {
+    var tr = inp.closest('tr');
+    var t = parseFloat(tr.querySelector('.ng-cell-t').textContent) || 0;
+    var p = parseFloat(tr.querySelector('.cng-p').value) || 0;
+    var l = parseFloat(tr.querySelector('.cng-l').value) || 0;
+    var q = parseFloat(tr.querySelector('.cng-q').value) || 0;
+    var kg = Math.round(t*p*l*q*7.85/1000000);
+    tr.querySelector('.cng-kg').textContent = kg;
+    updateCngTotal();
+  };
+
+  function updateCngTotal() {
+    var rows = document.querySelectorAll('#cng-tbody tr');
+    var total = 0;
+    rows.forEach(function(r){ total += parseFloat(r.querySelector('.cng-kg').textContent) || 0; });
+    $('cng-total-kg').textContent = Math.round(total);
+  }
+
+  function collectCngItems() {
+    var items = [];
+    document.querySelectorAll('#cng-tbody tr').forEach(function(r){
+      var t = parseFloat(r.querySelector('.ng-cell-t').textContent) || 0;
+      var p = parseFloat(r.querySelector('.cng-p').value) || 0;
+      var l = parseFloat(r.querySelector('.cng-l').value) || 0;
+      var q = parseFloat(r.querySelector('.cng-q').value) || 0;
+      var kg = parseFloat(r.querySelector('.cng-kg').textContent) || 0;
+      if (p > 0 && l > 0 && q > 0) {
+        items.push({ t: t, p: p, l: l, qty: q, kg: kg });
+      }
+    });
+    return items;
+  }
+
+  function resetCngSection() {
+    var tbody = $('cng-tbody');
+    if (tbody) tbody.innerHTML = '';
+    var totalEl = $('cng-total-kg');
+    if (totalEl) totalEl.textContent = '0';
+    var section = $('cng-section');
+    if (section) section.classList.remove('show');
+    _cngRowSeq = 0;
+  }
+
+  function showCancelOutError(msg) {
+    var el = $('co-error');
+    el.textContent = '❌ ' + msg;
+    el.style.display = 'block';
+  }
+
+  // ─── SUBMIT CANCEL OUT (1 round-trip) ───────────────────────────────────────
+window.submitCancelOut = function() {
+  var spkOutNo = $('co-spkno').value;
+  var password = $('co-password').value;
+  if (!password) { showCancelOutError('Password harus diisi.'); return; }
+  if (!spkOutNo) { showCancelOutError('SPK OUT No kosong.'); return; }
+
+  var ngItems   = collectCngItems();
+  var ngVisible = $('cng-section').classList.contains('show');
+  var parentHeaderSpkNo = _activeHeader ? _activeHeader.SPK_No : '';
+
+  var btn = $('co-btn-submit');
+  btn.disabled = true;
+  btn.textContent = '⏳ Memproses...';
+
+  google.script.run
+    .withFailureHandler(function(err){
+      btn.disabled = false;
+      btn.textContent = '❌ CANCEL OUT';
+      showCancelOutError('Error backend: ' + (err && err.message ? err.message : err));
+    })
+    .withSuccessHandler(function(res){
+      btn.disabled = false;
+      btn.textContent = '❌ CANCEL OUT';
+      if (!res || !res.success) {
+        showCancelOutError(res && res.message ? res.message : 'Gagal cancel OUT');
+        return;
+      }
+      window.closeCancelOutModal();
+
+      // Print NG labels kalau ada
+      if (res.ng_created && res.ng_created.length > 0) {
+        res.ng_created.forEach(function(ng, idx){
+          setTimeout(function(){
+            window.printLabelNG({
+              spkNo:     ng.spk_no,
+              sourceSpk: _activeHeader && _activeHeader.SPK_No,
+              spec:      ng.spec,
+              t: ng.t, p: ng.p, l: ng.l,
+              qty: ng.qty, kg: ng.kg,
+              owner: ng.owner, mc: ng.mc_no
+            });
+          }, 800 + (idx*500));
+        });
+      }
+
+      // Apply refresh — TANPA round-trip tambahan
+      applyBoardRefresh(res);
+    })
+    .cancelOutAndRefresh(spkOutNo, password, ngVisible ? ngItems : null, 'CTL-01', parentHeaderSpkNo);
+};
+
+  // ESC + Enter handler untuk cancel-out modal
+  document.addEventListener('keydown', function(e) {
+    var modal = document.getElementById('cancel-out-modal');
+    if (!modal || !modal.classList.contains('show')) return;
+    if (e.key === 'Escape') window.closeCancelOutModal();
+    if (e.key === 'Enter' && document.activeElement && document.activeElement.id === 'co-password') {
+      e.preventDefault();
+      window.submitCancelOut();
+    }
+  });
+  // ─── SUBMIT SELESAI (1 round-trip) ───────────────────────────────────────────
+window.submitActualData = function() {
+  var childSpkNo = $('m-spkno').value;
+  var qtyAct = parseFloat($('m-qty').value) || 0;
+  var kgAct  = parseFloat($('m-kg').value)  || 0;
+  if (qtyAct <= 0) { alert('Qty Actual harus > 0!'); return; }
+
+  var btn = $('m-btn-save');
+  btn.disabled = true;
+  btn.textContent = '⏳ Menyimpan...';
+
+  google.script.run
+    .withFailureHandler(function(err){
+      btn.disabled = false;
+      btn.textContent = '💾 SIMPAN & CETAK';
+      alert('❌ Error backend:\n' + (err && err.message ? err.message : err));
+    })
+    .withSuccessHandler(function(res) {
+      btn.disabled = false;
+      btn.textContent = '💾 SIMPAN & CETAK';
+      if (!res || !res.success) {
+        alert('⚠️ Backend gagal:\n' + (res && res.message ? res.message : 'Unknown error'));
+        return;
+      }
+      window.closeFinishModal();
+
+      // Print FG label
+      var childRow = _activeChildRows.find(function(r){
+        return String(r.SPK_No).trim() === String(childSpkNo).trim();
+      });
+      if (childRow) {
+        var parsed = window.parseInputSpec(childRow.Input_Spec);
+        window.printLabelChild({
+          itemCode: childRow.Item_Code || '--',
+          cust    : childRow.Cust || '--',
+          spek    : parsed.spek,
+          size    : parsed.size,
+          qtyLbr  : qtyAct,
+          lotProd : childRow.SPK_No || childSpkNo,
+          tglProd : new Date().toLocaleDateString('id-ID', {day:'2-digit', month:'short', year:'2-digit'})
+        });
+      }
+
+      // Print NG labels (kalau ada)
+      if (res.ng_created && res.ng_created.length > 0) {
+        res.ng_created.forEach(function(ng, idx){
+          setTimeout(function(){
+            window.printLabelNG({
+              spkNo:     ng.spk_no,
+              sourceSpk: _activeHeader && _activeHeader.SPK_No,
+              spec:      ng.spec,
+              t: ng.t, p: ng.p, l: ng.l,
+              qty: ng.qty, kg: ng.kg,
+              owner: ng.owner, mc: ng.mc_no
+            });
+          }, 800 + (idx*500));
+        });
+      }
+
+      // Apply refresh — TANPA round-trip tambahan
+      applyBoardRefresh(res);
+    })
+    .saveAndRefreshBoard({
+      spk_no    : childSpkNo,
+      qty_actual: qtyAct,
+      kg_actual : kgAct,
+      ng_items  : collectNgItems(),
+      created_by: 'operator'
+    }, 'CTL-01');
+};
+
+  // ─── HELPER: apply state refresh dari response bundle backend ───────────────
+function applyBoardRefresh(res) {
+  if (!res) return;
+
+  _queueList = res.queue || [];
+  _doneToday = res.doneToday || [];
+  $('cnt-done').textContent = _doneToday.length;
+
+  if (res.headerDone) {
+    // Header DONE → reset active card & auto-suggest next
+    _activeHeader = null;
+    _activeChildRows = [];
+    _suggestedSpkNo = findNextSuggestion();
+    if (_suggestedSpkNo) {
+      var sugg = _queueList.find(function(j){ return j.SPK_No === _suggestedSpkNo; });
+      if (sugg) {
+        _activeHeader = sugg;
+        _activeChildRows = []; // siap mulai, belum ada anak running
+      }
+    }
+  } else {
+    // Header masih running → update children + refresh header reference
+    _activeChildRows = res.activeChildren || [];
+    if (_activeHeader) {
+      var stillThere = _queueList.find(function(j){ return j.SPK_No === _activeHeader.SPK_No; });
+      if (stillThere) _activeHeader = stillThere;
+    }
+  }
+  renderAll();
+}
+
+  function checkHeaderCompletion() {
+    if (!_activeHeader) return;
+    var hdrSpkNo = _activeHeader.SPK_No;
+    showLoadingScreen();
+    google.script.run
+      .withFailureHandler(function(err){ console.error(err); hideLoadingScreen(); })
+      .withSuccessHandler(function(stillRunning) {
+        if (!stillRunning) {
+          _activeHeader = null;
+          _activeChildRows = [];
+          _suggestedSpkNo = findNextSuggestion();
+          hideLoadingScreen();
+          loadAll();
+        } else {
+          hideLoadingScreen();
+          loadAll();
+        }
+      }).checkHeaderFinishedStatus(hdrSpkNo);
+  }
+
+  function findNextSuggestion() {
+    var antrian = _queueList.filter(function(j){ return j.Status === 'ANTRIAN'; });
+    if (!antrian.length) return null;
+    var prioWeight = { 'Urgent': 3, 'High': 2, 'Normal': 1 };
+    antrian.sort(function(a, b) {
+      var d = (prioWeight[b.Priority]||1) - (prioWeight[a.Priority]||1);
+      if (d !== 0) return d;
+      return (parseFloat(a.Plan_Seq) || 999) - (parseFloat(b.Plan_Seq) || 999);
+    });
+    return antrian[0].SPK_No;
+  }
+
+  // ============================================================
+  // POPUP: ANTRIAN
+  // ============================================================
+  window.openPopupAntrian = function() {
+    var queue = _queueList.filter(function(j){ return j.Status === 'ANTRIAN'; });
+    var prioWeight = { 'Urgent': 3, 'High': 2, 'Normal': 1 };
+    queue.sort(function(a, b) {
+      var d = (prioWeight[b.Priority]||1) - (prioWeight[a.Priority]||1);
+      if (d !== 0) return d;
+      return (parseFloat(a.Plan_Seq) || 999) - (parseFloat(b.Plan_Seq) || 999);
+    });
+    
+    var tbody = $('popup-antrian-tbody');
+    if (!queue.length) {
+      tbody.innerHTML = '<tr><td colspan=\"8\" style=\"text-align:center; padding:30px; color:var(--text-primary); font-style:italic; font-size:14px;\">Tidak ada antrian</td></tr>';
+    } else {
+      var html = '';
+      queue.forEach(function(j){
+        var prio = j.Priority || 'Normal';
+        html += '<tr>';
+        html += '<td><span class=\"queue-prio prio-' + prio + '\">' + prio + '</span></td>';
+        html += '<td class=\"td-spkno\">' + esc(j.SPK_No) + '</td>';
+        html += '<td>' + esc(j.Item_Code || '—') + '</td>';
+        html += '<td class=\"td-spec\">' + formatSpecSpacing(j.Input_Spec || j.Mat_Spec) + '</td>';
+        html += '<td style=\"text-align:right;\">' + Math.round(j.Qty_Target || 0) + '</td>';
+        html += '<td style=\"text-align:right;\">' + Math.round(j.KG_Target || 0) + '</td>';
+        html += '<td><span class=\"badge-owner\">' + esc(j.Owner_Used || j.Owner || 'FC') + '</span></td>';
+        html += '<td><button class=\"btn btn-pick\" onclick=\"window.pickJob(\'' + j.SPK_No.replace(/'/g, "\\'") + '\')\">PILIH</button></td>';
+        html += '</tr>';
+      });
+      tbody.innerHTML = html;
+    }
+    $('popup-antrian').classList.add('show');
+  };
+
+  window.closePopupAntrian = function() { $('popup-antrian').classList.remove('show'); };
+
+  // ============================================================
+  // POPUP: SELESAI HARI INI
+  // ============================================================
+  window.openPopupSelesai = function() {
+    var grid = $('popup-selesai-grid');
+    if (!_doneToday.length) {
+      grid.innerHTML = '<div style=\"grid-column:1/-1; text-align:center; padding:30px; color:var(--text-primary); font-style:italic; font-size:14px;\">Belum ada SPK selesai hari ini</div>';
+    } else {
+      var html = '';
+      _doneToday.forEach(function(j){
+        var time = String(j.Selesai_DT || '').split(' ')[1] || '—';
+        html += '<div class=\"kanban-card\">';
+        html += '<div class=\"kc-spk\">' + esc(j.SPK_No) + '</div>';
+        html += '<div class=\"kc-item\">' + esc(j.Item_Code || '—') + '</div>';
+        html += '<div class=\"kc-meta\">' + formatSpecSpacing(j.Input_Spec || j.Mat_Spec) + '</div>';
+        html += '<div class=\"kc-qty\">' + Math.round(j.Qty_Actual||0) + ' / ' + Math.round(j.Qty_Target||0) + ' sht</div>';
+        html += '<div class=\"kc-meta\"><span class=\"badge-owner\">' + esc(j.Owner_Used || j.Owner || 'FC') + '</span> · ' + Math.round(j.KG_Actual||0) + ' kg</div>';
+        html += '<div class=\"kc-time\">⏱ ' + esc(time) + ' WIB</div>';
+        html += '</div>';
+      });
+      grid.innerHTML = html;
+    }
+    $('popup-selesai').classList.add('show');
+  };
+
+  window.closePopupSelesai = function() { $('popup-selesai').classList.remove('show'); };
+
+  // Close on overlay click
+  ['finish-modal', 'popup-antrian', 'popup-selesai'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('click', function(e){
+        if (e.target === el) el.classList.remove('show');
+      });
+    }
+  });
+
+  // ============================================================
+  // INIT
+  // ============================================================
+  loadAll();
+})();
+
+// ============================================================
+// GLOBAL HELPERS
+// ============================================================
+window.parseInputSpec = function(spec) {
+  if (!spec || spec === '--') return { spek: '--', size: '--' };
+  var s = spec.trim();
+  var idx = s.search(/\d/);
+  if (idx <= 0) return { spek: '--', size: s };
+  return {
+    spek: s.substring(0, idx).trim() || '--',
+    size: s.substring(idx).trim() || '--'
+  };
+};
+
+window.printLabelChild = function(opts) {
+  var itemCode = opts.itemCode || '--';
+  var cust     = opts.cust     || '--';
+  var spek     = opts.spek     || '--';
+  var size     = opts.size     || '--';
+  var qtyLbr   = (opts.qtyLbr !== undefined && opts.qtyLbr !== null && opts.qtyLbr !== '')
+                  ? (Math.round(opts.qtyLbr) + ' Lbr') : '';
+  var lotProd  = opts.lotProd  || '--';
+  var tglProd  = opts.tglProd  || new Date().toLocaleDateString('id-ID',
+                  { day:'2-digit', month:'short', year:'2-digit' });
+  var html =
+  '<html><head><title>Label - ' + lotProd + '</title><style>' +
+    '@page { size: 70mm 70mm; margin: 0; }' +
+    'body { font-family: Arial, sans-serif; margin: 0; padding: 0; }' +
+    '.label-box { width: 7cm; height: 7cm; padding: 3px 5px; box-sizing: border-box; }' +
+    'table { width: 100%; font-size: 13px; border-collapse: collapse; line-height: 1.3; }' +
+    'td { padding: 1px 2px; vertical-align: middle; border: 0.1px solid #f0f0f0; }' +
+    '.bold { font-weight: bold; }' +
+    'h2 { text-align: center; font-size: 12px; font-weight: bold; margin: 0; font-style: italic; }' +
+    '.fc-logo { color:#1565c0; font-size:24px; font-weight:900; border:2.5px solid #1565c0;' +
+    '           padding:0 6px; display:inline-block; line-height:1.05; }' +
+  '</style></head><body>' +
+  '<div class="label-box"><table>' +
+    '<tr style="height:28%;">' +
+      '<td width="20%" style="text-align:center;"><div class="fc-logo">F/C</div></td>' +
+      '<td width="30%"><h2>FLAMBINDO<br>CORTAMA</h2></td>' +
+      '<td width="50%" colspan="2"><h2 style="font-size:14px; font-style:normal;">LABEL FG</h2></td>' +
+    '</tr>' +
+    '<tr style="height:15%;"><td width="20%" style="font-size:8px;">ITEM CODE</td><td width="35%">: ' + itemCode + '</td><td width="15%" style="font-size:8px;">CUST</td><td width="30%" class="bold" style="font-size:13px;">: ' + cust + '</td></tr>' +
+    '<tr style="height:14%;"><td style="font-size:8px;">SPEK</td><td colspan=\"3\" class=\"bold\" style=\"font-size:12px;\">: ' + spek + '</td></tr>' +
+    '<tr style="height:14%;"><td style="font-size:8px;">SIZE (TxW)</td><td colspan=\"3\" class=\"bold\" style=\"font-size:13px;\">: ' + size + '</td></tr>' +
+    '<tr style="height:17%;"><td style="font-size:8px;">QTY (LBR)</td><td colspan=\"3\" class=\"bold\" style=\"font-size:15px;\">: ' + qtyLbr + '</td></tr>' +
+    '<tr style="height:12%;"><td style="font-size:8px;">TGL PROD</td><td>: ' + tglProd + '</td><td>LOT PROD</td><td class=\"bold\">: ' + lotProd + '</td></tr>' +
+  '</table></div></body></html>';
+  var fr = document.createElement('iframe');
+  fr.style.cssText = 'position:fixed; right:0; bottom:0; width:0; height:0; border:0;';
+  document.body.appendChild(fr);
+  var doc = fr.contentDocument || fr.contentWindow.document;
+  doc.open(); doc.write(html); doc.close();
+  setTimeout(function(){
+    try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch(e) { console.error(e); }
+    setTimeout(function(){ if (fr.parentNode) document.body.removeChild(fr); }, 3000);
+  }, 400);
+};
+
+window.printLabelNG = function(opts) {
+  var spkNo     = opts.spkNo     || '--';
+  var sourceSpk = opts.sourceSpk || '--';
+  var t         = opts.t         || '--';
+  var p         = opts.p         || '--';
+  var l         = opts.l         || '--';
+  var qty       = (opts.qty !== undefined && opts.qty !== null) ? Math.round(opts.qty) : '--';
+  var kg        = (opts.kg  !== undefined && opts.kg  !== null) ? Math.round(opts.kg)  : '--';
+  var owner     = opts.owner     || 'FC';
+  var mc        = opts.mc        || '--';
+  var spec      = opts.spec      || '--';
+  var tglProd   = opts.tglProd   || new Date().toLocaleDateString('id-ID', {day:'2-digit',month:'short',year:'2-digit'});
+  var size = t + ' × ' + p + ' × ' + l + ' mm';
+  var html =
+  '<html><head><title>NG Label - ' + spkNo + '</title><style>' +
+    '@page { size: 70mm 70mm; margin: 0; }' +
+    'body { font-family: Arial, sans-serif; margin: 0; padding: 0; }' +
+    '.label-box { width: 7cm; height: 7cm; padding: 3px 5px; box-sizing: border-box; border: 3px solid #ea580c; }' +
+    'table { width: 100%; font-size: 13px; border-collapse: collapse; line-height: 1.3; }' +
+    'td { padding: 1px 2px; vertical-align: middle; border: 0.1px solid #f0f0f0; }' +
+    '.bold { font-weight: bold; }' +
+    'h2 { text-align: center; font-size: 12px; font-weight: bold; margin: 0; font-style: italic; }' +
+    '.ng-logo { color:#ea580c; font-size:24px; font-weight:900; border:2.5px solid #ea580c; padding:0 6px; display:inline-block; line-height:1.05; }' +
+    '.ng-title { color:#ea580c; font-weight: bold; }' +
+  '</style></head><body>' +
+  '<div class="label-box"><table>' +
+    '<tr style="height:22%;"><td width="20%" style="text-align:center;"><div class="ng-logo">NG</div></td><td width="30%"><h2>FLAMBINDO<br>CORTAMA</h2></td><td width="50%" colspan="2"><h2 class="ng-title" style="font-size:13px; font-style:normal;">LABEL NG<br>GRADE 2</h2></td></tr>' +
+    '<tr style="height:13%;"><td style="font-size:8px;">NG No</td><td colspan="3" class="bold" style="font-size:12px;">: ' + spkNo + '</td></tr>' +
+    '<tr style="height:13%;"><td style="font-size:8px;">SOURCE SPK</td><td colspan="3" style="font-size:11px;">: ' + sourceSpk + '</td></tr>' +
+    '<tr style="height:14%;"><td style="font-size:8px;">SPEK / SIZE</td><td colspan="3" class="bold" style="font-size:11px;">: ' + spec + ' | ' + size + '</td></tr>' +
+    '<tr style="height:14%;"><td style="font-size:8px;">QTY / KG</td><td colspan="3" class="bold" style="font-size:14px;">: ' + qty + ' pcs / ' + kg + ' kg</td></tr>' +
+    '<tr style="height:12%;"><td style="font-size:8px;">OWNER</td><td class="bold">: ' + owner + '</td><td style="font-size:8px;">MC</td><td>: ' + mc + '</td></tr>' +
+    '<tr style="height:12%;"><td style="font-size:8px;">TGL PROD</td><td colspan="3" class="bold">: ' + tglProd + '</td></tr>' +
+  '</table></div></body></html>';
+  var fr = document.createElement('iframe');
+  fr.style.cssText = 'position:fixed; right:0; bottom:0; width:0; height:0; border:0;';
+  document.body.appendChild(fr);
+  var doc = fr.contentDocument || fr.contentWindow.document;
+  doc.open(); doc.write(html); doc.close();
+  setTimeout(function(){
+    try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch(e) { console.error(e); }
+    setTimeout(function(){ if (fr.parentNode) document.body.removeChild(fr); }, 3000);
+  }, 400);
+};
+</script>
+</body>
+</html>

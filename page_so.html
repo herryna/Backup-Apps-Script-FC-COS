@@ -1,0 +1,722 @@
+<style>
+/* ================================================================
+   SO SYSTEM — SPA (Dashboard, View/Edit, Create Multi)
+   Updated: + SO_Period, + Close SO modal
+================================================================ */
+:root {
+  --bg-app: #eef2f5; --bg-panel: #ffffff;
+  --text-main: #202b3c; --text-muted: #6b7785;
+  --border-color: #cbd5e1; --primary-blue: #0265dc;
+  --success-green: #108a4f; --danger-red: #d32f2f;
+  --table-head: #f1f5f9; --warning-orange: #f97316;
+}
+
+body { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 12px; color: var(--text-main); background: var(--bg-app); margin: 0; padding: 16px; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; }
+* { box-sizing: border-box; }
+
+.view-container { display: none; flex-direction: column; gap: 12px; height: 100%; }
+.view-container.active { display: flex; }
+
+.panel { background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 4px; display: flex; flex-direction: column; flex-shrink: 0;}
+.panel-head { font-weight: 700; color: #0f172a; background: #f8fafc; padding: 10px 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+.panel-body { padding: 12px 16px; }
+.row { display: flex; gap: 12px; margin-bottom: 10px; } .row:last-child { margin-bottom: 0; }
+.col { flex: 1; display: flex; flex-direction: column; gap: 4px; } .col-2 { flex: 2; display: flex; flex-direction: column; gap: 4px; }
+label { font-weight: 600; color: var(--text-muted); font-size: 11px; }
+.f-inp { border: 1px solid var(--border-color); border-radius: 3px; padding: 6px 10px; font-size: 12px; height: 28px; width: 100%; transition: 0.1s; box-sizing: border-box;}
+.f-inp:focus { outline: none; border-color: var(--primary-blue); box-shadow: 0 0 0 2px rgba(2,101,220,0.15); }
+.f-inp:disabled { background: #f8fafc; color: #64748b; cursor: not-allowed; font-weight: 600; border-color: transparent;}
+input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+.sd-wrap { position: relative; width: 100%; }
+.sd-list { display: none; position: absolute; top: calc(100% + 2px); left: 0; min-width: 280px; background: #fff; border: 1px solid var(--primary-blue); border-radius: 3px; max-height: 200px; overflow-y: auto; z-index: 999; box-shadow: 0 8px 16px rgba(0,0,0,0.15); }
+.sd-item { padding: 6px 10px; cursor: pointer; border-bottom: 1px solid #f1f5f9; }
+.sd-item:hover, .sd-item.active { background: #e2e8f0; border-left: 3px solid var(--primary-blue); }
+.sd-item .title { font-size: 12px; font-weight: 700; color: var(--primary-blue); margin-bottom: 2px; }
+.sd-item .desc { font-size: 10px; color: var(--text-muted); }
+
+.btn { padding: 0 16px; height: 28px; border-radius: 3px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; display: inline-flex; align-items: center; justify-content: center; transition: 0.1s; gap:6px;}
+.btn-primary { background: var(--primary-blue); color: #fff; } .btn-primary:hover { background: #014da8; }
+.btn-success { background: var(--success-green); color: #fff; } .btn-success:hover { background: #0c6b3d; }
+.btn-outline { background: #fff; color: var(--text-main); border: 1px solid var(--border-color); } .btn-outline:hover { background: #f1f5f9; }
+.btn-danger { background: var(--danger-red); color: #fff; } .btn-danger:hover { background: #a31515; }
+.btn-warn { background: var(--warning-orange); color: #fff; } .btn-warn:hover { background: #c45508; }
+.btn-del { background: #f8d7da; color: var(--danger-red); border: 1px solid #f5c2c7; border-radius: 3px; padding: 2px 6px; cursor: pointer; }
+
+.table-wrap { flex-grow: 1; overflow-y: auto; overflow-x: auto; background: #fff; border: 1px solid var(--border-color); border-radius: 4px; min-height: 280px; }
+table { width: 100%; border-collapse: collapse; text-align: left; table-layout: fixed; }
+th { background: var(--table-head); font-size: 11px; padding: 10px 12px; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 10; color: var(--text-muted); text-transform: uppercase;}
+td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
+.dash-row { cursor: pointer; transition: background 0.1s; }
+.dash-row:hover { background: #e2e8f0 !important; }
+.td-link { color: var(--primary-blue); font-weight: 700; text-decoration: none; }
+.td-link:hover { text-decoration: underline; }
+
+.dash-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px; flex-shrink: 0;}
+.dash-title { font-size: 20px; font-weight: 800; color: #0f172a; margin: 0;}
+.pagination { display: flex; align-items: center; gap: 12px; padding: 12px; background: #fff; border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 4px 4px; justify-content: center; flex-shrink: 0;}
+
+/* STATUS BADGE */
+.st-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
+.st-open    { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+.st-done    { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+.st-closed  { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+.st-over    { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+.st-empty   { background: #fafafa; color: #94a3b8; border: 1px solid #e2e8f0; }
+
+.so-ov { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.8); z-index: 9999; justify-content: center; align-items: center; flex-direction: column; }
+.so-ov.on { display: flex; }
+.spinner { width: 40px; height: 40px; border: 4px solid var(--border-color); border-top-color: var(--primary-blue); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* CLOSE MODAL */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,.55); z-index: 9998; justify-content: center; align-items: center; }
+.modal-overlay.on { display: flex; }
+.modal-box { background: #fff; border-radius: 8px; padding: 0; width: 460px; max-width: 92vw; box-shadow: 0 20px 60px rgba(0,0,0,.3); overflow: hidden; }
+.modal-head { background: #fef2f2; padding: 14px 18px; border-bottom: 1px solid #fecaca; }
+.modal-title { font-size: 14px; font-weight: 700; color: #b91c1c; margin: 0; display: flex; align-items: center; gap: 8px; }
+.modal-body { padding: 18px; }
+.modal-foot { padding: 12px 18px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 8px; }
+.modal-warn { background: #fffbeb; border: 1px solid #fde68a; border-radius: 4px; padding: 10px 12px; font-size: 11px; color: #92400e; margin-bottom: 14px; line-height: 1.5; }
+.fld-grp { margin-bottom: 12px; } .fld-grp:last-child { margin-bottom: 0; }
+.fld-lbl { display: block; font-size: 11px; font-weight: 600; color: #475569; margin-bottom: 4px; }
+</style>
+
+<div id="view-dashboard" class="view-container active">
+  <div class="dash-header">
+    <div>
+      <h1 class="dash-title">Sales Order (SO)</h1>
+      <span style="color:var(--text-muted); font-size:12px;">Daftar item pesanan pelanggan. (Klik baris untuk melihat detail / edit / close)</span>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-outline" onclick="loadDashboard(1)">🔄 Refresh</button>
+      <button class="btn btn-primary" onclick="openCreateMulti()">➕ Input SO Baru</button>
+    </div>
+  </div>
+  
+  <div class="table-wrap" style="border-radius: 4px 4px 0 0; min-height: unset;">
+    <table>
+      <thead>
+        <tr>
+          <th width="8%">Tgl SO</th>
+          <th width="8%">Periode</th>
+          <th width="11%">No. SO</th>
+          <th width="10%">Customer</th>
+          <th width="10%">Item Code</th>
+          <th width="20%">Deskripsi</th>
+          <th width="11%">Qty / KG</th>
+          <th width="8%">Target</th>
+          <th width="8%">Status</th>
+        </tr>
+      </thead>
+      <tbody id="dash-tbody"></tbody>
+    </table>
+  </div>
+  <div class="pagination">
+    <button class="btn btn-outline" id="pg-prev" onclick="loadDashboard(SO_DASH.page - 1)">◀ Prev</button>
+    <span id="pg-info" style="font-weight:700;">Halaman 1 / 1</span>
+    <button class="btn btn-outline" id="pg-next" onclick="loadDashboard(SO_DASH.page + 1)">Next ▶</button>
+  </div>
+</div>
+
+<div id="view-create" class="view-container">
+  <div class="dash-header">
+    <div>
+      <h1 class="dash-title">📥 Input Sales Order Baru</h1>
+      <span style="color:var(--text-muted); font-size:12px;">Multi-item dalam 1 SO. Periode bisa beda dari Tanggal SO (mis. SO tgl 25 untuk periode bulan depan).</span>
+    </div>
+    <button class="btn btn-outline" onclick="showView('view-dashboard')">◀ Kembali</button>
+  </div>
+  
+  <div class="panel">
+    <div class="panel-head">1. Header Sales Order</div>
+    <div class="panel-body">
+      <div class="row">
+        <div class="col-2">
+          <label>Customer *</label>
+          <div class="sd-wrap">
+            <input class="f-inp" id="so-cust-input" placeholder="Ketik nama customer..." oninput="filterCustList()" onfocus="filterCustList()">
+            <div class="sd-list" id="so-cust-list"></div>
+            <input type="hidden" id="so-cust-val">
+          </div>
+        </div>
+        <div class="col"><label>No. SO *</label><input class="f-inp" id="so-no" placeholder="SO-2607-001"></div>
+        <div class="col"><label>Tanggal SO *</label><input type="date" class="f-inp" id="so-date" onchange="autoFillPeriod()"></div>
+        <div class="col"><label>Periode SO * <span style="color:#f97316">(YYYY-MM)</span></label><input type="month" class="f-inp" id="so-period"></div>
+        <div class="col"><label>Target Kirim *</label><input type="date" class="f-inp" id="so-schedule"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="flex-grow: 1; overflow: hidden;">
+    <div class="panel-head">
+      <span>2. Detail Item Pesanan (Multi-Row)</span>
+      <button class="btn btn-primary" onclick="addSORow()">➕ Tambah Baris Item</button>
+    </div>
+    <div class="table-wrap">
+      <table style="table-layout: auto;">
+        <thead>
+          <tr>
+            <th width="3%">#</th>
+            <th width="20%">Item Code *</th>
+            <th width="26%">Deskripsi Material</th>
+            <th width="8%">Qty Order *</th>
+            <th width="9%">Est. KG</th>
+            <th width="8%">Wg/Pce FC</th>
+            <th width="8%">Wg/Pce Cust</th>
+            <th width="14%">Catatan Khusus</th>
+            <th width="4%" style="text-align:center;">Del</th>
+          </tr>
+        </thead>
+        <tbody id="so-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div style="display:flex; justify-content: flex-end; flex-shrink: 0; margin-top: 4px;">
+    <button class="btn btn-success" style="height:36px; padding:0 40px; font-size:14px;" onclick="submitSalesOrder()">📥 Simpan Dokumen SO</button>
+  </div>
+</div>
+
+<div id="view-detail" class="view-container">
+  <div class="dash-header">
+    <div>
+      <h1 class="dash-title">Detail Item SO</h1>
+      <span style="color:var(--text-muted); font-size:12px;" id="vd-sub">Mode Read-Only</span>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-outline" onclick="showView('view-dashboard')">◀ Kembali</button>
+      <button class="btn btn-danger" id="btn-close-so" onclick="openCloseModal()" style="display:none;">🔒 Close SO</button>
+      <button class="btn btn-warn" id="btn-reopen-so" onclick="openReopenModal()" style="display:none;">🔓 Reopen SO</button>
+      <button class="btn btn-primary" id="btn-mode-edit" onclick="enableEditMode()">✏️ Edit Data</button>
+    </div>
+  </div>
+  
+  <div class="panel">
+    <div class="panel-head">
+      <span>Informasi Pesanan</span>
+      <span id="v-status-badge"></span>
+    </div>
+    <div class="panel-body">
+      <div class="row">
+        <div class="col"><label>No. SO</label><input class="f-inp" id="v-so" disabled></div>
+        <div class="col"><label>Periode SO</label><input type="month" class="f-inp editable" id="v-period" disabled></div>
+        <div class="col"><label>Tanggal SO</label><input type="date" class="f-inp" id="v-sodate" disabled></div>
+        <div class="col"><label>Target Kirim</label><input type="date" class="f-inp" id="v-sodlv" disabled></div>
+        <div class="col-2"><label>Customer (Inisial)</label><input class="f-inp" id="v-cust" disabled></div>
+      </div>
+      <div class="row">
+        <div class="col"><label>Item Code</label><input class="f-inp" id="v-item" disabled></div>
+        <div class="col-2"><label>Deskripsi Material</label><input class="f-inp" id="v-desc" disabled></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head" style="background:#fff7ed; border-bottom-color:#fed7aa; color:#c2410c;">Area Bisa Diedit (Klik tombol Edit di atas)</div>
+    <div class="panel-body">
+      <div class="row">
+        <div class="col"><label>Qty Order</label><input type="number" class="f-inp editable" id="v-qty" disabled></div>
+        <div class="col"><label>Berat (Auto-Calc)</label><input type="text" class="f-inp" id="v-kg" disabled style="background:#f8fafc; font-weight:bold;"></div>
+        <div class="col-2"><label>Catatan</label><input type="text" class="f-inp editable" id="v-note" disabled></div>
+      </div>
+      <span style="font-size:10px; color:#6b7785; margin-top:4px; display:block;">* Perubahan Qty dikalkulasi otomatis ke KG oleh sheet. Periode bisa diedit untuk pindah ke bulan lain.</span>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-close-info" style="display:none;">
+    <div class="panel-head" style="background:#f1f5f9; border-bottom-color:#cbd5e1; color:#475569;">🔒 Informasi Close SO</div>
+    <div class="panel-body">
+      <div class="row">
+        <div class="col"><label>Tanggal Close</label><input class="f-inp" id="v-close-date" disabled></div>
+        <div class="col-2"><label>Alasan Close</label><input class="f-inp" id="v-close-reason" disabled></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex; justify-content: flex-end; flex-shrink: 0; margin-top:12px;">
+    <button class="btn btn-success" id="btn-save-edit" style="display:none; height:36px; padding:0 40px; font-size:14px;" onclick="submitEdit()">💾 Simpan Perubahan</button>
+  </div>
+</div>
+
+<!-- CLOSE SO MODAL -->
+<div class="modal-overlay" id="close-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 class="modal-title">🔒 Close Sales Order</h3>
+    </div>
+    <div class="modal-body">
+      <div class="modal-warn">
+        ⚠️ <b>Action ini akan menutup SO secara permanen.</b> SO yang Close-nya tidak akan masuk perhitungan dashboard / achievement bulan berikutnya. Pastikan customer sudah konfirmasi sisa qty tidak dilanjutkan.
+      </div>
+      <div class="fld-grp">
+        <label class="fld-lbl">No. SO yang akan di-close</label>
+        <input class="f-inp" id="cm-so-no" disabled>
+      </div>
+      <div class="fld-grp">
+        <label class="fld-lbl">Alasan Close * (wajib diisi)</label>
+        <input class="f-inp" id="cm-reason" placeholder="Contoh: Sisa 30 KG customer drop">
+      </div>
+      <div class="fld-grp">
+        <label class="fld-lbl">Password PPIC *</label>
+        <input type="password" class="f-inp" id="cm-password" placeholder="Masukkan password">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeCloseModal()">Batal</button>
+      <button class="btn btn-danger" onclick="submitCloseSO()">🔒 Confirm Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- REOPEN SO MODAL -->
+<div class="modal-overlay" id="reopen-modal">
+  <div class="modal-box">
+    <div class="modal-head" style="background:#fffbeb; border-bottom-color:#fde68a;">
+      <h3 class="modal-title" style="color:#92400e;">🔓 Reopen Sales Order</h3>
+    </div>
+    <div class="modal-body">
+      <div class="modal-warn">
+        Action ini akan membuka kembali SO yang sebelumnya di-close. Status akan kembali ke OPEN.
+      </div>
+      <div class="fld-grp">
+        <label class="fld-lbl">No. SO</label>
+        <input class="f-inp" id="rm-so-no" disabled>
+      </div>
+      <div class="fld-grp">
+        <label class="fld-lbl">Password PPIC *</label>
+        <input type="password" class="f-inp" id="rm-password" placeholder="Masukkan password">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeReopenModal()">Batal</button>
+      <button class="btn btn-warn" onclick="submitReopenSO()">🔓 Confirm Reopen</button>
+    </div>
+  </div>
+</div>
+
+<div class="so-ov" id="so-ov"><div class="spinner"></div><h4 style="margin-top:16px; color:#1e293b;" id="so-msg">Memuat...</h4></div>
+
+<script>
+// ==========================================
+// GLOBAL STATE & INITIALIZATION
+// ==========================================
+var SO_FORM_DATA = { items: [], customers: [] };
+var SO_DASH = { data: [], page: 1, total: 1 };
+var SO_EDIT_ROW = null;
+
+function soOv(on, msg) {
+  document.getElementById('so-ov').classList.toggle('on', on);
+  if (msg) document.getElementById('so-msg').textContent = msg;
+}
+
+function showView(viewId) {
+  document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
+  document.getElementById(viewId).classList.add('active');
+}
+
+(function initSO() {
+  soOv(true, "Memuat data SO...");
+  google.script.run.withSuccessHandler(function(jsonStr) {
+    soOv(false);
+    try {
+      var res = JSON.parse(jsonStr);
+      if (res.error) return alert("Init Error: " + res.error);
+      SO_FORM_DATA = res.form;
+      SO_DASH = res.dash;
+      SO_DASH.page = res.dash.currentPage;
+      SO_DASH.total = res.dash.totalPages;
+      renderDashboard();
+    } catch (e) { alert("Parse error: " + e.message); }
+  }).withFailureHandler(function(e) { soOv(false); alert("Server Error: " + e.message); })
+  .getSOInitData();
+})();
+
+// ==========================================
+// DASHBOARD TABLE
+// ==========================================
+function loadDashboard(page) {
+  if (page < 1 || page > SO_DASH.total) return;
+  soOv(true, "Memuat halaman " + page + "...");
+  google.script.run.withSuccessHandler(function(jsonStr) {
+    soOv(false);
+    var res = JSON.parse(jsonStr);
+    if (res.error) return alert("Load Error: " + res.error);
+    SO_DASH.data = res.data;
+    SO_DASH.page = res.currentPage;
+    SO_DASH.total = res.totalPages;
+    renderDashboard();
+  }).withFailureHandler(function(e){ soOv(false); alert("Server Error: " + e.message); })
+  .getSODashboardPage(page);
+}
+
+function renderDashboard() {
+  var tbody = document.getElementById('dash-tbody');
+  document.getElementById('pg-info').textContent = 'Halaman ' + SO_DASH.page + ' / ' + SO_DASH.total;
+  document.getElementById('pg-prev').disabled = (SO_DASH.page === 1);
+  document.getElementById('pg-next').disabled = (SO_DASH.page === SO_DASH.total);
+
+  if(SO_DASH.data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:30px; color:#94a3b8; font-style:italic;">Belum ada riwayat pesanan (SO).</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = SO_DASH.data.map(function(r, i) {
+    return `<tr class="dash-row" onclick="openDetail(${i})" title="Klik untuk detail / edit / close">
+      <td>${r.so_date}</td>
+      <td style="font-family:ui-monospace,monospace; color:#475569; font-weight:600;">${r.so_period || '-'}</td>
+      <td class="td-link">${r.so_no}</td>
+      <td style="color:var(--primary-blue); font-weight:700;">${r.cust}</td>
+      <td>${r.item_code}</td>
+      <td style="color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:250px;" title="${r.desc}">${r.desc}</td>
+      <td><b>${r.qty}</b> <span style="font-weight:normal; color:#94a3b8;">/ ${r.kg} KG</span></td>
+      <td style="color:var(--warning-orange); font-weight:700;">${r.schedule}</td>
+      <td>${renderStatusBadge(r.status)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderStatusBadge(status) {
+  var s = (status || '').toUpperCase();
+  var cls = 'st-empty', txt = s || '—';
+  if (s === 'OPEN')   cls = 'st-open';
+  if (s === 'DONE')   cls = 'st-done';
+  if (s === 'CLOSED') cls = 'st-closed';
+  if (s === 'OVER')   cls = 'st-over';
+  return '<span class="st-badge ' + cls + '">' + txt + '</span>';
+}
+
+// ==========================================
+// VIEW & EDIT SINGLE ITEM
+// ==========================================
+function openDetail(index) {
+  var r = SO_DASH.data[index];
+  SO_EDIT_ROW = r;
+  
+  document.getElementById('v-so').value = r.so_no;
+  document.getElementById('v-period').value = r.so_period || '';
+  document.getElementById('v-sodate').value = r.so_date_raw;
+  document.getElementById('v-sodlv').value = r.schedule_raw;
+  document.getElementById('v-cust').value = r.cust; 
+  document.getElementById('v-item').value = r.item_code;
+  document.getElementById('v-desc').value = r.desc; 
+  document.getElementById('v-qty').value = r.qty;
+  document.getElementById('v-kg').value = r.kg + ' KG (Auto-Calc)';
+  document.getElementById('v-note').value = r.note;
+
+  document.getElementById('v-status-badge').innerHTML = renderStatusBadge(r.status);
+
+  // Close info panel — show only if CLOSED
+  if (r.status === 'CLOSED' || r.close_flag) {
+    document.getElementById('panel-close-info').style.display = '';
+    document.getElementById('v-close-date').value = r.close_date || '';
+    document.getElementById('v-close-reason').value = r.close_reason || '';
+  } else {
+    document.getElementById('panel-close-info').style.display = 'none';
+  }
+
+  // Tombol Close vs Reopen — by status
+  var btnClose = document.getElementById('btn-close-so');
+  var btnReopen = document.getElementById('btn-reopen-so');
+  if (r.status === 'CLOSED') {
+    btnClose.style.display = 'none';
+    btnReopen.style.display = 'inline-flex';
+  } else if (r.status === 'OPEN') {
+    btnClose.style.display = 'inline-flex';
+    btnReopen.style.display = 'none';
+  } else {
+    // DONE / OVER / empty → tidak bisa close
+    btnClose.style.display = 'none';
+    btnReopen.style.display = 'none';
+  }
+
+  document.querySelectorAll('.editable').forEach(el => { el.disabled = true; el.style.borderColor = 'transparent'; el.style.background = '#f8fafc';});
+  document.getElementById('btn-mode-edit').style.display = 'inline-flex';
+  document.getElementById('btn-save-edit').style.display = 'none';
+  document.getElementById('vd-sub').textContent = 'Mode Read-Only';
+
+  showView('view-detail');
+}
+
+function enableEditMode() {
+  document.querySelectorAll('.editable').forEach(el => { el.disabled = false; el.style.borderColor = ''; el.style.background = '#fff';});
+  document.getElementById('btn-mode-edit').style.display = 'none';
+  document.getElementById('btn-save-edit').style.display = 'inline-flex';
+  document.getElementById('vd-sub').innerHTML = '<span style="color:var(--warning-orange); font-weight:700;">✏️ Mode Edit Aktif</span>';
+}
+
+function submitEdit() {
+  var r = SO_EDIT_ROW;
+  var nQty = document.getElementById('v-qty').value;
+  var nNote = document.getElementById('v-note').value;
+  var nPeriod = document.getElementById('v-period').value;
+
+  if(!nQty || nQty <= 0) return alert('Qty tidak boleh kosong!');
+  if(!nPeriod || !/^\d{4}-(0[1-9]|1[0-2])$/.test(nPeriod)) {
+    return alert('Periode SO wajib diisi (format YYYY-MM)!');
+  }
+
+  soOv(true, "Menyimpan perubahan...");
+  google.script.run.withSuccessHandler(function(jsonStr) {
+    soOv(false); 
+    var res = JSON.parse(jsonStr);
+    if(res.error) return alert("Error Update: " + res.error);
+    showView('view-dashboard'); loadDashboard(SO_DASH.page);
+  }).withFailureHandler(function(e){ soOv(false); alert("Error Server: "+e.message); })
+  .updateSingleSO({ so_no: r.so_no, item_code: r.item_code, qty: nQty, note: nNote, so_period: nPeriod });
+}
+
+// ==========================================
+// CLOSE SO MODAL
+// ==========================================
+function openCloseModal() {
+  document.getElementById('cm-so-no').value = SO_EDIT_ROW.so_no;
+  document.getElementById('cm-reason').value = '';
+  document.getElementById('cm-password').value = '';
+  document.getElementById('close-modal').classList.add('on');
+  setTimeout(() => document.getElementById('cm-reason').focus(), 100);
+}
+
+function closeCloseModal() {
+  document.getElementById('close-modal').classList.remove('on');
+}
+
+function submitCloseSO() {
+  var soNo = document.getElementById('cm-so-no').value;
+  var reason = document.getElementById('cm-reason').value.trim();
+  var password = document.getElementById('cm-password').value;
+
+  if (!reason) return alert('Alasan close wajib diisi!');
+  if (!password) return alert('Password wajib diisi!');
+
+  soOv(true, "Memproses Close SO...");
+  google.script.run.withSuccessHandler(function(jsonStr) {
+    soOv(false);
+    var res = JSON.parse(jsonStr);
+    if (res.error) return alert("Error: " + res.error);
+    closeCloseModal();
+    alert('✓ SO ' + res.so_no + ' berhasil di-close.\nItem terdampak: ' + res.affected_items + '\nWaktu: ' + res.close_date);
+    showView('view-dashboard'); loadDashboard(SO_DASH.page);
+  }).withFailureHandler(function(e){ soOv(false); alert("Error Server: " + e.message); })
+  .closeSalesOrder({ so_no: soNo, reason: reason, password: password });
+}
+
+// ==========================================
+// REOPEN SO MODAL
+// ==========================================
+function openReopenModal() {
+  document.getElementById('rm-so-no').value = SO_EDIT_ROW.so_no;
+  document.getElementById('rm-password').value = '';
+  document.getElementById('reopen-modal').classList.add('on');
+  setTimeout(() => document.getElementById('rm-password').focus(), 100);
+}
+
+function closeReopenModal() {
+  document.getElementById('reopen-modal').classList.remove('on');
+}
+
+function submitReopenSO() {
+  var soNo = document.getElementById('rm-so-no').value;
+  var password = document.getElementById('rm-password').value;
+  if (!password) return alert('Password wajib diisi!');
+
+  soOv(true, "Memproses Reopen SO...");
+  google.script.run.withSuccessHandler(function(jsonStr) {
+    soOv(false);
+    var res = JSON.parse(jsonStr);
+    if (res.error) return alert("Error: " + res.error);
+    closeReopenModal();
+    alert('✓ SO ' + res.so_no + ' berhasil di-reopen.\nItem terdampak: ' + res.affected_items);
+    showView('view-dashboard'); loadDashboard(SO_DASH.page);
+  }).withFailureHandler(function(e){ soOv(false); alert("Error Server: " + e.message); })
+  .reopenSalesOrder({ so_no: soNo, password: password });
+}
+
+// ==========================================
+// CREATE MULTI-ITEM LOGIC
+// ==========================================
+function openCreateMulti() {
+  document.getElementById('so-tbody').innerHTML = '';
+  document.getElementById('so-no').value = '';
+  document.getElementById('so-cust-input').value = '';
+  document.getElementById('so-cust-val').value = '';
+  document.getElementById('so-date').value = '';
+  document.getElementById('so-period').value = '';
+  document.getElementById('so-schedule').value = '';
+  addSORow();
+  showView('view-create');
+}
+
+// Auto-fill SO_Period dari SO_DATE (default ke bulan yang sama)
+function autoFillPeriod() {
+  var soDate = document.getElementById('so-date').value;
+  if (!soDate) return;
+  var d = new Date(soDate);
+  if (isNaN(d.getTime())) return;
+  var yyyy = d.getFullYear();
+  var mm = String(d.getMonth() + 1).padStart(2, '0');
+  document.getElementById('so-period').value = yyyy + '-' + mm;
+}
+
+function filterCustList() {
+  var input = document.getElementById('so-cust-input');
+  var listEl = document.getElementById('so-cust-list');
+  var query = input.value.toLowerCase();
+  var filtered = SO_FORM_DATA.customers.filter(function(c) {
+    return c.nama.toLowerCase().includes(query) || (c.initial || '').toLowerCase().includes(query);
+  }).slice(0, 30);
+
+  if (filtered.length === 0) { listEl.style.display = 'none'; return; }
+  listEl.innerHTML = filtered.map(function(c) {
+    return `<div class="sd-item" onclick="selectCust('${c.initial}', '${c.nama.replace(/'/g,"\\'")}')">
+      <div class="title">${c.initial}</div>
+      <div class="desc">${c.nama}</div>
+    </div>`;
+  }).join('');
+  listEl.style.display = 'block';
+}
+
+function selectCust(initial, nama) {
+  document.getElementById('so-cust-input').value = initial + ' — ' + nama;
+  document.getElementById('so-cust-val').value = initial;
+  document.getElementById('so-cust-list').style.display = 'none';
+}
+
+document.addEventListener('click', function(e){
+  if (!e.target.closest('.sd-wrap')) {
+    document.querySelectorAll('.sd-list').forEach(function(l){ l.style.display='none'; });
+  }
+});
+
+function addSORow() {
+  var tbody = document.getElementById('so-tbody');
+  var idx = tbody.children.length;
+  var tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${idx+1}</td>
+    <td>
+      <div class="sd-wrap">
+        <input class="f-inp" placeholder="Cari Item..." oninput="filterItemList(this, ${idx})" onfocus="filterItemList(this, ${idx})">
+        <div class="sd-list"></div>
+        <input type="hidden" class="it-code">
+        <input type="hidden" class="it-desc">
+        <input type="hidden" class="it-spec">
+        <input type="hidden" class="it-t">
+        <input type="hidden" class="it-p">
+        <input type="hidden" class="it-l">
+        <input type="hidden" class="it-uom">
+        <input type="hidden" class="it-wgfc">
+      </div>
+    </td>
+    <td><input class="f-inp it-desc-display" placeholder="(pilih item)" disabled></td>
+    <td><input type="number" class="f-inp it-qty" min="1" oninput="calcRowKg(this)"></td>
+    <td><input class="f-inp it-kg" disabled style="background:#f8fafc; font-weight:700;"></td>
+    <td><input type="number" step="0.001" class="f-inp it-wgfc-display" disabled style="background:#f8fafc;"></td>
+    <td><input type="number" step="0.001" class="f-inp it-wgcust"></td>
+    <td><input class="f-inp it-note" placeholder="Catatan..."></td>
+    <td style="text-align:center;"><button class="btn-del" onclick="this.closest('tr').remove(); renumberRows();">×</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function renumberRows() {
+  Array.from(document.getElementById('so-tbody').children).forEach(function(tr, i){
+    tr.children[0].textContent = i + 1;
+  });
+}
+
+function filterItemList(input, rowIdx) {
+  var wrap = input.closest('.sd-wrap');
+  var listEl = wrap.querySelector('.sd-list');
+  var query = input.value.toLowerCase();
+  var filtered = SO_FORM_DATA.items.filter(function(it) {
+    return (it.item_code || '').toLowerCase().includes(query) || (it.description || '').toLowerCase().includes(query);
+  }).slice(0, 50);
+
+  if (filtered.length === 0) { listEl.style.display = 'none'; return; }
+  listEl.innerHTML = filtered.map(function(it) {
+    var data = encodeURIComponent(JSON.stringify(it));
+    return `<div class="sd-item" onclick="selectItem(this, '${data}')">
+      <div class="title">${it.item_code}</div>
+      <div class="desc">${it.description}</div>
+    </div>`;
+  }).join('');
+  listEl.style.display = 'block';
+}
+
+function selectItem(el, dataStr) {
+  var it = JSON.parse(decodeURIComponent(dataStr));
+  var wrap = el.closest('.sd-wrap');
+  var tr = wrap.closest('tr');
+  wrap.querySelector('input.f-inp').value = it.item_code;
+  wrap.querySelector('.it-code').value = it.item_code;
+  wrap.querySelector('.it-desc').value = it.description;
+  wrap.querySelector('.it-spec').value = it.spec;
+  wrap.querySelector('.it-t').value = it.t;
+  wrap.querySelector('.it-p').value = it.p;
+  wrap.querySelector('.it-l').value = it.l;
+  wrap.querySelector('.it-uom').value = it.uom;
+  wrap.querySelector('.it-wgfc').value = it.wg_fc;
+  tr.querySelector('.it-desc-display').value = it.description;
+  tr.querySelector('.it-wgfc-display').value = it.wg_fc;
+  wrap.querySelector('.sd-list').style.display = 'none';
+  calcRowKg(tr.querySelector('.it-qty'));
+}
+
+function calcRowKg(qtyInput) {
+  var tr = qtyInput.closest('tr');
+  var qty = parseFloat(qtyInput.value) || 0;
+  var wgfc = parseFloat(tr.querySelector('.it-wgfc').value) || 0;
+  tr.querySelector('.it-kg').value = (qty * wgfc).toFixed(2) + ' KG';
+}
+
+function submitSalesOrder() {
+  var head = {
+    cust_nama: document.getElementById('so-cust-val').value,
+    so_no: document.getElementById('so-no').value, 
+    so_date: document.getElementById('so-date').value, 
+    so_period: document.getElementById('so-period').value,
+    schedule_date: document.getElementById('so-schedule').value 
+  };
+  
+  if(!head.cust_nama || !head.so_no || !head.so_date || !head.so_period || !head.schedule_date) {
+    return alert("Pokayoke: Semua kolom Header SO wajib diisi (termasuk Periode SO)!");
+  }
+  if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(head.so_period)) {
+    return alert("Format Periode SO salah. Harus YYYY-MM (contoh: 2026-07).");
+  }
+  
+  var rows = document.getElementById('so-tbody').children;
+  if (rows.length === 0) return alert("Tambahkan minimal 1 item pesanan!");
+  
+  var items = [];
+  for (var i = 0; i < rows.length; i++) {
+    var tr = rows[i];
+    var code = tr.querySelector('.it-code').value;
+    var qty = tr.querySelector('.it-qty').value;
+    if (!code) return alert("Item pada baris " + (i+1) + " belum dipilih!");
+    if (!qty || qty <= 0) return alert("Qty pada baris " + (i+1) + " harus > 0!");
+    items.push({
+      item_code: code,
+      description: tr.querySelector('.it-desc').value,
+      spec: tr.querySelector('.it-spec').value,
+      t: tr.querySelector('.it-t').value, p: tr.querySelector('.it-p').value, l: tr.querySelector('.it-l').value,
+      uom: tr.querySelector('.it-uom').value,
+      wg_fc: tr.querySelector('.it-wgfc').value,
+      wg_cust: tr.querySelector('.it-wgcust').value || tr.querySelector('.it-wgfc').value,
+      so_q: qty,
+      note: tr.querySelector('.it-note').value
+    });
+  }
+  
+  soOv(true, "Menyimpan Sales Order...");
+  google.script.run.withSuccessHandler(function(jsonStr) {
+    soOv(false);
+    var res = JSON.parse(jsonStr);
+    if (res.error) return alert("Save Error: " + res.error);
+    alert("✓ SO " + res.so_no + " berhasil disimpan (" + res.count + " item).");
+    showView('view-dashboard'); loadDashboard(1);
+  }).withFailureHandler(function(e){ soOv(false); alert("Server Error: " + e.message); })
+  .saveSalesOrder({ header: head, items: items });
+}
+</script>

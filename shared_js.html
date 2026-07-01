@@ -1,0 +1,14 @@
+<script>
+function showToast(msg,type){
+  var t=document.getElementById('toast');
+  t.className='toast show '+(type||'success');
+  t.textContent=msg;
+  setTimeout(function(){t.classList.remove('show')},3500);
+}
+function gas(fn,args,onSuccess,onError){
+  google.script.run
+    .withSuccessHandler(function(r){if(onSuccess)onSuccess(r)})
+    .withFailureHandler(function(e){if(onError)onError(e);else showToast('Error: '+e.message,'error')})
+    [fn].apply(null,args||[]);
+}
+</script>

@@ -1,0 +1,843 @@
+<style>
+/* ================================================================
+   PAGE OPNAME — STOCK TAKE / CLOSING PERIOD UI (Split View)
+================================================================ */
+.op-container { padding-bottom: 20px; }
+
+.op-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; }
+.op-head h1 { font-size: 20px; font-weight: 700; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 8px; }
+.op-head .sub { font-size: 12px; color: #6b7785; margin-top: 2px; display: block; }
+
+/* Split layout */
+.op-split { display: grid; grid-template-columns: 340px 1fr; gap: 14px; height: calc(100vh - 160px); min-height: 500px; }
+
+/* LEFT: Period list */
+.op-periods { background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); overflow: hidden; display: flex; flex-direction: column; }
+.op-periods-head { padding: 12px 14px; border-bottom: 1px solid #e0e0e0; background: #f8fafc; display: flex; justify-content: space-between; align-items: center; }
+.op-periods-head h3 { font-size: 13px; font-weight: 700; color: #0f172a; margin: 0; }
+.op-periods-list { flex: 1; overflow-y: auto; padding: 6px; }
+
+.op-period-card { padding: 10px 12px; margin-bottom: 6px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; transition: all 0.15s; background: #fafafa; }
+.op-period-card:hover { background: #f0f9ff; border-color: #93c5fd; }
+.op-period-card.active { background: #dbeafe; border-color: #1565c0; }
+.op-period-card .pc-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.op-period-card .pc-period { font-size: 14px; font-weight: 700; color: #0f172a; font-family: ui-monospace, monospace; }
+.op-period-card .pc-stats { font-size: 11px; color: #6b7785; line-height: 1.5; }
+
+.op-period-empty { padding: 30px 12px; text-align: center; color: #6b7785; font-size: 12px; }
+
+.op-create-new { padding: 10px 14px; border-top: 1px solid #e0e0e0; background: #f8fafc; }
+.op-create-new label { font-size: 10px; font-weight: 600; color: #6b7785; text-transform: uppercase; letter-spacing: 0.4px; display: block; margin-bottom: 4px; }
+.op-create-new .row { display: flex; gap: 6px; }
+.op-create-new select { flex: 1; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; }
+.op-create-new button { padding: 6px 12px; background: #1565c0; color: #fff; border: none !important; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; }
+.op-create-new button:hover { background: #0d47a1; }
+
+/* Status badges */
+.op-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+.op-badge-DRAFT  { background: #fef3c7; color: #92400e; }
+.op-badge-LOCKED { background: #d1fae5; color: #065f46; }
+.op-badge-EMPTY  { background: #f1f5f9; color: #6b7785; }
+
+/* RIGHT: Detail */
+.op-detail { background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); overflow: hidden; display: flex; flex-direction: column; }
+.op-detail-head { padding: 14px; border-bottom: 1px solid #e0e0e0; }
+.op-detail-head .row1 { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.op-detail-title { font-size: 18px; font-weight: 700; color: #0f172a; font-family: ui-monospace, monospace; }
+.op-detail-sub { font-size: 11px; color: #6b7785; margin-top: 2px; }
+.op-detail-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.op-detail-actions button { padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; background: #fff; color: #0f172a; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px; }
+.op-detail-actions button:hover { background: #f0f9ff; border-color: #1565c0; }
+.op-detail-actions button.primary { background: #1565c0; color: #fff; border-color: #1565c0; }
+.op-detail-actions button.primary:hover { background: #0d47a1; }
+.op-detail-actions button.success { background: #16a34a; color: #fff; border-color: #16a34a; }
+.op-detail-actions button.success:hover { background: #15803d; }
+.op-detail-actions button.danger { background: #fff; color: #b91c1c; border-color: #fca5a5; }
+.op-detail-actions button.danger:hover { background: #fee2e2; }
+.op-detail-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Summary cards */
+.op-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; padding: 12px 14px; background: #f8fafc; border-bottom: 1px solid #e0e0e0; }
+.op-sum-card { padding: 8px 10px; background: #fff; border-radius: 4px; border: 1px solid #e2e8f0; }
+.op-sum-label { font-size: 9.5px; font-weight: 600; color: #6b7785; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 2px; }
+.op-sum-value { font-size: 14px; font-weight: 700; color: #0f172a; }
+.op-sum-value.pos { color: #16a34a; }
+.op-sum-value.neg { color: #b91c1c; }
+
+/* Filter bar */
+.op-filter { padding: 10px 14px; border-bottom: 1px solid #e0e0e0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.op-filter input, .op-filter select { padding: 5px 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 11px; height: 28px; }
+.op-filter input:focus, .op-filter select:focus { outline: none; border-color: #1565c0; box-shadow: 0 0 0 2px rgba(21,101,192,0.15); }
+.op-filter .stretch { flex: 1; min-width: 180px; }
+.op-filter label { font-size: 10px; font-weight: 600; color: #6b7785; text-transform: uppercase; letter-spacing: 0.3px; }
+
+/* Table */
+.op-table-wrap { flex: 1; overflow-y: auto; overflow-x: auto; }
+.op-tbl { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.op-tbl thead th { text-align: left; padding: 8px 10px; font-size: 10.5px; font-weight: 600; color: #6b7785; text-transform: uppercase; background: #f8fafc; border-bottom: 1px solid #e0e0e0; position: sticky; top: 0; z-index: 5; letter-spacing: 0.3px; white-space: nowrap; }
+.op-tbl tbody td { padding: 6px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+.op-tbl tbody tr:hover td { background: #fafbfc; }
+.op-tbl tbody tr.locked td { background: #f0fdf4; }
+.op-tbl .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.op-tbl .mono { font-family: ui-monospace, monospace; }
+
+/* Editable inputs in table */
+.op-inp-cell { padding: 2px 6px !important; }
+.op-inp { width: 100%; padding: 4px 6px; border: 1px solid transparent; border-radius: 3px; font-size: 11px; font-family: inherit; background: #fffbeb; text-align: right; font-variant-numeric: tabular-nums; transition: border-color 0.1s; }
+.op-inp:hover { border-color: #cbd5e1; background: #fff; }
+.op-inp:focus { outline: none; border-color: #1565c0; background: #fff; box-shadow: 0 0 0 2px rgba(21,101,192,0.15); }
+.op-inp.saving { background: #fef9c3; border-color: #fbbf24; }
+.op-inp.saved  { background: #d1fae5; border-color: #34d399; }
+.op-inp.error  { background: #fee2e2; border-color: #f87171; }
+.op-inp:disabled { background: #f1f5f9; color: #6b7785; cursor: not-allowed; }
+.op-inp-auto { background: #f1f5f9 !important; color: #475569; cursor: not-allowed; }
+.op-inp-auto:hover { border-color: transparent; background: #f1f5f9 !important; }
+.op-inp-auto:focus { outline: none; border-color: transparent; box-shadow: none; }
+
+.op-note-inp { width: 100%; padding: 4px 6px; border: 1px solid transparent; border-radius: 3px; font-size: 11px; font-family: inherit; background: #fafbfc; transition: border-color 0.1s; }
+.op-note-inp:hover { border-color: #cbd5e1; background: #fff; }
+.op-note-inp:focus { outline: none; border-color: #1565c0; background: #fff; }
+
+/* Loc badges */
+.l-badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+.l-Coil  { background: #dbeafe; color: #1e40af; }
+.l-Sheet { background: #ccfbf1; color: #0f766e; }
+.l-WIP   { background: #ede9fe; color: #6d28d9; }
+.l-FG    { background: #dcfce7; color: #166534; }
+.l-NG    { background: #fee2e2; color: #991b1b; }
+
+/* Selisih indicator */
+.sel-zero { color: #6b7785; }
+.sel-plus { color: #16a34a; font-weight: 600; }
+.sel-minus { color: #b91c1c; font-weight: 600; }
+
+/* Empty / loading */
+.op-empty { text-align: center; padding: 40px 20px; color: #6b7785; font-size: 12px; }
+.op-empty .ti-loader { animation: spin 1s linear infinite; }
+.op-empty.no-period { padding: 80px 20px; }
+.op-empty.no-period h2 { font-size: 18px; color: #0f172a; margin-bottom: 8px; font-weight: 600; }
+.op-empty.no-period p { color: #6b7785; font-size: 13px; line-height: 1.5; max-width: 360px; margin: 0 auto 16px; }
+
+/* Modal */
+.op-modal-bg { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.5); z-index: 9999; align-items: center; justify-content: center; }
+.op-modal-bg.show { display: flex; }
+.op-modal { background: #fff; border-radius: 8px; padding: 20px; max-width: 420px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+.op-modal h3 { font-size: 16px; font-weight: 700; color: #0f172a; margin: 0 0 10px; }
+.op-modal p { font-size: 13px; color: #475569; margin: 0 0 16px; line-height: 1.5; }
+.op-modal .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.op-modal .modal-actions button { padding: 8px 16px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #cbd5e1; background: #fff; color: #0f172a; }
+.op-modal .modal-actions button.primary { background: #1565c0; color: #fff; border-color: #1565c0; }
+.op-modal .modal-actions button.danger  { background: #b91c1c; color: #fff; border-color: #b91c1c; }
+</style>
+
+<div class="op-container">
+
+  <div class="op-head">
+    <div>
+      <h1><i class="ti ti-calendar-check"></i> Opname Bulanan</h1>
+      <span class="sub">Snapshot saldo &amp; opname fisik per periode bulanan untuk closing balance</span>
+    </div>
+    <button class="btn" onclick="op_refresh()"><i class="ti ti-refresh"></i> Refresh</button>
+  </div>
+
+  <div class="op-split">
+
+    <!-- LEFT: Periods List -->
+    <div class="op-periods">
+      <div class="op-periods-head">
+        <h3><i class="ti ti-calendar-month"></i> Daftar Periode</h3>
+        <span style="font-size:10px; color:#6b7785;" id="op-periods-count">—</span>
+      </div>
+
+      <div class="op-periods-list" id="op-periods-list">
+        <div class="op-period-empty"><i class="ti ti-loader" style="animation:spin 1s linear infinite"></i> Loading...</div>
+      </div>
+
+      <div class="op-create-new">
+        <label>+ Buat Periode Baru</label>
+        <div class="row">
+          <select id="op-new-period"></select>
+          <button onclick="op_createNewPeriod()"><i class="ti ti-plus"></i> Auto-fill</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Detail / Active Period -->
+    <div class="op-detail">
+
+      <div id="op-detail-empty" class="op-empty no-period" style="flex:1;">
+        <i class="ti ti-clipboard-list" style="font-size:48px; color:#cbd5e1;"></i>
+        <h2>Pilih Periode</h2>
+        <p>Klik salah satu periode di sebelah kiri untuk lihat detail batch &amp; input opname fisik.<br>Atau buat periode baru dari pojok kiri bawah.</p>
+      </div>
+
+      <div id="op-detail-content" style="display:none; flex:1; flex-direction:column; min-height:0;">
+
+        <div class="op-detail-head">
+          <div class="row1">
+            <div>
+              <div class="op-detail-title" id="op-detail-title">—</div>
+              <div class="op-detail-sub" id="op-detail-sub">—</div>
+            </div>
+            <div class="op-detail-actions">
+              <button id="op-btn-autofill" onclick="op_autoFillCurrent()"><i class="ti ti-refresh"></i> Re-fill</button>
+              <button id="op-btn-export" onclick="op_exportCsv()"><i class="ti ti-download"></i> Excel</button>
+              <button id="op-btn-reset" class="danger" onclick="op_resetDraft()"><i class="ti ti-trash"></i> Reset</button>
+              <button id="op-btn-lock" class="success" onclick="op_lockPeriod()"><i class="ti ti-lock"></i> Lock &amp; Finalize</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="op-summary" id="op-summary"></div>
+
+        <div class="op-filter">
+          <label>Lokasi:</label>
+          <select id="op-flt-loc" onchange="op_applyFilter()">
+            <option value="">Semua</option>
+            <option value="Coil">Coil</option>
+            <option value="Sheet">Sheet</option>
+            <option value="WIP">WIP</option>
+            <option value="FG">FG</option>
+            <option value="NG">NG</option>
+          </select>
+          <label>Owner:</label>
+          <select id="op-flt-owner" onchange="op_applyFilter()">
+            <option value="">Semua</option>
+            <option value="FC">FC</option>
+            <option value="DRC">DRC</option>
+          </select>
+          <label>Show:</label>
+          <select id="op-flt-status" onchange="op_applyFilter()">
+            <option value="">Semua</option>
+            <option value="pending">Belum diisi</option>
+            <option value="filled">Sudah diisi</option>
+            <option value="selisih">Ada selisih</option>
+          </select>
+          <input type="text" class="stretch" id="op-flt-search" placeholder="Cari batch/item..." oninput="op_applyFilter()">
+        </div>
+
+        <div class="op-table-wrap">
+          <table class="op-tbl" id="op-tbl">
+            <thead>
+              <tr>
+                <th style="width:5%;">No</th>
+                <th style="width:12%;">Batch ID</th>
+                <th style="width:6%;">Loc</th>
+                <th style="width:9%;">Item</th>
+                <th style="width:14%;">Description</th>
+                <th style="width:5%;">Owner</th>
+                <th style="width:7%; text-align:right;">Sys Qty</th>
+                <th style="width:7%; text-align:right;">Sys KG</th>
+                <th style="width:8%; text-align:right;">Fisik Qty</th>
+                <th style="width:8%; text-align:right;">Fisik KG</th>
+                <th style="width:6%; text-align:right;">Selisih Q</th>
+                <th style="width:6%; text-align:right;">Selisih KG</th>
+                <th style="width:9%;">Note</th>
+              </tr>
+            </thead>
+            <tbody id="op-tbody">
+              <tr><td colspan="13" class="op-empty"><i class="ti ti-loader"></i> Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal konfirmasi (reusable) -->
+<div class="op-modal-bg" id="op-modal-bg" onclick="if(event.target===this) op_closeModal()">
+  <div class="op-modal">
+    <h3 id="op-modal-title">Konfirmasi</h3>
+    <p id="op-modal-body">—</p>
+    <div class="modal-actions">
+      <button onclick="op_closeModal()">Batal</button>
+      <button class="primary" id="op-modal-ok" onclick="op_modalConfirm()">Ya, lanjutkan</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+
+  // ======================================================================
+  // STATE
+  // ======================================================================
+  var OP_STATE = {
+    periods: [],
+    activePeriod: null,
+    detail: null,
+    saveTimers: {},
+    modalAction: null
+  };
+
+  function fmtNum(n) {
+    var v = Number(n);
+    if (!isFinite(v)) return '-';
+    return v.toLocaleString('id-ID', { maximumFractionDigits: 2 });
+  }
+  function fmtDateShort(iso) {
+    if (!iso) return '-';
+    var d = new Date(iso);
+    if (isNaN(d)) return '-';
+    var mth = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
+    return String(d.getDate()).padStart(2,'0') + ' ' + mth[d.getMonth()] + ' ' + String(d.getFullYear()).slice(-2);
+  }
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+  }
+
+  // ======================================================================
+  // INIT — load periode + populate dropdown
+  // ======================================================================
+  function op_init() {
+    gas('getOpnameInitData', [], function(res) {
+      if (!res || !res.success) {
+        document.getElementById('op-periods-list').innerHTML =
+          '<div class="op-period-empty" style="color:#A32D2D;">Error: ' + escapeHtml(res && res.message ? res.message : 'unknown') + '</div>';
+        return;
+      }
+      OP_STATE.periods = res.periods || [];
+      op_renderPeriodsList();
+      op_populateNewPeriodDropdown(res.default_list || [], res.current_period);
+
+      // Auto-select latest period kalau ada
+      if (OP_STATE.periods.length > 0) {
+        op_selectPeriod(OP_STATE.periods[0].period);
+      }
+    });
+  }
+
+  function op_renderPeriodsList() {
+    var list = document.getElementById('op-periods-list');
+    document.getElementById('op-periods-count').textContent = OP_STATE.periods.length + ' periode';
+
+    if (OP_STATE.periods.length === 0) {
+      list.innerHTML = '<div class="op-period-empty">Belum ada periode opname.<br>Buat periode baru di bawah ↓</div>';
+      return;
+    }
+
+    var html = '';
+    for (var i = 0; i < OP_STATE.periods.length; i++) {
+      var p = OP_STATE.periods[i];
+      var isActive = (p.period === OP_STATE.activePeriod);
+      var selisihIcon = '';
+      if (p.total_selisih_qty !== 0 || p.total_selisih_kg !== 0) {
+        selisihIcon = '<i class="ti ti-alert-triangle" style="color:#f59e0b; font-size:13px;"></i>';
+      }
+      html += '<div class="op-period-card' + (isActive ? ' active' : '') + '" onclick="op_selectPeriod(\'' + p.period + '\')">';
+      html += '  <div class="pc-row">';
+      html += '    <div class="pc-period">' + escapeHtml(p.period) + '</div>';
+      html += '    <span class="op-badge op-badge-' + p.status + '">' + p.status + '</span>';
+      html += '  </div>';
+      html += '  <div class="pc-stats">';
+      html += '    <div>' + p.total_batch + ' batch · ' + p.batch_with_fisik + ' diisi · ' + p.batch_pending + ' pending</div>';
+      html += '    <div>Sys: ' + fmtNum(p.total_qty_system) + ' pcs / ' + fmtNum(p.total_kg_system) + ' kg</div>';
+      if (p.total_selisih_qty !== 0 || p.total_selisih_kg !== 0) {
+        html += '    <div>' + selisihIcon + ' Selisih: ' + (p.total_selisih_qty > 0 ? '+' : '') + fmtNum(p.total_selisih_qty) + ' / ' + (p.total_selisih_kg > 0 ? '+' : '') + fmtNum(p.total_selisih_kg) + ' kg</div>';
+      }
+      if (p.locked_dt_iso) {
+        html += '    <div style="margin-top:3px; color:#16a34a;"><i class="ti ti-lock" style="font-size:10px;"></i> ' + fmtDateShort(p.locked_dt_iso) + (p.locked_by ? ' · ' + escapeHtml(p.locked_by) : '') + '</div>';
+      }
+      html += '  </div>';
+      html += '</div>';
+    }
+    list.innerHTML = html;
+  }
+
+  function op_populateNewPeriodDropdown(defaultList, currentPeriod) {
+    var existingPeriods = {};
+    OP_STATE.periods.forEach(function(p) { existingPeriods[p.period] = true; });
+
+    var sel = document.getElementById('op-new-period');
+    var html = '';
+    for (var i = 0; i < defaultList.length; i++) {
+      var p = defaultList[i];
+      var label = p + (p === currentPeriod ? ' (bulan ini)' : '') + (existingPeriods[p] ? ' — exists' : '');
+      var selected = (p === currentPeriod) ? ' selected' : '';
+      html += '<option value="' + p + '"' + selected + '>' + label + '</option>';
+    }
+    sel.innerHTML = html;
+  }
+
+  // ======================================================================
+  // SELECT PERIOD
+  // ======================================================================
+  window.op_selectPeriod = function(period) {
+    OP_STATE.activePeriod = period;
+
+    // Highlight di list kiri
+    document.querySelectorAll('.op-period-card').forEach(function(c) {
+      c.classList.remove('active');
+    });
+    var cards = document.querySelectorAll('.op-period-card');
+    for (var i = 0; i < cards.length; i++) {
+      if (cards[i].textContent.indexOf(period) > -1) {
+        cards[i].classList.add('active'); break;
+      }
+    }
+
+    document.getElementById('op-detail-empty').style.display = 'none';
+    document.getElementById('op-detail-content').style.display = 'flex';
+    document.getElementById('op-detail-title').textContent = period;
+    document.getElementById('op-detail-sub').innerHTML = '<i class="ti ti-loader" style="animation:spin 1s linear infinite"></i> Memuat detail...';
+    document.getElementById('op-summary').innerHTML = '';
+    document.getElementById('op-tbody').innerHTML = '<tr><td colspan="13" class="op-empty"><i class="ti ti-loader"></i> Loading batch...</td></tr>';
+
+    gas('getOpnameDetail', [period], function(res) {
+      if (!res || !res.success) {
+        document.getElementById('op-detail-sub').innerHTML = '<span style="color:#A32D2D;">Error: ' + escapeHtml(res && res.message ? res.message : 'unknown') + '</span>';
+        return;
+      }
+      OP_STATE.detail = res;
+      op_renderDetail(res);
+    });
+  };
+
+  function op_renderDetail(detail) {
+    // Header
+    var statusLabel = detail.status === 'LOCKED'
+      ? '<span class="op-badge op-badge-LOCKED">LOCKED</span>'
+      : '<span class="op-badge op-badge-DRAFT">DRAFT</span>';
+    document.getElementById('op-detail-sub').innerHTML =
+      statusLabel + ' · cutoff: ' + fmtDateShort(detail.cutoff_iso) + ' 23:59 · ' + detail.summary.total_batch + ' batch';
+
+    // Tombol enable/disable based on status
+    var locked = detail.is_locked;
+    document.getElementById('op-btn-autofill').disabled = locked;
+    document.getElementById('op-btn-reset').disabled = locked;
+    document.getElementById('op-btn-lock').disabled = locked || detail.summary.total_batch === 0;
+    if (locked) {
+      document.getElementById('op-btn-lock').innerHTML = '<i class="ti ti-lock"></i> Locked';
+    } else {
+      document.getElementById('op-btn-lock').innerHTML = '<i class="ti ti-lock"></i> Lock &amp; Finalize';
+    }
+
+    // Summary cards
+    var s = detail.summary;
+    var diffClsQ = s.total_selisih_qty > 0 ? 'pos' : (s.total_selisih_qty < 0 ? 'neg' : '');
+    var diffClsK = s.total_selisih_kg  > 0 ? 'pos' : (s.total_selisih_kg  < 0 ? 'neg' : '');
+    document.getElementById('op-summary').innerHTML =
+      '<div class="op-sum-card"><div class="op-sum-label">Total Batch</div><div class="op-sum-value">' + s.total_batch + '</div></div>' +
+      '<div class="op-sum-card"><div class="op-sum-label">Sudah Diisi</div><div class="op-sum-value">' + s.batch_with_fisik + '</div></div>' +
+      '<div class="op-sum-card"><div class="op-sum-label">Pending</div><div class="op-sum-value">' + s.batch_pending + '</div></div>' +
+      '<div class="op-sum-card"><div class="op-sum-label">Sys Qty</div><div class="op-sum-value">' + fmtNum(s.total_qty_system) + '</div></div>' +
+      '<div class="op-sum-card"><div class="op-sum-label">Sys KG</div><div class="op-sum-value">' + fmtNum(s.total_kg_system) + '</div></div>' +
+      '<div class="op-sum-card"><div class="op-sum-label">Fisik Qty</div><div class="op-sum-value">' + fmtNum(s.total_qty_fisik) + '</div></div>' +
+      '<div class="op-sum-card"><div class="op-sum-label">Selisih Q</div><div class="op-sum-value ' + diffClsQ + '">' + (s.total_selisih_qty > 0 ? '+' : '') + fmtNum(s.total_selisih_qty) + '</div></div>' +
+      '<div class="op-sum-card"><div class="op-sum-label">Selisih KG</div><div class="op-sum-value ' + diffClsK + '">' + (s.total_selisih_kg > 0 ? '+' : '') + fmtNum(s.total_selisih_kg) + '</div></div>';
+
+    // Tabel rows
+    op_renderTable(detail.rows, locked);
+  }
+
+  function op_renderTable(rows, locked) {
+    if (!rows || rows.length === 0) {
+      document.getElementById('op-tbody').innerHTML = '<tr><td colspan="13" class="op-empty">Belum ada batch. Klik <strong>Re-fill</strong> untuk auto-fill dari Stok_*</td></tr>';
+      return;
+    }
+    var html = '';
+    var disabledAttr = locked ? ' disabled' : '';
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      var rowCls = locked ? ' class="locked"' : '';
+
+      // Selisih display class
+      function selClass(v) { return v > 0 ? 'sel-plus' : (v < 0 ? 'sel-minus' : 'sel-zero'); }
+      var selQ = r.qty_fisik > 0 || r.kg_fisik > 0 ? r.qty_selisih : null;
+      var selK = r.qty_fisik > 0 || r.kg_fisik > 0 ? r.kg_selisih  : null;
+
+      html += '<tr' + rowCls + ' data-batch="' + escapeHtml(r.batch_id) + '" data-loc="' + escapeHtml(r.loc) + '" data-owner="' + escapeHtml(r.owner) + '" data-fisik="' + (r.qty_fisik > 0 || r.kg_fisik > 0 ? 1 : 0) + '" data-selisih="' + (r.qty_selisih !== 0 || r.kg_selisih !== 0 ? 1 : 0) + '">';
+      html += '<td class="num">' + (i + 1) + '</td>';
+      html += '<td class="mono">' + escapeHtml(r.batch_id) + '</td>';
+      html += '<td><span class="l-badge l-' + escapeHtml(r.loc) + '">' + escapeHtml(r.loc) + '</span></td>';
+      html += '<td>' + escapeHtml(r.item_code || '-') + '</td>';
+      html += '<td style="font-size:11px;color:#475569;">' + escapeHtml(r.description || '-') + '</td>';
+      html += '<td>' + escapeHtml(r.owner || '-') + '</td>';
+      html += '<td class="num">' + fmtNum(r.qty_system) + '</td>';
+      html += '<td class="num">' + fmtNum(r.kg_system) + '</td>';
+      html += '<td class="op-inp-cell"><input type="number" step="any" class="op-inp" value="' + (r.qty_fisik || '') + '" placeholder="—"' + disabledAttr + ' oninput="op_onInput(this, \'' + escapeHtml(r.batch_id) + '\', \'qty\')"></td>';
+      html += '<td class="op-inp-cell"><input type="number" class="op-inp op-inp-auto" value="' + (Math.round(r.kg_fisik) || '') + '" placeholder="—" readonly tabindex="-1" title="Auto-calc: Fisik Qty × Wg/Pce FC"></td>';
+      html += '<td class="num ' + (selQ !== null ? selClass(selQ) : 'sel-zero') + '" id="op-selq-' + escapeHtml(r.batch_id) + '">' + (selQ !== null ? ((selQ > 0 ? '+' : '') + fmtNum(selQ)) : '—') + '</td>';
+      html += '<td class="num ' + (selK !== null ? selClass(selK) : 'sel-zero') + '" id="op-selk-' + escapeHtml(r.batch_id) + '">' + (selK !== null ? ((selK > 0 ? '+' : '') + fmtNum(selK)) : '—') + '</td>';
+      html += '<td class="op-inp-cell"><input type="text" class="op-note-inp" value="' + escapeHtml(r.note || '') + '" placeholder="catatan..."' + disabledAttr + ' oninput="op_onInput(this, \'' + escapeHtml(r.batch_id) + '\', \'note\')"></td>';
+      html += '</tr>';
+    }
+    document.getElementById('op-tbody').innerHTML = html;
+  }
+
+  // ======================================================================
+  // FILTER (client-side)
+  // ======================================================================
+  window.op_applyFilter = function() {
+    var fLoc    = document.getElementById('op-flt-loc').value;
+    var fOwner  = document.getElementById('op-flt-owner').value;
+    var fStatus = document.getElementById('op-flt-status').value;
+    var fSearch = document.getElementById('op-flt-search').value.toLowerCase().trim();
+
+    var rows = document.querySelectorAll('#op-tbody tr');
+    var shown = 0;
+    for (var i = 0; i < rows.length; i++) {
+      var tr = rows[i];
+      if (!tr.getAttribute('data-batch')) continue;
+
+      var match = true;
+      if (fLoc && tr.getAttribute('data-loc') !== fLoc) match = false;
+      if (fOwner && tr.getAttribute('data-owner') !== fOwner) match = false;
+      if (fStatus === 'pending' && tr.getAttribute('data-fisik') === '1') match = false;
+      if (fStatus === 'filled'  && tr.getAttribute('data-fisik') === '0') match = false;
+      if (fStatus === 'selisih' && tr.getAttribute('data-selisih') === '0') match = false;
+      if (fSearch && tr.textContent.toLowerCase().indexOf(fSearch) === -1) match = false;
+
+      tr.style.display = match ? '' : 'none';
+      if (match) shown++;
+    }
+  };
+
+  // ======================================================================
+  // INPUT HANDLER — debounce save ke backend
+  // ======================================================================
+  window.op_onInput = function(inputEl, batchId, field) {
+    if (!OP_STATE.activePeriod) return;
+    var row = OP_STATE.detail.rows.filter(function(r) { return r.batch_id === batchId; })[0];
+    if (!row) return;
+
+    // Update local state
+    if (field === 'qty') {
+      row.qty_fisik = parseFloat(inputEl.value) || 0;
+      // AUTO-CALC: Fisik KG = round(Qty × Wg/Pce FC). Coil Wg=1 → 1:1. Selalu integer (seragam dgn stok system).
+      var wgPce = parseFloat(row.wg_pce_fc) || 1;
+      row.kg_fisik = Math.round(row.qty_fisik * wgPce);
+      // Update KG input visual juga
+      var tr = inputEl.closest('tr');
+      if (tr) {
+        var kgInput = tr.querySelectorAll('.op-inp')[1];
+        if (kgInput) kgInput.value = row.kg_fisik || '';
+      }
+    }
+    else if (field === 'kg')   row.kg_fisik  = parseFloat(inputEl.value) || 0;
+    else if (field === 'note') row.note      = inputEl.value;
+
+    // Auto-calc selisih (real-time UI)
+    var selQ = row.qty_fisik - row.qty_system;
+    var selK = row.kg_fisik  - row.kg_system;
+    row.qty_selisih = selQ;
+    row.kg_selisih  = selK;
+
+    var hasFisik = (row.qty_fisik > 0 || row.kg_fisik > 0);
+    var selQEl = document.getElementById('op-selq-' + batchId);
+    var selKEl = document.getElementById('op-selk-' + batchId);
+    if (selQEl) {
+      selQEl.textContent = hasFisik ? ((selQ > 0 ? '+' : '') + fmtNum(selQ)) : '—';
+      selQEl.className = 'num ' + (hasFisik ? (selQ > 0 ? 'sel-plus' : (selQ < 0 ? 'sel-minus' : 'sel-zero')) : 'sel-zero');
+    }
+    if (selKEl) {
+      selKEl.textContent = hasFisik ? ((selK > 0 ? '+' : '') + fmtNum(selK)) : '—';
+      selKEl.className = 'num ' + (hasFisik ? (selK > 0 ? 'sel-plus' : (selK < 0 ? 'sel-minus' : 'sel-zero')) : 'sel-zero');
+    }
+
+    // Update row data attrs for filter
+    var tr = inputEl.closest('tr');
+    if (tr) {
+      tr.setAttribute('data-fisik', hasFisik ? '1' : '0');
+      tr.setAttribute('data-selisih', (selQ !== 0 || selK !== 0) ? '1' : '0');
+    }
+
+    // Debounce save
+    if (OP_STATE.saveTimers[batchId]) clearTimeout(OP_STATE.saveTimers[batchId]);
+    inputEl.classList.remove('saved', 'error');
+    inputEl.classList.add('saving');
+
+    OP_STATE.saveTimers[batchId] = setTimeout(function() {
+      var payload = {
+        period: OP_STATE.activePeriod,
+        batch_id: batchId,
+        qty_fisik: row.qty_fisik,
+        kg_fisik:  row.kg_fisik,
+        note: row.note
+      };
+      gas('saveOpnameAdjustment', [payload], function(res) {
+        inputEl.classList.remove('saving');
+        if (res && res.success) {
+          inputEl.classList.add('saved');
+          setTimeout(function(){ inputEl.classList.remove('saved'); }, 1000);
+          op_recalcSummary();
+        } else {
+          inputEl.classList.add('error');
+          showToast('Gagal save: ' + (res && res.message ? res.message : 'unknown'), 'error');
+        }
+      });
+    }, 600);
+  };
+
+  function op_recalcSummary() {
+    if (!OP_STATE.detail) return;
+    var rows = OP_STATE.detail.rows;
+    var qS = 0, kS = 0, qF = 0, kF = 0, sq = 0, sk = 0, withFisik = 0;
+    for (var i = 0; i < rows.length; i++) {
+      qS += rows[i].qty_system;  kS += rows[i].kg_system;
+      qF += rows[i].qty_fisik;   kF += rows[i].kg_fisik;
+      sq += rows[i].qty_selisih; sk += rows[i].kg_selisih;
+      if (rows[i].qty_fisik > 0 || rows[i].kg_fisik > 0) withFisik++;
+    }
+    OP_STATE.detail.summary = {
+      total_batch: rows.length,
+      batch_with_fisik: withFisik,
+      batch_pending: rows.length - withFisik,
+      total_qty_system: qS, total_kg_system: kS,
+      total_qty_fisik: qF, total_kg_fisik: kF,
+      total_selisih_qty: sq, total_selisih_kg: sk
+    };
+    // Re-render summary block only
+    var s = OP_STATE.detail.summary;
+    var diffClsQ = s.total_selisih_qty > 0 ? 'pos' : (s.total_selisih_qty < 0 ? 'neg' : '');
+    var diffClsK = s.total_selisih_kg  > 0 ? 'pos' : (s.total_selisih_kg  < 0 ? 'neg' : '');
+    document.getElementById('op-summary').innerHTML =
+      '<div class="op-sum-card"><div class="op-sum-label">Total Batch</div><div class="op-sum-value">' + s.total_batch + '</div></div>' +
+      '<div class="op-sum-card"><div class="op-sum-label">Sudah Diisi</div><div class="op-sum-value">' + s.batch_with_fisik + '</div></div>' +
+      '<div class="op-sum-card"><div class="op-sum-label">Pending</div><div class="op-sum-value">' + s.batch_pending + '</div></div>' +
+      '<div class="op-sum-card"><div class="op-sum-label">Sys Qty</div><div class="op-sum-value">' + fmtNum(s.total_qty_system) + '</div></div>' +
+      '<div class="op-sum-card"><div class="op-sum-label">Sys KG</div><div class="op-sum-value">' + fmtNum(s.total_kg_system) + '</div></div>' +
+      '<div class="op-sum-card"><div class="op-sum-label">Fisik Qty</div><div class="op-sum-value">' + fmtNum(s.total_qty_fisik) + '</div></div>' +
+      '<div class="op-sum-card"><div class="op-sum-label">Selisih Q</div><div class="op-sum-value ' + diffClsQ + '">' + (s.total_selisih_qty > 0 ? '+' : '') + fmtNum(s.total_selisih_qty) + '</div></div>' +
+      '<div class="op-sum-card"><div class="op-sum-label">Selisih KG</div><div class="op-sum-value ' + diffClsK + '">' + (s.total_selisih_kg > 0 ? '+' : '') + fmtNum(s.total_selisih_kg) + '</div></div>';
+  }
+
+  // ======================================================================
+  // ACTION: CREATE NEW PERIOD (Auto-fill)
+  // ======================================================================
+  window.op_createNewPeriod = function() {
+    var period = document.getElementById('op-new-period').value;
+    if (!period) return showToast('Pilih periode dulu', 'error');
+
+    // Check existing
+    var existing = OP_STATE.periods.filter(function(p) { return p.period === period; })[0];
+    if (existing) {
+      if (existing.status === 'LOCKED') {
+        return showToast('Periode ' + period + ' sudah LOCKED. Tidak bisa di-auto-fill ulang.', 'error');
+      }
+      op_showModal('Re-fill Periode ' + period,
+        'Periode ini sudah ada dengan status DRAFT (' + existing.total_batch + ' batch). Auto-fill akan menghapus data DRAFT yang ada dan generate ulang dari saldo Stok_* saat ini. Adjustment fisik yang sudah lo input bakal HILANG.\n\nLanjutkan?',
+        function() { op_doAutoFill(period); });
+    } else {
+      op_doAutoFill(period);
+    }
+  };
+
+  function op_doAutoFill(period) {
+    showToast('Menjalankan auto-fill ' + period + '... (~5-15 detik)', 'success');
+    gas('autoFillOpname', [period, ''], function(res) {
+      if (!res || !res.success) {
+        showToast('Gagal: ' + (res && res.message ? res.message : 'unknown'), 'error');
+        return;
+      }
+      showToast('Auto-fill OK: ' + res.count + ' batch untuk ' + period, 'success');
+      op_refresh(period);
+    });
+  }
+
+  window.op_autoFillCurrent = function() {
+    if (!OP_STATE.activePeriod) return;
+    op_showModal('Re-fill Periode ' + OP_STATE.activePeriod,
+      'Auto-fill akan menghapus data DRAFT yang ada di periode ini dan generate ulang dari saldo Stok_* saat ini. Adjustment fisik yang sudah lo input bakal HILANG.\n\nLanjutkan?',
+      function() { op_doAutoFill(OP_STATE.activePeriod); });
+  };
+
+  // ======================================================================
+  // ACTION: RESET DRAFT
+  // ======================================================================
+  window.op_resetDraft = function() {
+    if (!OP_STATE.activePeriod) return;
+    op_showModal('Reset Periode ' + OP_STATE.activePeriod,
+      'Semua data periode ' + OP_STATE.activePeriod + ' akan DIHAPUS PERMANEN. Setelah ini lo harus auto-fill ulang.\n\nLanjutkan?',
+      function() {
+        gas('deleteOpnameDraft', [OP_STATE.activePeriod], function(res) {
+          if (!res || !res.success) {
+            showToast('Gagal: ' + (res && res.message ? res.message : 'unknown'), 'error');
+            return;
+          }
+          showToast('Periode di-reset (' + res.deleted + ' rows dihapus)', 'success');
+          OP_STATE.activePeriod = null;
+          document.getElementById('op-detail-content').style.display = 'none';
+          document.getElementById('op-detail-empty').style.display = 'flex';
+          op_refresh();
+        });
+      }, 'danger');
+  };
+
+  // ======================================================================
+  // ACTION: LOCK PERIOD
+  // ======================================================================
+  window.op_lockPeriod = function() {
+    if (!OP_STATE.activePeriod || !OP_STATE.detail) return;
+    var s = OP_STATE.detail.summary;
+    var pendingNote = s.batch_pending > 0
+      ? ('\n\n⚠️ Masih ada ' + s.batch_pending + ' batch yang BELUM diisi fisik. Kalau dikunci sekarang, batch-batch itu akan dianggap selisih FULL terhadap sistem.')
+      : '';
+    op_showModal('Lock Periode ' + OP_STATE.activePeriod,
+      'Setelah di-lock, periode ini TIDAK BISA DIEDIT LAGI. Adjustment selesai, data masuk closing balance untuk laporan Finance.' + pendingNote + '\n\nLanjutkan?',
+      function() {
+        var by = prompt('Nama lo (untuk audit trail):', '') || 'admin';
+        gas('lockOpnamePeriod', [OP_STATE.activePeriod, by], function(res) {
+          if (!res || !res.success) {
+            showToast('Gagal: ' + (res && res.message ? res.message : 'unknown'), 'error');
+            return;
+          }
+          showToast('Periode ' + OP_STATE.activePeriod + ' LOCKED (' + res.locked_count + ' rows)', 'success');
+          op_refresh(OP_STATE.activePeriod);
+        });
+      }, 'success');
+  };
+
+  // ======================================================================
+  // ======================================================================
+  // ACTION: EXPORT EXCEL (xlsx multi-sheet via SheetJS)
+  // ======================================================================
+  var _opExportRunning = false;
+
+  function _opLoadSheetJS(cb) {
+    if (window.XLSX) { cb(); return; }
+    var btn = document.getElementById('op-btn-export');
+    var ORIG = '<i class="ti ti-download"></i> Excel';
+    btn.innerHTML = '<i class="ti ti-loader"></i> Loading…';
+    btn.disabled = true;
+    var s = document.createElement('script');
+    s.src = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+    s.onload = function() { btn.innerHTML = ORIG; btn.disabled = false; cb(); };
+    s.onerror = function() { btn.innerHTML = ORIG; btn.disabled = false; showToast('Gagal load library SheetJS', 'error'); };
+    document.head.appendChild(s);
+  }
+
+  window.op_exportCsv = function() {
+    if (_opExportRunning) return;
+    if (!OP_STATE.detail || !OP_STATE.detail.rows) return showToast('Tidak ada data', 'error');
+    _opExportRunning = true;
+    _opLoadSheetJS(function() {
+      try { _opDoExport(); }
+      catch (e) { showToast('Export gagal: ' + (e.message || e), 'error'); }
+      _opExportRunning = false;
+    });
+  };
+
+  function _opDoExport() {
+    var det = OP_STATE.detail;
+    var rows = det.rows || [];
+    var sum = det.summary || {};
+    var wb = XLSX.utils.book_new();
+    var num = function(v) { return parseFloat(v) || 0; };
+
+    // === Sheet 1: Cover / Summary ===
+    var cover = [];
+    cover.push(['LAPORAN OPNAME / STOCK TAKE']);
+    cover.push(['Periode: ' + det.period]);
+    cover.push(['Cutoff: ' + fmtDateShort(det.cutoff_iso) + ' 23:59']);
+    cover.push(['Status: ' + det.status]);
+    cover.push(['Generated: ' + new Date().toLocaleString('id-ID')]);
+    cover.push([]);
+    cover.push(['SUMMARY']);
+    cover.push(['Total Batch', num(sum.total_batch)]);
+    cover.push(['Batch dengan Fisik', num(sum.batch_with_fisik)]);
+    cover.push(['Batch Pending', num(sum.batch_pending)]);
+    cover.push([]);
+    cover.push(['', 'QTY', 'KG']);
+    cover.push(['System',  num(sum.total_qty_system), num(sum.total_kg_system)]);
+    cover.push(['Fisik',   num(sum.total_qty_fisik),  num(sum.total_kg_fisik)]);
+    cover.push(['Selisih', num(sum.total_selisih_qty), num(sum.total_selisih_kg)]);
+    cover.push([]);
+    cover.push(['BREAKDOWN PER LOKASI']);
+    var byLoc = {};
+    rows.forEach(function(r){
+      var lc = r.loc || '-';
+      if (!byLoc[lc]) byLoc[lc] = { batch:0, qS:0, kS:0, qF:0, kF:0, sQ:0, sK:0 };
+      byLoc[lc].batch++;
+      byLoc[lc].qS += num(r.qty_system); byLoc[lc].kS += num(r.kg_system);
+      byLoc[lc].qF += num(r.qty_fisik);  byLoc[lc].kF += num(r.kg_fisik);
+      byLoc[lc].sQ += num(r.qty_selisih); byLoc[lc].sK += num(r.kg_selisih);
+    });
+    cover.push(['Loc','Total Batch','Sys Qty','Sys KG','Fisik Qty','Fisik KG','Selisih Qty','Selisih KG']);
+    Object.keys(byLoc).sort().forEach(function(lc){
+      var g = byLoc[lc];
+      cover.push([lc, g.batch, g.qS, g.kS, g.qF, g.kF, g.sQ, g.sK]);
+    });
+    var wsCover = XLSX.utils.aoa_to_sheet(cover);
+    wsCover['!cols'] = [{wch:20},{wch:14},{wch:12},{wch:12},{wch:12},{wch:12},{wch:14},{wch:14}];
+    XLSX.utils.book_append_sheet(wb, wsCover, 'Summary');
+
+    // === Sheet 2: Detail (per batch) ===
+    var detail = [];
+    detail.push(['Period','Batch_ID','Loc','Item_Code','Spec','T','P','L','Owner',
+                 'Qty_System','KG_System','Qty_Fisik','KG_Fisik','Qty_Selisih','KG_Selisih',
+                 'Status','Note']);
+    rows.forEach(function(r) {
+      detail.push([
+        r.period, r.batch_id, r.loc, r.item_code,
+        r.spec || '', num(r.t), num(r.p), num(r.l), r.owner,
+        num(r.qty_system), num(r.kg_system),
+        num(r.qty_fisik),  num(r.kg_fisik),
+        num(r.qty_selisih), num(r.kg_selisih),
+        r.status, r.note || ''
+      ]);
+    });
+    var wsDetail = XLSX.utils.aoa_to_sheet(detail);
+    wsDetail['!cols'] = [
+      {wch:8},{wch:14},{wch:8},{wch:16},{wch:18},{wch:6},{wch:8},{wch:8},{wch:6},
+      {wch:11},{wch:11},{wch:11},{wch:11},{wch:11},{wch:11},{wch:10},{wch:24}
+    ];
+    XLSX.utils.book_append_sheet(wb, wsDetail, 'Detail');
+
+    XLSX.writeFile(wb, 'Opname_' + det.period + '.xlsx');
+    showToast('Excel diunduh', 'success');
+  }
+
+  // ======================================================================
+  // REFRESH
+  // ======================================================================
+  window.op_refresh = function(autoSelectPeriod) {
+    gas('getOpnameInitData', [], function(res) {
+      if (!res || !res.success) return;
+      OP_STATE.periods = res.periods || [];
+      op_renderPeriodsList();
+      op_populateNewPeriodDropdown(res.default_list || [], res.current_period);
+
+      if (autoSelectPeriod) {
+        op_selectPeriod(autoSelectPeriod);
+      } else if (OP_STATE.activePeriod) {
+        // Re-load current
+        op_selectPeriod(OP_STATE.activePeriod);
+      }
+    });
+  };
+
+  // ======================================================================
+  // MODAL
+  // ======================================================================
+  function op_showModal(title, body, onConfirm, btnClass) {
+    document.getElementById('op-modal-title').textContent = title;
+    document.getElementById('op-modal-body').textContent = body;
+    var okBtn = document.getElementById('op-modal-ok');
+    okBtn.className = btnClass || 'primary';
+    OP_STATE.modalAction = onConfirm;
+    document.getElementById('op-modal-bg').classList.add('show');
+  }
+  window.op_closeModal = function() {
+    document.getElementById('op-modal-bg').classList.remove('show');
+    OP_STATE.modalAction = null;
+  };
+  window.op_modalConfirm = function() {
+    var fn = OP_STATE.modalAction;
+    op_closeModal();
+    if (typeof fn === 'function') fn();
+  };
+
+  // ======================================================================
+  // BOOT
+  // ======================================================================
+  op_init();
+
+})();
+</script>

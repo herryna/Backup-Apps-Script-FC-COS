@@ -1,0 +1,591 @@
+<div class="dash-wrap">
+
+  <div class="dash-header">
+    <div>
+      <h2 class="dash-h2"><i class="ti ti-layout-dashboard"></i> Executive Dashboard</h2>
+      <div class="dash-period-label" id="dash-period-label">—</div>
+    </div>
+    <div class="dash-controls">
+      <select id="dash-period-select" class="dash-period-select">
+        <option>Loading...</option>
+      </select>
+      <button class="dash-refresh" id="dash-refresh" title="Refresh">
+        <i class="ti ti-refresh"></i>
+      </button>
+    </div>
+  </div>
+
+  <div id="dash-content">
+    <!-- Kosongkan, biar JavaScript yang langsung ngisi Skeleton -->
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<style>
+.dash-wrap { padding: 4px 4px 24px; }
+.dash-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 18px; gap: 16px; flex-wrap: wrap; }
+.dash-h2 { margin: 0 0 4px; font-size: 20px; font-weight: 700; color: #222; display: flex; align-items: center; gap: 8px; }
+.dash-h2 i { color: #1565c0; font-size: 22px; }
+.dash-period-label { font-size: 12px; color: #888; }
+.dash-controls { display: flex; align-items: center; gap: 10px; }
+.dash-period-select { height: 36px; padding: 0 12px; font-size: 13px; font-weight: 600; color: #222; background: #fff; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; min-width: 160px; }
+.dash-period-select:focus { outline: none; border-color: #1565c0; box-shadow: 0 0 0 3px rgba(21,101,192,.1); }
+.dash-refresh { width: 36px; height: 36px; border-radius: 8px; border: 1px solid #ddd; background: #fff; cursor: pointer; color: #666; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+.dash-refresh:hover { background: #f5f5f3; color: #1565c0; }
+.dash-loading { padding: 60px; text-align: center; color: #888; font-size: 13px; }
+.dash-loading i { font-size: 28px; display: block; margin-bottom: 10px; }
+
+.dash-section { margin-bottom: 24px; }
+.dash-section-title { font-size: 13px; font-weight: 700; color: #444; text-transform: uppercase; letter-spacing: .5px; margin: 0 0 12px; padding-left: 8px; border-left: 3px solid #1565c0; display: flex; align-items: center; justify-content: space-between; }
+.dash-section-title small { font-size: 10px; font-weight: 500; color: #888; text-transform: none; letter-spacing: 0; }
+
+.dash-kpis { display: grid; gap: 10px; margin-bottom: 12px; }
+.dash-kpis-4 { grid-template-columns: repeat(4, 1fr); }
+.dash-kpis-3 { grid-template-columns: repeat(3, 1fr); }
+.dash-kpi { background: #fff; border: 1px solid #ececec; border-radius: 10px; padding: 14px 16px; }
+.dash-kpi-label { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+.dash-kpi-value { font-size: 24px; font-weight: 700; color: #222; line-height: 1.1; display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.dash-kpi-value .dash-unit { font-size: 13px; font-weight: 500; color: #888; }
+.dash-kpi-sub { margin-top: 6px; font-size: 11px; color: #888; display: flex; align-items: center; gap: 6px; }
+.dash-delta-up   { color: #1D9E75; font-weight: 600; }
+.dash-delta-down { color: #A32D2D; font-weight: 600; }
+.dash-delta-flat { color: #888; }
+
+.dash-charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+.dash-chart-box { background: #fff; border: 1px solid #ececec; border-radius: 10px; padding: 14px 16px; }
+.dash-chart-title { font-size: 12px; font-weight: 700; color: #444; margin: 0 0 4px; display: flex; align-items: center; justify-content: space-between; }
+.dash-chart-sub { font-size: 10px; color: #888; margin-bottom: 10px; }
+.dash-chart-canvas-wrap { position: relative; height: 240px; }
+
+.dash-alert { background: #fff8e6; border: 1px solid #f1d480; border-radius: 8px; padding: 12px 14px; margin-top: 10px; }
+.dash-alert-title { font-size: 12px; font-weight: 700; color: #8a6a00; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.dash-alert-row { display: grid; grid-template-columns: 110px 1fr 90px 90px; gap: 8px; padding: 6px 0; font-size: 11px; color: #444; border-top: 1px dashed #eadc9b; }
+.dash-alert-row:first-of-type { border-top: 0; }
+.dash-alert-row .so-no { font-family: ui-monospace, monospace; font-weight: 600; color: #222; }
+.dash-alert-row .overdue { color: #A32D2D; font-weight: 600; text-align: right; }
+
+.dash-bars { background: #fff; border: 1px solid #ececec; border-radius: 10px; padding: 12px 14px; }
+.dash-bar-row { display: grid; grid-template-columns: 90px 1fr 110px 50px; gap: 10px; align-items: center; padding: 6px 0; font-size: 12px; }
+.dash-bar-row .mc-label { font-weight: 600; color: #444; font-family: ui-monospace, monospace; }
+.dash-bar-track { height: 8px; background: #eee; border-radius: 4px; overflow: hidden; }
+.dash-bar-fill { height: 100%; background: #1D9E75; border-radius: 4px; transition: width .3s; }
+.dash-bar-fill.warn { background: #e8a23c; }
+.dash-bar-fill.crit { background: #A32D2D; }
+.dash-bar-actual { text-align: right; color: #555; }
+.dash-bar-pct { text-align: right; font-weight: 600; color: #222; }
+
+.dash-aging-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #ececec; border-radius: 10px; overflow: hidden; font-size: 12px; }
+.dash-aging-table th { background: #fafafa; padding: 10px 12px; text-align: right; font-weight: 600; color: #666; font-size: 11px; text-transform: uppercase; letter-spacing: .3px; border-bottom: 1px solid #ececec; }
+.dash-aging-table th:first-child { text-align: left; }
+.dash-aging-table td { padding: 10px 12px; text-align: right; color: #333; border-bottom: 1px solid #f3f3f3; }
+.dash-aging-table td:first-child { text-align: left; font-weight: 600; color: #222; }
+.dash-aging-table tr:last-child td { border-bottom: 0; }
+.dash-aging-table .cell-warn { color: #b56a00; font-weight: 600; }
+.dash-aging-table .cell-dead { color: #A32D2D; font-weight: 700; }
+.dash-aging-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding: 10px 14px; background: #fff5f5; border: 1px solid #f4d3d3; border-radius: 8px; font-size: 12px; color: #A32D2D; font-weight: 600; }
+
+.spin-anim { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+
+@media (max-width: 1100px) {
+  .dash-charts-row { grid-template-columns: 1fr; }
+  .dash-kpis-4 { grid-template-columns: repeat(2, 1fr); }
+  .dash-kpis-3 { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ================= SKELETON LOADER ================= */
+@keyframes skel-shimmer {
+  0% { background-position: -468px 0; }
+  100% { background-position: 468px 0; }
+}
+.skel-base {
+  background: #f6f7f8;
+  background: linear-gradient(to right, #eeeeee 8%, #dddddd 18%, #eeeeee 33%);
+  background-size: 800px 104px;
+  animation: skel-shimmer 1.5s linear infinite forwards;
+  border-radius: 6px;
+}
+.skel-wrap { padding: 10px 0; }
+.skel-welcome { text-align: center; font-size: 18px; font-weight: 700; color: #1565c0; margin-bottom: 24px; letter-spacing: 1px; }
+.skel-section-title { height: 16px; width: 250px; margin-bottom: 16px; border-radius: 4px; }
+.skel-kpi-grid { display: grid; gap: 10px; margin-bottom: 24px; }
+.skel-kpi-grid-4 { grid-template-columns: repeat(4, 1fr); }
+.skel-kpi-grid-3 { grid-template-columns: repeat(3, 1fr); }
+.skel-kpi { height: 90px; background-color: #fff; border: 1px solid #ececec; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.skel-kpi-t { height: 12px; width: 50%; }
+.skel-kpi-v { height: 24px; width: 80%; }
+.skel-chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+.skel-chart { height: 240px; background-color: #fff; border: 1px solid #ececec; border-radius: 10px; }
+.skel-table { height: 200px; background-color: #fff; border: 1px solid #ececec; border-radius: 10px; margin-bottom: 24px;}
+
+@media (max-width: 1100px) {
+  .skel-chart-grid { grid-template-columns: 1fr; }
+  .skel-kpi-grid-4, .skel-kpi-grid-3 { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+
+<script>
+(function(){
+  // ============ STATE ============
+  var currentPeriod = null;
+  var isLoading = false;
+  var chartAch = null, chartBack = null;
+  
+  // Cek memori browser: kalau belum ada data 'fc_cos_welcomed', berarti ini load pertama kali
+  var isFirstLoad = !sessionStorage.getItem('fc_cos_welcomed');
+
+  // ============ FORMATTERS ============
+  // ... (biarkan fungsi tonStr dll di sini) ...
+
+  // (LEWATI BAGIAN INIT PERIOD)
+
+  // ============ LOADER ============
+  function loadDash(period) {
+    if (isLoading) return;
+    isLoading = true;
+    currentPeriod = period;
+    var content = document.getElementById('dash-content');
+    
+    // Tampilkan Skeleton HTML
+    content.innerHTML = getSkeletonHTML(isFirstLoad);
+    
+    // Simpan ke memori browser biar dia ingat lu udah disapa
+    if (isFirstLoad) {
+      sessionStorage.setItem('fc_cos_welcomed', 'true');
+      isFirstLoad = false;
+    }
+
+    // Destroy existing charts to prevent canvas reuse error
+    if (chartAch)  { try { chartAch.destroy();  } catch(e){} chartAch  = null; }
+    if (chartBack) { try { chartBack.destroy(); } catch(e){} chartBack = null; }
+
+    google.script.run
+      .withSuccessHandler(function(data) {
+        isLoading = false;
+        renderDash(data);
+      })
+      .withFailureHandler(function(err) {
+        isLoading = false;
+        content.innerHTML = '<div class="dash-loading" style="color:#A32D2D">' +
+          '<i class="ti ti-alert-triangle"></i> Error: ' + (err.message || err) + '</div>';
+      })
+      .getDashboardData(period);
+  }
+
+  // ============ FORMATTERS ============
+  function tonStr(kg) {
+    var t = (kg || 0) / 1000;
+    return t.toFixed(2);
+  }
+  function fmtTon(kg) {
+    return tonStr(kg) + ' <span class="dash-unit">T</span>';
+  }
+  function fmtTonPlain(kg) { return tonStr(kg) + ' T'; }
+
+  function fmtDelta(pct) {
+    if (pct === 0) return '<span class="dash-delta-flat">— 0%</span>';
+    if (pct > 0)   return '<span class="dash-delta-up">▲ ' + pct + '%</span>';
+    return '<span class="dash-delta-down">▼ ' + Math.abs(pct) + '%</span>';
+  }
+
+  function pctBarClass(pct) {
+    if (pct >= 90) return '';
+    if (pct >= 70) return 'warn';
+    return 'crit';
+  }
+
+  // Color logic for achievement bars (dinamis by week)
+  function achColor(pctActual, expectedTarget) {
+    // expectedTarget = 25, 50, 75, atau 100
+    // Logic: <32% of target → red, <64% → orange, else blue
+    var ratio = pctActual / expectedTarget;
+    if (ratio < 0.32) return '#A32D2D';   // red
+    if (ratio < 0.64) return '#e8a23c';   // orange
+    return '#1565c0';                       // blue
+  }
+
+  // ============ PERIOD DROPDOWN INIT ============
+  function initPeriodOptions() {
+    google.script.run
+      .withSuccessHandler(function(list) {
+        var sel = document.getElementById('dash-period-select');
+        sel.innerHTML = list.map(function(p, i) {
+          return '<option value="' + p + '"' + (i === 0 ? ' selected' : '') + '>' + p + '</option>';
+        }).join('');
+        currentPeriod = list[0];
+        loadDash(currentPeriod);
+      })
+      .withFailureHandler(function(err) {
+        document.getElementById('dash-content').innerHTML =
+          '<div class="dash-loading" style="color:#A32D2D">Error load period: ' + (err.message || err) + '</div>';
+      })
+      .getDashboardPeriodOptions();
+  }
+
+  // ============ LOADER ============
+  function loadDash(period) {
+    if (isLoading) return;
+    isLoading = true;
+    currentPeriod = period;
+    var content = document.getElementById('dash-content');
+    
+    content.innerHTML = getSkeletonHTML(isFirstLoad);
+    isFirstLoad = false;
+
+    // Destroy existing charts to prevent canvas reuse error
+    if (chartAch)  { try { chartAch.destroy();  } catch(e){} chartAch  = null; }
+    if (chartBack) { try { chartBack.destroy(); } catch(e){} chartBack = null; }
+
+    google.script.run
+      .withSuccessHandler(function(data) {
+        isLoading = false;
+        renderDash(data);
+      })
+      .withFailureHandler(function(err) {
+        isLoading = false;
+        content.innerHTML = '<div class="dash-loading" style="color:#A32D2D">' +
+          '<i class="ti ti-alert-triangle"></i> Error: ' + (err.message || err) + '</div>';
+      })
+      .getDashboardData(period);
+  }
+
+  // ============ RENDERER MAIN ============
+  function renderDash(data) {
+    if (!data) {
+      document.getElementById('dash-content').innerHTML = '<div class="dash-loading">Data tidak tersedia</div>';
+      return;
+    }
+    var weekInfo = data.period.week_num ? ' · Minggu ' + data.period.week_num + ' (target ' + data.period.expected_pct + '%)' : '';
+    document.getElementById('dash-period-label').textContent =
+      'Periode: ' + data.period.label + weekInfo;
+
+    var html =
+      renderPpic(data.ppic, data.charts, data.period) +
+      renderProduction(data.production, data.period) +
+      renderWarehouse(data.warehouse);
+    document.getElementById('dash-content').innerHTML = html;
+
+    // Render charts setelah DOM ready
+    setTimeout(function(){
+      renderAchievementChart(data.charts.achievement, data.period.expected_pct);
+      renderBacklogChart(data.charts.backlog);
+    }, 50);
+  }
+
+  // ============ SECTION: PPIC ============
+  function renderPpic(p, charts, period) {
+    if (!p) return '';
+    var behind = p.behind_schedule || [];
+    var behindHtml = '';
+    if (behind.length > 0) {
+      behindHtml = '<div class="dash-alert">' +
+        '<div class="dash-alert-title"><i class="ti ti-alert-triangle"></i> Behind Schedule (' + behind.length + ' SO)</div>';
+      behind.slice(0, 8).forEach(function(b) {
+        behindHtml += '<div class="dash-alert-row">' +
+          '<span class="so-no">' + b.so_no + '</span>' +
+          '<span>' + (b.cust || '-') + ' · sched ' + b.sched + '</span>' +
+          '<span>' + fmtTonPlain(b.sisa_kg) + '</span>' +
+          '<span class="overdue">' + b.overdue_days + ' hr</span>' +
+        '</div>';
+      });
+      if (behind.length > 8) {
+        behindHtml += '<div style="text-align:center;font-size:11px;color:#8a6a00;padding-top:6px">+ ' + (behind.length - 8) + ' SO lainnya</div>';
+      }
+      behindHtml += '</div>';
+    }
+
+    var weekNote = period.week_num ? 'Minggu ke-' + period.week_num + ' · Target ' + period.expected_pct + '%' : 'Periode lalu (full target 100%)';
+
+    return '<div class="dash-section">' +
+      '<div class="dash-section-title">PPIC — Order Fulfillment <small>satuan Ton</small></div>' +
+      '<div class="dash-kpis dash-kpis-4">' +
+        kpiCard('Total SO',  fmtTon(p.total_so.kg), fmtDelta(p.total_so.delta_pct) + ' vs prev period') +
+        kpiCard('Delivered', fmtTon(p.delivered.kg), 'terkirim periode ini') +
+        kpiCard('Backlog',   fmtTon(p.backlog.kg), 'belum kirim (active OPEN)') +
+        kpiCard('Completion', p.completion.pct + '<span class="dash-unit">%</span>', weekNote) +
+      '</div>' +
+      '<div class="dash-charts-row">' +
+        '<div class="dash-chart-box">' +
+          '<div class="dash-chart-title">Delivery Achievement by Customer (%)</div>' +
+          '<div class="dash-chart-sub">Sort: critical kiri · Target ' + period.expected_pct + '%</div>' +
+          '<div class="dash-chart-canvas-wrap"><canvas id="chart-achievement"></canvas></div>' +
+        '</div>' +
+        '<div class="dash-chart-box">' +
+          '<div class="dash-chart-title">Outstanding Backlog (Tonage)</div>' +
+          '<div class="dash-chart-sub">🔵 atas = on-time · 🔴 bawah = overdue · sort: paling overdue kiri</div>' +
+          '<div class="dash-chart-canvas-wrap"><canvas id="chart-backlog"></canvas></div>' +
+        '</div>' +
+      '</div>' +
+      behindHtml +
+    '</div>';
+  }
+
+  // ============ CHART: ACHIEVEMENT ============
+  function renderAchievementChart(rows, expectedTarget) {
+    var canvas = document.getElementById('chart-achievement');
+    if (!canvas || !rows) return;
+    if (rows.length === 0) {
+      canvas.parentElement.innerHTML = '<div style="text-align:center;color:#aaa;font-size:12px;padding:40px">Belum ada data SO aktif</div>';
+      return;
+    }
+    
+    var labels   = rows.map(function(r){ return r.cust; });
+    var actuals  = rows.map(function(r){ return Math.min(r.pct, 100); });  // cap visual
+    var rawPcts  = rows.map(function(r){ return r.pct; });
+    var soKgs    = rows.map(function(r){ return r.so_kg; });
+    var delvKgs  = rows.map(function(r){ return r.delv_kg; });
+    var colors   = rawPcts.map(function(p){ return achColor(p, expectedTarget); });
+    var targetLine = labels.map(function(){ return 100; });
+
+    chartAch = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Achievement %',
+            data: actuals,
+            backgroundColor: colors,
+            borderColor: colors,
+            borderWidth: 0,
+            borderRadius: 4,
+            barPercentage: 0.7,
+            categoryPercentage: 0.85,
+            order: 2
+          },
+          {
+            label: 'Target 100%',
+            data: targetLine,
+            type: 'line',
+            borderColor: '#999',
+            borderWidth: 1.5,
+            borderDash: [4, 4],
+            pointRadius: 0,
+            fill: false,
+            order: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: function(items){ return items[0].label; },
+              label: function(ctx){
+                if (ctx.dataset.label === 'Target 100%') return 'Target: 100%';
+                var i = ctx.dataIndex;
+                return [
+                  'Achievement: ' + rawPcts[i].toFixed(1) + '%' + (rawPcts[i] > 100 ? ' (capped 100%)' : ''),
+                  'SO Total: ' + (soKgs[i]/1000).toFixed(2) + ' T',
+                  'Delivered: ' + (delvKgs[i]/1000).toFixed(2) + ' T'
+                ];
+              }
+            }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+          y: { beginAtZero: true, max: 110, ticks: { callback: function(v){ return v + '%'; }, font: { size: 10 } }, grid: { color: '#f0f0f0' } }
+        }
+      }
+    });
+  }
+
+  // ============ CHART: BACKLOG ============
+  function renderBacklogChart(rows) {
+    var canvas = document.getElementById('chart-backlog');
+    if (!canvas || !rows) return;
+    if (rows.length === 0) {
+      canvas.parentElement.innerHTML = '<div style="text-align:center;color:#aaa;font-size:12px;padding:40px">Tidak ada backlog</div>';
+      return;
+    }
+
+    var labels    = rows.map(function(r){ return r.cust; });
+    var ontime    = rows.map(function(r){ return r.ontime_ton; });    // positif
+    var overdue   = rows.map(function(r){ return -r.overdue_ton; });  // negatif untuk turun ke bawah
+
+    chartBack = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'On-Time (T)',
+            data: ontime,
+            backgroundColor: '#1565c0',
+            stack: 'backlog',
+            borderRadius: 4,
+            barPercentage: 0.7,
+            categoryPercentage: 0.85
+          },
+          {
+            label: 'Overdue (T)',
+            data: overdue,
+            backgroundColor: '#A32D2D',
+            stack: 'backlog',
+            borderRadius: 4,
+            barPercentage: 0.7,
+            categoryPercentage: 0.85
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top', labels: { font: { size: 11 }, boxWidth: 10 } },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                var v = Math.abs(ctx.parsed.y);
+                return ctx.dataset.label + ': ' + v.toFixed(2) + ' T';
+              }
+            }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+          y: {
+            ticks: { callback: function(v){ return Math.abs(v) + ' T'; }, font: { size: 10 } },
+            grid: { color: function(ctx){ return ctx.tick.value === 0 ? '#888' : '#f0f0f0'; },
+                    lineWidth: function(ctx){ return ctx.tick.value === 0 ? 1.5 : 1; } }
+          }
+        }
+      }
+    });
+  }
+
+  // ============ SECTION: PRODUCTION ============
+  function renderProduction(pr, period) {
+    if (!pr) return '';
+    var pva = pr.plan_vs_actual || {};
+    var ng  = pr.ng || {};
+    var perMc = pr.per_machine || [];
+
+    var barsHtml = '<div class="dash-bars">';
+    if (perMc.length === 0) {
+      barsHtml += '<div style="text-align:center;color:#aaa;font-size:12px;padding:14px">Belum ada SPK selesai di period ini</div>';
+    } else {
+      perMc.forEach(function(m) {
+        var cls = pctBarClass(m.pct);
+        var width = Math.min(100, m.pct);
+        barsHtml += '<div class="dash-bar-row">' +
+          '<span class="mc-label">' + m.mc + '</span>' +
+          '<div class="dash-bar-track"><div class="dash-bar-fill ' + cls + '" style="width:' + width + '%"></div></div>' +
+          '<span class="dash-bar-actual">' + fmtTonPlain(m.actual) + ' / ' + fmtTonPlain(m.target) + '</span>' +
+          '<span class="dash-bar-pct">' + m.pct + '%</span>' +
+        '</div>';
+      });
+    }
+    barsHtml += '</div>';
+
+    return '<div class="dash-section">' +
+      '<div class="dash-section-title">Production — Output Performance <small>satuan Ton</small></div>' +
+      '<div class="dash-kpis dash-kpis-3">' +
+        kpiCard('Output Periode', fmtTon(pr.output.kg), 'Total produksi') +
+        kpiCard('Plan vs Actual', pva.pct + '<span class="dash-unit">%</span>', fmtTonPlain(pva.actual_kg) + ' / ' + fmtTonPlain(pva.plan_kg)) +
+        kpiCard('NG Rate', ng.pct + '<span class="dash-unit">%</span>', fmtTonPlain(ng.kg) + ' NG') +
+      '</div>' +
+      '<div style="font-size:11px;font-weight:600;color:#666;margin:14px 0 8px;text-transform:uppercase;letter-spacing:.3px">Output per Mesin</div>' +
+      barsHtml +
+    '</div>';
+  }
+
+  // ============ SECTION: WAREHOUSE ============
+  function renderWarehouse(w) {
+    if (!w) return '';
+    var rows = [
+      { label: 'Stok Coil',           data: w.coil     },
+      { label: 'Stok Sheet',          data: w.sheet    },
+      { label: 'Stok WIP',            data: w.wip      },
+      { label: 'Stok FG Customer',    data: w.fg_cust  },
+      { label: 'Stok FG RM Stamping', data: w.fg_stamp }
+    ];
+
+    var totalDead = 0;
+    var tableRows = rows.map(function(r) {
+      var d = r.data || { total_kg:0, batches:0, aging:{lt30:0,m30_60:0,m60_90:0,gt90:0,dead:0} };
+      var a = d.aging || {};
+      totalDead += (a.dead || 0);
+      return '<tr>' +
+        '<td>' + r.label + ' <small style="color:#aaa;font-weight:400">(' + d.batches + ' batch)</small></td>' +
+        '<td>' + fmtTonPlain(d.total_kg) + '</td>' +
+        '<td>' + fmtTonPlain(a.lt30) + '</td>' +
+        '<td>' + fmtTonPlain(a.m30_60) + '</td>' +
+        '<td class="' + (a.m60_90 > 0 ? 'cell-warn' : '') + '">' + fmtTonPlain(a.m60_90) + '</td>' +
+        '<td class="' + (a.gt90 > 0 ? 'cell-warn' : '') + '">' + fmtTonPlain(a.gt90) + '</td>' +
+        '<td class="' + (a.dead > 0 ? 'cell-dead' : '') + '">' + fmtTonPlain(a.dead) + '</td>' +
+      '</tr>';
+    }).join('');
+
+    return '<div class="dash-section">' +
+      '<div class="dash-section-title">Warehouse — Inventory Health <small>real-time snapshot · satuan Ton</small></div>' +
+      '<table class="dash-aging-table">' +
+        '<thead><tr>' +
+          '<th>Kategori</th>' +
+          '<th>Total</th>' +
+          '<th>&lt; 30 hari</th>' +
+          '<th>30 - 60 hari</th>' +
+          '<th>60 - 90 hari</th>' +
+          '<th>&gt; 90 hari</th>' +
+          '<th>Dead Stock</th>' +
+        '</tr></thead>' +
+        '<tbody>' + tableRows + '</tbody>' +
+      '</table>' +
+      '<div class="dash-aging-footer">' +
+        '<span><i class="ti ti-alert-circle"></i> Total Dead Stock: ' + fmtTonPlain(totalDead) + '</span>' +
+        '<span style="font-weight:400;font-size:11px;color:#888">Threshold: Coil/Sheet &gt;60d · WIP &gt;30d · FG &gt;90d</span>' +
+      '</div>' +
+    '</div>';
+  }
+
+  // ============ HELPERS ============
+  function kpiCard(label, value, sub) {
+    return '<div class="dash-kpi">' +
+      '<div class="dash-kpi-label">' + label + '</div>' +
+      '<div class="dash-kpi-value">' + value + '</div>' +
+      '<div class="dash-kpi-sub">' + sub + '</div>' +
+    '</div>';
+  }
+
+  function getSkeletonHTML(isFirst) {
+    var welcomeHtml = isFirst ? '<div class="skel-welcome">SELAMAT DATANG DI FC COS</div>' : '';
+    return welcomeHtml + '<div class="skel-wrap">' +
+      '<div class="skel-base skel-section-title"></div>' +
+      '<div class="skel-kpi-grid skel-kpi-grid-4">' +
+        '<div class="skel-kpi"><div class="skel-base skel-kpi-t"></div><div class="skel-base skel-kpi-v"></div></div>' +
+        '<div class="skel-kpi"><div class="skel-base skel-kpi-t"></div><div class="skel-base skel-kpi-v"></div></div>' +
+        '<div class="skel-kpi"><div class="skel-base skel-kpi-t"></div><div class="skel-base skel-kpi-v"></div></div>' +
+        '<div class="skel-kpi"><div class="skel-base skel-kpi-t"></div><div class="skel-base skel-kpi-v"></div></div>' +
+      '</div>' +
+      '<div class="skel-chart-grid">' +
+        '<div class="skel-chart skel-base"></div><div class="skel-chart skel-base"></div>' +
+      '</div>' +
+      '<div class="skel-base skel-section-title"></div>' +
+      '<div class="skel-kpi-grid skel-kpi-grid-3">' +
+        '<div class="skel-kpi"><div class="skel-base skel-kpi-t"></div><div class="skel-base skel-kpi-v"></div></div>' +
+        '<div class="skel-kpi"><div class="skel-base skel-kpi-t"></div><div class="skel-base skel-kpi-v"></div></div>' +
+        '<div class="skel-kpi"><div class="skel-base skel-kpi-t"></div><div class="skel-base skel-kpi-v"></div></div>' +
+      '</div>' +
+      '<div class="skel-base skel-section-title"></div>' +
+      '<div class="skel-table skel-base"></div>' +
+    '</div>';
+  }
+
+  // ============ EVENT BINDING ============
+  document.getElementById('dash-period-select').addEventListener('change', function(e) {
+    if (isLoading) return;
+    loadDash(e.target.value);
+  });
+
+  document.getElementById('dash-refresh').addEventListener('click', function() {
+    if (currentPeriod) loadDash(currentPeriod);
+  });
+
+  // ============ INITIAL LOAD ============
+  initPeriodOptions();
+})();
+</script>

@@ -1,0 +1,1389 @@
+<style>
+/* ================================================================
+   SPK SHR — 3-View SPA  (List / Create / Detail)
+   Theme: sama dengan page_gr.html + SHR green accent
+================================================================ */
+:root {
+  --bg-app:#eef2f5; --bg-panel:#ffffff; --text-main:#202b3c; --text-muted:#6b7785;
+  --border-color:#cbd5e1; --primary-blue:#0265dc; --success-green:#108a4f;
+  --danger-red:#d32f2f; --table-head:#f1f5f9; --warning-orange:#f97316;
+  --shr-green:#1b6b45; --shr-green-dark:#145236;
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;font-size:12px;color:var(--text-main);
+  background:var(--bg-app);margin:0;padding:12px;height:100vh;box-sizing:border-box;
+  display:flex;flex-direction:column;overflow:hidden;}
+*{box-sizing:border-box;}
+
+/* === VIEW SWITCHING === */
+.view-container{display:none;flex-direction:column;gap:10px;height:100%;overflow:hidden;}
+.view-container.active{display:flex;}
+
+/* === GLOBAL COMPONENTS === */
+.dash-header{display:flex;justify-content:space-between;align-items:flex-end;flex-shrink:0;}
+.dash-title{font-size:18px;font-weight:700;color:#0f172a;margin:0;}
+.dash-sub{color:var(--text-muted);font-size:12px;margin-top:2px;}
+.panel{background:var(--bg-panel);border:1px solid var(--border-color);border-radius:4px;flex-shrink:0;}
+.panel-head{font-weight:700;color:#0f172a;background:#f8fafc;padding:10px 16px;border-bottom:1px solid var(--border-color);border-radius:4px 4px 0 0;}
+.panel-body{padding:12px 16px;}
+.f-inp{border:1px solid var(--border-color);border-radius:3px;padding:6px 10px;font-size:12px;height:28px;width:100%;}
+.f-inp:disabled{background:#f8fafc;color:#64748b;cursor:not-allowed;font-weight:600;border-color:transparent;}
+
+/* === BUTTONS === */
+.btn{padding:0 16px;height:28px;border-radius:3px;font-size:12px;font-weight:600;cursor:pointer;border:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+.btn-primary{background:var(--shr-green);color:#fff;} .btn-primary:hover{background:var(--shr-green-dark);}
+.btn-outline{background:#fff;color:var(--text-main);border:1px solid var(--border-color);} .btn-outline:hover{background:#f1f5f9;}
+
+/* === TABLE LIST === */
+.table-wrap{flex-grow:1;overflow-y:auto;overflow-x:auto;background:#fff;border:1px solid var(--border-color);border-radius:4px;}
+table{width:100%;border-collapse:collapse;text-align:left;table-layout:fixed;}
+th{background:var(--table-head);font-size:11px;padding:10px 12px;border-bottom:1px solid var(--border-color);position:sticky;top:0;z-index:10;color:var(--text-muted);text-transform:uppercase;font-weight:700;}
+td{padding:8px 12px;border-bottom:1px solid #e2e8f0;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dash-row{cursor:pointer;} .dash-row:hover{background:#e2e8f0!important;}
+.td-link{color:var(--primary-blue);font-weight:700;}
+.pagination{display:flex;align-items:center;gap:8px;justify-content:center;flex-shrink:0;padding:6px 0;}
+
+/* === STATUS & OWNER BADGES === */
+.badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:11px;font-weight:700;}
+.badge-antrian{background:#64748b;color:#fff;} .badge-running{background:#0265dc;color:#fff;}
+.badge-done{background:#108a4f;color:#fff;} .badge-cancelled{background:#d32f2f;color:#fff;}
+.badge-fc{background:#1565c0;color:#fff;} .badge-drc{background:#e65100;color:#fff;}
+.badge-child{background:#7c3aed;color:#fff;font-size:10px;}
+
+/* === DETAIL VIEW === */
+.detail-scroll{flex:1;overflow-y:auto;}
+.detail-section{background:var(--bg-panel);border:1px solid var(--border-color);border-radius:4px;margin-bottom:8px;}
+.detail-section-head{font-weight:700;padding:8px 14px;background:#f8fafc;border-bottom:1px solid var(--border-color);border-radius:4px 4px 0 0;display:flex;justify-content:space-between;align-items:center;}
+.detail-section-body{padding:10px 14px;}
+.detail-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 14px;}
+.detail-field{display:flex;flex-direction:column;gap:3px;}
+.detail-label{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;}
+.detail-value{font-size:12px;font-weight:600;color:var(--text-main);}
+.dtbl{width:100%;border-collapse:collapse;font-size:11px;}
+.dtbl th{background:#f1f5f9;padding:5px 8px;border-bottom:1px solid var(--border-color);font-size:10px;text-transform:uppercase;color:var(--text-muted);text-align:left;}
+.dtbl td{padding:6px 8px;border-bottom:1px solid #f0f4f8;vertical-align:middle;}
+.dtbl tr:last-child td{border-bottom:none;}
+
+/* === OVERLAY LOADING === */
+.spk-ov{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,.75);z-index:9999;flex-direction:column;align-items:center;justify-content:center;}
+.spk-ov.active{display:flex;}
+.ov-spinner{width:36px;height:36px;border:4px solid #e2e8f0;border-top-color:var(--shr-green);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ================================================================
+   SHR FORM — EXISTING STYLES (PRESERVED)
+================================================================ */
+#spk-shr-wrap *{box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif;font-size:12px}
+#spk-shr-wrap input,#spk-shr-wrap select{border:1px solid #bbb;border-radius:3px;padding:5px 8px;background:#fff}
+#spk-shr-wrap input[readonly]{background:#f0f4f8;color:#333;font-weight:600}
+#spk-shr-wrap input[type=number]::-webkit-inner-spin-button,
+#spk-shr-wrap input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+#spk-shr-wrap input[type=number]{-moz-appearance:textfield}
+.doc-header-box{border:1.5px solid #888;border-radius:4px;margin-bottom:12px;overflow:hidden}
+.doc-header-top{display:flex;align-items:stretch;border-bottom:1.5px solid #888}
+.doc-logo-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 14px;border-right:1.5px solid #888;min-width:130px}
+.doc-logo-fc{font-size:22px;font-weight:900;color:var(--shr-green);letter-spacing:2px;border:3px solid var(--shr-green);padding:2px 10px;line-height:1.2}
+.doc-nodoc{font-size:10px;color:#444;margin-top:4px;text-align:center}
+.doc-title-cell{flex:1;display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:800;color:var(--shr-green);letter-spacing:1px}
+.hdr-fields{width:100%;border-collapse:collapse;}
+.hdr-fields td{padding:5px 8px;border:0.5px solid #ccc;vertical-align:middle}
+.hdr-fields .lbl{background:#e8ecf4;font-weight:600;color:var(--shr-green);white-space:nowrap;}
+.hdr-fields .lbl-spk{background:var(--shr-green);color:#fff;font-weight:700;text-align:center}
+.hdr-fields .val-spk{font-weight:800;color:var(--shr-green);font-size:15px;text-align:center;background:#e8f5e9;white-space:nowrap;}
+.hdr-fields input{width:100%;border:1px solid #ccc;padding:5px 8px;}
+.hdr-dim{font-weight:800;color:#1a3a6e;font-size:13px}
+.text-danger{color:#c62828;font-weight:800}
+.section-title{background:var(--shr-green);color:#fff;font-weight:700;padding:8px 14px;font-size:13px;margin-bottom:0;border-radius:3px 3px 0 0;}
+.shr-block{border:1px solid #c5cfe0;margin-bottom:10px;background:#fff;border-radius:0 0 3px 3px;}
+.shr-head-row{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#f8f9fa;border-bottom:1px solid #dde4f0;flex-wrap:wrap;}
+.shr-head-label{font-weight:800;color:var(--shr-green);font-size:13px;min-width:80px}
+.owner-badge{padding:3px 10px;border-radius:3px;font-weight:700;font-size:11px;color:#fff;cursor:pointer;user-select:none}
+.shr-tbl{width:100%;border-collapse:collapse}
+.shr-tbl th{background:#e8ecf4;color:#333;font-weight:700;padding:6px 8px;border:1px solid #ccc;text-align:left;font-size:11px}
+.shr-tbl td{padding:6px 8px;border:1px solid #ddd;vertical-align:top}
+.shr-tbl input,.shr-tbl select{width:100%;}
+.action-group{margin-left:auto;display:flex;gap:5px;}
+.btn-act{color:#fff;border:none;border-radius:3px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;}
+.btn-lbl{background:#1565c0} .btn-lbl:hover{background:#0d47a1}
+.btn-dup{background:#f39c12} .btn-dup:hover{background:#d68910}
+.btn-hps{background:#c62828} .btn-hps:hover{background:#b71c1c}
+.btn-add-wrap{background:#1a2035;padding:10px;text-align:center;cursor:pointer;margin-bottom:10px;border-radius:3px;}
+.btn-add-wrap:hover{background:#0f1626}
+.btn-add-txt{color:#fff;font-weight:700;font-size:13px;letter-spacing:1px}
+.yield-bar{background:#e8f5e9;border:1px solid var(--shr-green);padding:10px 16px;border-radius:4px;display:flex;justify-content:space-between;margin-bottom:12px;font-weight:700;color:var(--shr-green);font-size:13px;}
+.yield-bar span{font-weight:900;color:#1a3a6e;font-size:14px}
+.yield-alert{color:#fff!important;background:#c62828!important;padding:2px 8px;border-radius:4px;}
+.spk-action-bar{display:flex;gap:10px;margin-bottom:8px}
+.btn-save-spk{background:var(--shr-green);color:#fff;border:none;border-radius:4px;padding:10px 30px;font-weight:700;font-size:14px;cursor:pointer}
+.btn-save-spk:hover{background:var(--shr-green-dark)}
+.btn-save-spk:disabled{background:#aaa;cursor:not-allowed}
+.btn-reset-spk{background:#757575;color:#fff;border:none;border-radius:4px;padding:10px 20px;font-weight:700;font-size:14px;cursor:pointer}
+.ac-dropdown{position:fixed;background:#fff;border:1px solid #999;border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,.2);z-index:99999;max-height:250px;overflow-y:auto;display:none;min-width:300px}
+.ac-item{padding:8px 12px;cursor:pointer;border-bottom:1px solid #eee;line-height:1.4}
+.ac-item:hover,.ac-item.ac-active{background:#e8f5e9}
+.ac-item b{color:var(--shr-green)} .ac-item span{color:#444;margin-left:8px}
+.ac-hl{background:#fff3cd;border-radius:2px} .ac-empty{padding:8px 12px;color:#aaa;font-style:italic}
+#spk-shr-wrap input:focus,#spk-shr-wrap select:focus{outline:2px solid var(--shr-green);outline-offset:0}
+
+@media print{
+  .view-container{display:none!important;}
+  #view-create{display:block!important;}
+  .dash-header,.spk-action-bar,.btn-add-wrap{display:none!important;}
+}
+</style>
+
+<!-- AUTOCOMPLETE DROPDOWN -->
+<div id="ac-dropdown" class="ac-dropdown"></div>
+
+<!-- LOADING OVERLAY -->
+<div class="spk-ov" id="spk-ov">
+  <div class="ov-spinner"></div>
+  <div style="margin-top:12px;font-weight:600;color:#334155;" id="ov-msg">Memuat...</div>
+</div>
+
+<!-- ================================================================
+     VIEW 1: LIST SPK SHR
+================================================================ -->
+<div id="view-list" class="view-container active">
+  <div class="dash-header">
+    <div>
+      <h1 class="dash-title">SPK SHR</h1>
+      <div class="dash-sub">Daftar Work Order Shearing &mdash; Klik baris untuk detail</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-outline" onclick="loadListSHR()">🔄 Refresh</button>
+      <button class="btn btn-primary" onclick="openCreateSHR()">➕ Tambah SPK SHR</button>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th width="8%">Tgl Buat</th>
+          <th width="12%">SPK No</th>
+          <th width="10%">Item Code</th>
+          <th width="20%">Deskripsi</th>
+          <th width="8%">Qty/KG</th>
+          <th width="9%">Status</th>
+          <th width="7%">MC</th>
+          <th width="8%">Cust</th>
+          <th width="9%">Tipe</th>
+          <th width="9%">Parent SPK</th>
+        </tr>
+      </thead>
+      <tbody id="list-shr-tbody">
+        <tr><td colspan="10" style="text-align:center;padding:40px;color:#94a3b8;font-style:italic;">Klik Refresh untuk memuat data.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="pagination">
+    <button class="btn btn-outline" id="pg-prev-shr" onclick="changeListShrPage(-1)">◀ Prev</button>
+    <span id="pg-info-shr" style="font-weight:700;font-size:12px;">Halaman 1 / 1</span>
+    <button class="btn btn-outline" id="pg-next-shr" onclick="changeListShrPage(1)">Next ▶</button>
+  </div>
+</div>
+
+<!-- ================================================================
+     VIEW 2: CREATE / EDIT SPK SHR
+================================================================ -->
+<div id="view-create" class="view-container">
+  <div class="dash-header" style="flex-shrink:0;">
+    <div>
+      <h1 class="dash-title" id="shr-create-title">➕ Buat SPK SHR Baru</h1>
+      <div class="dash-sub" id="shr-create-subtitle">Nomor SPK akan digenerate otomatis saat simpan</div>
+    </div>
+    <button class="btn btn-outline" onclick="backFromCreateSHR()">✖ Batal / Kembali</button>
+  </div>
+  <!-- FORM AREA (scrollable) -->
+  <div style="flex:1;overflow-y:auto;">
+    <div id="spk-shr-wrap">
+      <div class="doc-header-box">
+        <div class="doc-header-top">
+          <div class="doc-logo-cell">
+            <div class="doc-logo-fc">F/C</div>
+            <div class="doc-nodoc">NO Doc :<br><b>FM-PP-016</b></div>
+          </div>
+          <div class="doc-title-cell">SPK &amp; REPORT &nbsp;#Shearing Process</div>
+        </div>
+
+        <table class="hdr-fields">
+          <tr>
+            <td class="lbl">Batch Input</td>
+            <td colspan="5">
+              <select id="hdr-batch" onchange="onBatchChangeShr(this)"
+                style="width:100%;border:2px solid var(--shr-green);font-weight:700;font-size:13px;padding:5px 8px;background:#fff">
+                <option value="">-- Pilih Batch --</option>
+              </select>
+              <input type="hidden" id="hdr-batch-id">
+            </td>
+            <td class="lbl">SPK_Date</td>
+            <td style="white-space:nowrap"><span id="hdr-date" style="font-weight:700;font-size:13px;color:#444;"></span></td>
+            <td class="lbl-spk lbl">SPK_No</td>
+            <td class="val-spk"><span id="hdr-spkno" title="Nomor digenerate saat simpan">(auto)</span></td>
+          </tr>
+          <tr>
+            <td class="lbl" style="width:10%">Item Code</td>
+            <td style="width:15%"><input id="hdr-item" readonly/></td>
+            <td class="lbl" style="width:5%">SPEC</td>
+            <td colspan="3" style="min-width:240px;width:30%"><input id="hdr-spec" readonly style="font-size:13px;"/></td>
+            <td class="lbl">Avail Stok</td>
+            <td style="white-space:nowrap;width:15%">
+              <span id="hdr-qty-avail" class="hdr-dim text-danger">0</span> Sht &nbsp;|&nbsp;
+              <span id="hdr-kg-avail" class="hdr-dim">0</span> Kg
+              <input type="hidden" id="hdr-wgpce-input">
+              <input type="hidden" id="hdr-t">
+            </td>
+            <td class="lbl" style="background:#fbe9e7;color:#c62828">Proses QTY</td>
+            <td style="white-space:nowrap">
+              <input type="number" id="hdr-qty-input" placeholder="Jml Lbr..."
+                style="width:75px;font-weight:800;border:2px solid #c62828" oninput="calcHeaderKg()"> Sht
+              <span style="display:none">➔ <span id="hdr-kg-input" class="hdr-dim text-danger" style="margin-left:5px">0</span> kg</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="lbl">Machine</td>
+            <td>
+              <select id="hdr-machine" style="width:100%">
+                <option value="SHR-01">SHR-01</option>
+                <option value="SHR-02">SHR-02</option>
+              </select>
+            </td>
+            <td class="lbl">Operator</td>
+            <td><input id="hdr-op" placeholder="Leader SHR"/></td>
+            <td class="lbl">Owner</td>
+            <td style="white-space:nowrap">
+              <span class="owner-badge badge-fc" id="hdr-owner-display" style="cursor:default;opacity:.75">FC</span>
+              <input type="hidden" id="hdr-owner" value="FC">
+            </td>
+            <td class="lbl">Source_Loc</td>
+            <td>
+              <select id="hdr-source-loc" style="font-weight:700;color:var(--shr-green);width:100%">
+                <option value="WIP_Transit_Shearing">WIP_Transit_Shearing</option>
+                <option value="Stok_Sheet">Stok_Sheet</option>
+              </select>
+            </td>
+            <td class="lbl">Priority</td>
+            <td>
+              <select id="hdr-priority" style="width:100%">
+                <option>Normal</option><option>High</option><option>Urgent</option>
+              </select>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="section-title">Shearing Instruction (Out SHR)</div>
+      <div id="out-shr-list" style="padding:10px;background:#f8f9fa;border:1px solid #ccc;border-top:none;"></div>
+      <div class="btn-add-wrap" onclick="addOutShr()">
+        <span class="btn-add-txt">+ ADD POTONGAN (OUT SHR)</span>
+      </div>
+
+      <div class="yield-bar">
+        <div>📥 Total Input Material: <span id="yield-in">0</span> kg</div>
+        <div>📤 Total Output (Plan): <span id="yield-out">0</span> kg</div>
+        <div>♻️ Est. Waste/Scrap: <span id="yield-scrap">0</span> kg (<span id="yield-scrap-pct">0</span>%)</div>
+      </div>
+
+      <div class="spk-action-bar">
+        <button class="btn-save-spk" id="btn-save" onclick="saveSPK_SHR()">💾 SIMPAN &amp; CETAK SPK</button>
+        <button class="btn-reset-spk" onclick="resetFormSHR()">↺ Reset</button>
+      </div>
+    </div><!-- /spk-shr-wrap -->
+  </div><!-- /scroll area -->
+</div>
+
+<!-- ================================================================
+     VIEW 3: DETAIL SPK SHR (Read-Only)
+================================================================ -->
+<div id="view-detail" class="view-container">
+  <div class="dash-header" style="flex-shrink:0;">
+    <div>
+      <h1 class="dash-title" id="vd-shr-title">Detail SPK SHR</h1>
+      <div class="dash-sub" id="vd-shr-status">Mode Read-Only</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-outline" onclick="showShrView('view-list')">◀ Kembali</button>
+      <button class="btn btn-outline" onclick="reprintSHR()">🖨️ Re-Print SPK</button>
+      <button class="btn btn-primary" id="btn-edit-shr" onclick="editFromDetailSHR()">✏️ Edit Data</button>
+      <button class="btn" id="btn-cancel-shr" onclick="cancelFromDetailSHR()" style="background:#d32f2f;color:#fff;border:1px solid #b71c1c;font-weight:600;">🚫 Cancel SPK</button>
+    </div>
+  </div>
+
+  <div class="detail-scroll">
+    <!-- Header Info -->
+    <div class="detail-section">
+      <div class="detail-section-head">Informasi SPK SHR</div>
+      <div class="detail-section-body">
+        <div class="detail-grid">
+          <div class="detail-field"><div class="detail-label">SPK No</div><div class="detail-value" id="dv-shr-spkno">—</div></div>
+          <div class="detail-field"><div class="detail-label">Tanggal Buat</div><div class="detail-value" id="dv-shr-tgl">—</div></div>
+          <div class="detail-field"><div class="detail-label">Status</div><div class="detail-value" id="dv-shr-status">—</div></div>
+          <div class="detail-field"><div class="detail-label">Machine</div><div class="detail-value" id="dv-shr-mc">—</div></div>
+        </div>
+        <div class="detail-grid" style="margin-top:8px;">
+          <div class="detail-field"><div class="detail-label">Batch Input (Sheet)</div><div class="detail-value" id="dv-shr-batch">—</div></div>
+          <div class="detail-field"><div class="detail-label">Item Code</div><div class="detail-value" id="dv-shr-item">—</div></div>
+          <div class="detail-field" style="grid-column:span 2"><div class="detail-label">Spesifikasi</div><div class="detail-value" id="dv-shr-spec">—</div></div>
+        </div>
+        <div class="detail-grid" style="margin-top:8px;">
+          <div class="detail-field"><div class="detail-label">Qty Target</div><div class="detail-value" id="dv-shr-qty">—</div></div>
+          <div class="detail-field"><div class="detail-label">KG Target</div><div class="detail-value" id="dv-shr-kg">—</div></div>
+          <div class="detail-field"><div class="detail-label">Owner Material</div><div class="detail-value" id="dv-shr-owner">—</div></div>
+          <div class="detail-field"><div class="detail-label">Priority</div><div class="detail-value" id="dv-shr-prio">—</div></div>
+        </div>
+        <div id="dv-shr-parent-row" style="margin-top:8px;display:none;">
+          <div class="detail-label">Parent SPK (CTL)</div>
+          <div class="detail-value" id="dv-shr-parent" style="margin-top:2px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SHR OUT Panel -->
+    <div class="detail-section">
+      <div class="detail-section-head">
+        <span>SHR Output</span>
+        <span id="dv-shr-out-count" style="font-size:11px;font-weight:400;color:var(--text-muted);"></span>
+      </div>
+      <div id="dv-shr-out-content" style="overflow-x:auto;">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ============================================================
+     MODAL: CANCEL SPK SHR — dengan password protection
+     ============================================================ -->
+<div id="cancelSpkModalSHR" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; width:420px; max-width:90vw; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.3); overflow:hidden;">
+    <div style="background:#d32f2f; color:#fff; padding:14px 18px; font-size:16px; font-weight:700;">
+      🚫 Cancel SPK SHR
+    </div>
+    <div style="padding:18px;">
+      <div style="background:#fff3cd; border:1px solid #ffc107; border-radius:4px; padding:12px; margin-bottom:14px; font-size:13px; line-height:1.5;">
+        ⚠️ <b>PERINGATAN: SPK akan dibatalkan permanen.</b><br>
+        SPK <b id="cancelModalSpkNoSHR">—</b><br>
+        SHR-HEADER + SEMUA SHR-OUT akan jadi <b>CANCELLED</b>.<br>
+        Tidak bisa di-undo.
+      </div>
+      <div style="margin-bottom:10px;">
+        <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:#334155;">Password PPIC untuk konfirmasi:</label>
+        <input type="password" id="cancelSpkPwdSHR" placeholder="Masukkan password" style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:4px; font-size:14px; box-sizing:border-box;" autocomplete="off">
+      </div>
+      <div id="cancelSpkErrorSHR" style="color:#d32f2f; font-size:13px; font-weight:600; display:none; margin-bottom:10px;"></div>
+    </div>
+    <div style="padding:12px 18px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:8px;">
+      <button class="btn btn-outline" onclick="closeCancelSpkModalSHR()">Batal</button>
+      <button class="btn" id="btnSubmitCancelSpkSHR" onclick="submitCancelSpkSHR()" style="background:#d32f2f; color:#fff; font-weight:600;">🚫 Cancel SPK</button>
+    </div>
+  </div>
+</div>
+<script>
+/* ================================================================
+   NAVIGATION & SHARED STATE — SHR
+================================================================ */
+var _listShrData  = [];
+var _listShrPage  = 1;
+var _listShrSize  = 20;
+var _detailShrNo  = null;
+var _lastDetailRes = null; // Simpan untuk re-print
+
+function showShrView(id) {
+  document.querySelectorAll('.view-container').forEach(function(el){ el.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  // Stop auto-refresh timer saat meninggalkan form
+  if (id !== 'view-create' && window._stokRefreshTimerSHR) {
+    clearInterval(window._stokRefreshTimerSHR);
+    window._stokRefreshTimerSHR = null;
+  }
+}
+
+function showOverlaySHR(msg) {
+  var ov = document.getElementById('spk-ov');
+  document.getElementById('ov-msg').textContent = msg || 'Memuat...';
+  ov.classList.add('active');
+}
+function hideOverlaySHR() { document.getElementById('spk-ov').classList.remove('active'); }
+
+function getStatusBadgeSHR(s) {
+  var cls = {ANTRIAN:'badge-antrian',RUNNING:'badge-running',DONE:'badge-done',CANCELLED:'badge-cancelled'}[s]||'badge-antrian';
+  return '<span class="badge '+cls+'">'+(s||'—')+'</span>';
+}
+function getOwnerBadgeSHR(o) {
+  return '<span class="badge '+(o==='DRC'?'badge-drc':'badge-fc')+'">'+(o||'FC')+'</span>';
+}
+
+/* ================================================================
+   VIEW 1: LIST
+================================================================ */
+function loadListSHR() {
+  showOverlaySHR('Memuat daftar SPK SHR...');
+  google.script.run
+    .withSuccessHandler(function(data){
+      _listShrData = Array.isArray(data) ? data : [];
+      _listShrPage = 1;
+      renderListSHR();
+      hideOverlaySHR();
+    })
+    .withFailureHandler(function(err){
+      hideOverlaySHR();
+      alert('❌ Gagal memuat list SHR:\n'+(err.message||err));
+    })
+    .getSpkListSHR();
+}
+
+function renderListSHR() {
+  var tbody = document.getElementById('list-shr-tbody');
+  var start = (_listShrPage-1)*_listShrSize;
+  var end   = Math.min(start+_listShrSize, _listShrData.length);
+  var html  = '';
+
+  if (!_listShrData.length) {
+    html = '<tr><td colspan="10" style="text-align:center;padding:40px;color:#94a3b8;font-style:italic;">Tidak ada data SPK SHR.</td></tr>';
+  } else {
+    for (var i=start; i<end; i++) {
+      var d = _listShrData[i];
+      var rowStyle = d.status==='CANCELLED' ? 'style="opacity:.55;"' : '';
+      var qtyKg = (d.qty_target ? d.qty_target+' Sht' : '—') + (d.kg_target ? ' / '+d.kg_target.toLocaleString('id-ID')+' kg' : '');
+      html += '<tr class="dash-row" '+rowStyle+' onclick="openDetailSHR(\''+d.spk_no.replace(/'/g,"\\'")+'\')">'; 
+      html += '<td>'+(d.tgl_buat||'—')+'</td>';
+      html += '<td class="td-link">'+d.spk_no+'</td>';
+      html += '<td><b>'+(d.item_code||'—')+'</b></td>';
+      html += '<td style="white-space:normal;line-height:1.3;">'+(d.input_spec||'—')+'</td>';
+      html += '<td style="font-size:11px;">'+qtyKg+'</td>';
+      html += '<td>'+getStatusBadgeSHR(d.status)+'</td>';
+      html += '<td>'+(d.mc_no||'—')+'</td>';
+      html += '<td>'+(d.cust||'—')+'</td>';
+      html += '<td>'+(d.is_child ? '<span class="badge badge-child">▶CTL Child</span>' : '<span class="badge" style="background:#64748b;color:#fff;">Standalone</span>')+'</td>';
+      html += '<td style="font-size:11px;color:#7c3aed;">'+(d.parent_spk||'—')+'</td>';
+      html += '</tr>';
+    }
+  }
+  tbody.innerHTML = html;
+
+  var total = Math.ceil(_listShrData.length/_listShrSize)||1;
+  document.getElementById('pg-info-shr').textContent = 'Halaman '+_listShrPage+' / '+total+'  ('+_listShrData.length+' SPK)';
+  document.getElementById('pg-prev-shr').disabled = (_listShrPage<=1);
+  document.getElementById('pg-next-shr').disabled = (_listShrPage>=total);
+}
+
+function changeListShrPage(dir) {
+  var total = Math.ceil(_listShrData.length/_listShrSize)||1;
+  _listShrPage = Math.max(1, Math.min(total, _listShrPage+dir));
+  renderListSHR();
+}
+
+function openCreateSHR() {
+  window._editingSpkShrNo = null;
+  document.getElementById('shr-create-title').textContent = '➕ Buat SPK SHR Baru';
+  document.getElementById('shr-create-subtitle').textContent = 'Nomor SPK akan digenerate otomatis saat simpan';
+  showShrView('view-create');
+  resetFormSHR();
+  // Start auto-refresh timer saat di form
+  refreshStokAvail();
+  if (window._stokRefreshTimerSHR) clearInterval(window._stokRefreshTimerSHR);
+  window._stokRefreshTimerSHR = setInterval(refreshStokAvail, 60000);
+}
+
+function backFromCreateSHR() {
+  if (window._editingSpkShrNo) {
+    if (!confirm('Keluar mode edit? Perubahan yang belum disimpan akan hilang.')) return;
+    openDetailSHR(window._editingSpkShrNo);
+  } else {
+    showShrView('view-list');
+  }
+}
+
+/* ================================================================
+   VIEW 3: DETAIL
+================================================================ */
+function openDetailSHR(spkNo) {
+  _detailShrNo = spkNo;
+  showOverlaySHR('Memuat detail SPK SHR...');
+  google.script.run
+    .withSuccessHandler(function(res){
+      hideOverlaySHR();
+      _lastDetailRes = res;
+      renderDetailSHR(res);
+      showShrView('view-detail');
+    })
+    .withFailureHandler(function(err){
+      hideOverlaySHR();
+      alert('❌ Gagal memuat detail:\n'+(err.message||err));
+    })
+    .getSpkFullDataSHR(spkNo);
+}
+
+function renderDetailSHR(res) {
+  var h = res.header;
+  document.getElementById('vd-shr-title').textContent   = 'Detail SPK SHR — '+h.spk_no;
+  document.getElementById('vd-shr-status').textContent  = 'Mode Read-Only  |  Status: '+(h.status||'—');
+  document.getElementById('dv-shr-spkno').textContent   = h.spk_no;
+  document.getElementById('dv-shr-tgl').textContent     = h.tgl_buat   || '—';
+  document.getElementById('dv-shr-status').innerHTML    = getStatusBadgeSHR(h.status||'—');
+  document.getElementById('dv-shr-mc').textContent      = h.mc_no      || '—';
+  document.getElementById('dv-shr-batch').textContent   = h.batch_id   || '—';
+  document.getElementById('dv-shr-item').textContent    = h.item_code  || '—';
+  document.getElementById('dv-shr-spec').textContent    = h.input_spec || '—';
+  document.getElementById('dv-shr-qty').textContent     = h.qty_target ? h.qty_target.toLocaleString('id-ID')+' Sht' : '—';
+  document.getElementById('dv-shr-kg').textContent      = h.kg_target  ? h.kg_target.toLocaleString('id-ID')+' kg'  : '—';
+  document.getElementById('dv-shr-owner').innerHTML     = getOwnerBadgeSHR(h.owner);
+  document.getElementById('dv-shr-prio').textContent    = h.priority   || 'Normal';
+
+  // Parent SPK (jika child of CTL)
+  var parentRow = document.getElementById('dv-shr-parent-row');
+  if (h.batch_id && (h.batch_id.indexOf('CTL-')===0 || h.batch_id.indexOf('CL-')===0)) {
+    document.getElementById('dv-shr-parent').innerHTML =
+      '<span class="badge badge-child">▶CTL</span> <b>'+h.batch_id+'</b>';
+    parentRow.style.display = 'block';
+  } else {
+    parentRow.style.display = 'none';
+  }
+
+  // 🟢 BUG-FIX #10b — Hide tombol Edit & Cancel SPK untuk non-ANTRIAN.
+  // Cancel SPK total hanya boleh untuk ANTRIAN. SPK RUNNING/DONE/CANCELLED:
+  // tombol disembunyikan. Untuk mid-process abandon, PPIC harus pakai
+  // cancel per-OUT di Board Mesin (icon X dengan password).
+  var btnEdit   = document.getElementById('btn-edit-shr');
+  var btnCancel = document.getElementById('btn-cancel-shr');
+  var statusUp  = String(h.status||'').toUpperCase();
+  var canEdit   = (statusUp === 'ANTRIAN');
+
+  if (btnEdit) {
+    btnEdit.style.display = canEdit ? 'inline-block' : 'none';
+    btnEdit.disabled = !canEdit;
+  }
+  if (btnCancel) {
+    btnCancel.style.display = canEdit ? 'inline-block' : 'none';
+  }
+
+  // SHR OUT table
+  document.getElementById('dv-shr-out-count').textContent = (res.out_shr?res.out_shr.length:0)+' output';
+  var outHtml = '';
+  if (!res.out_shr || !res.out_shr.length) {
+    outHtml = '<div style="padding:20px;text-align:center;color:#94a3b8;font-style:italic;">Belum ada SHR-OUT.</div>';
+  } else {
+    outHtml += '<table class="dtbl"><thead><tr>';
+    outHtml += '<th>#</th><th>SPK No</th><th>Item</th><th>Deskripsi</th><th>Cut P×L</th><th>Qty Plan</th><th>KG Plan</th><th>Target</th><th>SO</th><th>Cust</th><th>UsedBy</th>';
+    outHtml += '</tr></thead><tbody>';
+    res.out_shr.forEach(function(s, idx) {
+      outHtml += '<tr>';
+      outHtml += '<td style="text-align:center;">'+(idx+1)+'</td>';
+      outHtml += '<td class="td-link">'+s.spk_no+'</td>';
+      outHtml += '<td>'+( s.item_code||'—')+'</td>';
+      outHtml += '<td style="white-space:normal;">'+( s.description||'—')+'</td>';
+      outHtml += '<td style="text-align:center;">'+(s.cut_p||1)+'×'+(s.cut_l||1)+'</td>';
+      outHtml += '<td style="text-align:right;">'+(s.qty_plan?s.qty_plan.toLocaleString('id-ID'):0)+'</td>';
+      outHtml += '<td style="text-align:right;">'+(s.kg_plan?s.kg_plan.toLocaleString('id-ID'):0)+'</td>';
+      outHtml += '<td>'+(s.target_loc||'—')+'</td>';
+      outHtml += '<td>'+(s.so_no||'—')+'</td>';
+      outHtml += '<td>'+(s.cust||'—')+'</td>';
+      outHtml += '<td>'+getOwnerBadgeSHR(s.owner_used||s.owner)+'</td>';
+      outHtml += '</tr>';
+    });
+    outHtml += '</tbody></table>';
+  }
+  document.getElementById('dv-shr-out-content').innerHTML = outHtml;
+}
+
+function reprintSHR() {
+  if (!_lastDetailRes) { alert('Tidak ada data SPK untuk di-print.'); return; }
+  var h = _lastDetailRes.header;
+  var dataInduk = {
+    spk_no: h.spk_no, tanggal: h.tgl_buat||'', batch_id: h.batch_id||'',
+    lokasi_asal: h.source_loc||'', qty_induk: h.qty_target||0,
+    kg_induk: h.kg_target||0, operator: h.op||'', spec_induk: h.input_spec||''
+  };
+  var dataAnak = (_lastDetailRes.out_shr||[]).map(function(s, idx){
+    return {
+      spk_child_no: s.spk_no,
+      so_no: s.so_no||'--', cust: s.cust||'--',
+      spec_hasil: s.description||'--',
+      cut_p: s.cut_p||1, cut_l: s.cut_l||1,
+      target_loc: s.target_loc||'', qty_target: s.qty_plan||0
+    };
+  });
+  printSPK_SHR(dataInduk, dataAnak);
+}
+
+function editFromDetailSHR() {
+  if (!_detailShrNo) return;
+
+  // B-IMP2 GUARD: Block kalau status DONE/CANCELLED (lapis 2 setelah disable button)
+  if (_lastDetailRes && _lastDetailRes.header) {
+    var s = String(_lastDetailRes.header.status||'').toUpperCase();
+    if (s === 'DONE' || s === 'CANCELLED') {
+      alert('❌ SPK status '+s+' tidak dapat diedit.');
+      return;
+    }
+  }
+
+  showOverlaySHR('Memuat data untuk diedit...');
+  google.script.run
+    .withSuccessHandler(function(res){
+      hideOverlaySHR();
+      window._editingSpkShrNo = res.header.spk_no;
+      document.getElementById('shr-create-title').textContent = '✏️ Edit SPK SHR';
+      document.getElementById('shr-create-subtitle').textContent = 'Mode Edit — '+res.header.spk_no;
+      showShrView('view-create');
+      refreshStokAvail();
+      if (window._stokRefreshTimerSHR) clearInterval(window._stokRefreshTimerSHR);
+      window._stokRefreshTimerSHR = setInterval(refreshStokAvail, 60000);
+      populateFormFromSpkShr(res);
+    })
+    .withFailureHandler(function(err){
+      hideOverlaySHR();
+      alert('❌ Gagal memuat data edit:\n'+(err.message||err));
+    })
+    .getSpkFullDataSHR(_detailShrNo);
+}
+/* ================================================================
+   CANCEL SPK FROM VIEW DETAIL — dengan password protection
+================================================================ */
+function cancelFromDetailSHR() {
+  if (!_detailShrNo) return;
+  document.getElementById('cancelModalSpkNoSHR').textContent = _detailShrNo;
+  document.getElementById('cancelSpkPwdSHR').value = '';
+  document.getElementById('cancelSpkErrorSHR').style.display = 'none';
+  document.getElementById('cancelSpkModalSHR').style.display = 'flex';
+  setTimeout(function(){ document.getElementById('cancelSpkPwdSHR').focus(); }, 100);
+}
+
+function closeCancelSpkModalSHR() {
+  document.getElementById('cancelSpkModalSHR').style.display = 'none';
+}
+
+function submitCancelSpkSHR() {
+  var pwd   = document.getElementById('cancelSpkPwdSHR').value;
+  var spkNo = _detailShrNo;
+  if (!pwd) { showCancelSpkErrorSHR('Password tidak boleh kosong'); return; }
+  if (!spkNo) { showCancelSpkErrorSHR('SPK No tidak ditemukan'); return; }
+
+  var btn = document.getElementById('btnSubmitCancelSpkSHR');
+  btn.disabled = true;
+  btn.textContent = '⏳ Memproses...';
+
+  google.script.run
+    .withSuccessHandler(function(res){
+      btn.disabled = false;
+      btn.textContent = '🚫 Cancel SPK';
+      if (res && res.success) {
+        closeCancelSpkModalSHR();
+        alert('✅ Berhasil cancel:\n' + (res.cancelled||[]).join('\n'));
+        openDetailSHR(spkNo);  // refresh halaman detail
+      } else {
+        showCancelSpkErrorSHR(res && res.message ? res.message : 'Gagal cancel');
+      }
+    })
+    .withFailureHandler(function(err){
+      btn.disabled = false;
+      btn.textContent = '🚫 Cancel SPK';
+      showCancelSpkErrorSHR('Error: ' + (err.message || err));
+    })
+    .cascadeCancelSpkWithAuth(spkNo, pwd);
+}
+
+function showCancelSpkErrorSHR(msg) {
+  var el = document.getElementById('cancelSpkErrorSHR');
+  el.textContent = '❌ ' + msg;
+  el.style.display = 'block';
+}
+
+// ESC tutup modal | Enter submit (saat password field aktif)
+document.addEventListener('keydown', function(e) {
+  var modal = document.getElementById('cancelSpkModalSHR');
+  if (!modal || modal.style.display !== 'flex') return;
+  if (e.key === 'Escape') closeCancelSpkModalSHR();
+  if (e.key === 'Enter' && document.activeElement && document.activeElement.id === 'cancelSpkPwdSHR') {
+    submitCancelSpkSHR();
+  }
+});
+/* ================================================================
+   FORM JS — EXISTING LOGIC (PRESERVED, MODIFIED)
+================================================================ */
+(function(){
+  var _shrCount = 0;
+  var _spkNo    = '';
+  var _stokData = [];
+  var _masterItems = [];
+  var _soData   = [];
+  var _sheetOwner = 'FC';
+
+  /* ── STOK SHEET ── */
+  function populateBatchDropdown() {
+    var sel = document.getElementById('hdr-batch');
+    if (!sel) return;
+    var currentBid = sel.value;
+    sel.innerHTML = '<option value="">-- Pilih Batch --</option>';
+    var seen = {};
+    _stokData.forEach(function(r) {
+      var bid = String(r.Batch_ID||r.SPK_Ref||r.SPK_CTL_No||'').trim();
+      if (!bid||seen[bid]) return;
+      seen[bid] = true;
+      var qty  = Math.round(parseFloat(r.Qty_Avail||0));
+      var kg   = Math.round(parseFloat(r.Kg_Avail||r.KG_Avail||0));
+      if (qty <= 0) return;  // ✅ Skip batch avail=0 (Bug 1)
+      var spec = r.Description||r.Spec||'';
+      var own  = String(r.Owner||'FC').trim().toUpperCase();
+      var o = document.createElement('option');
+      o.value = bid;
+      o.textContent = bid+'  |  '+spec+'  |  '+qty+' Sht  |  '+kg+' kg  |  '+own;
+      sel.appendChild(o);
+    });
+    if (currentBid) {
+      for (var i=0; i<sel.options.length; i++) {
+        if (sel.options[i].value===currentBid) { sel.selectedIndex=i; break; }
+      }
+    }
+  }
+
+  window.refreshStokAvail = function() {
+    google.script.run.withSuccessHandler(function(stk){
+      if (Array.isArray(stk)) _stokData = stk;
+      else if (stk&&stk.sheet) _stokData = stk.sheet;
+      else _stokData = [];
+      populateBatchDropdown();
+      var currentBid = document.getElementById('hdr-batch-id').value;
+      if (!currentBid) return;
+      var found = _stokData.find(function(r){
+        return String(r.Batch_ID||r.SPK_Ref||r.SPK_CTL_No||'').trim().toUpperCase() === currentBid.trim().toUpperCase();
+      });
+      if (!found) return;
+      document.getElementById('hdr-qty-avail').textContent = Math.round(parseFloat(found.Qty_Avail||0));
+      document.getElementById('hdr-kg-avail').textContent  = Math.round(parseFloat(found.Kg_Avail||found.KG_Avail||0));
+      var wgPce = parseFloat(found.Kg_Avail||0)/parseFloat(found.Qty_Avail||1);
+      document.getElementById('hdr-wgpce-input').value = isNaN(wgPce)?0:wgPce;
+      calcHeaderKg();
+    }).getSheetData('Stok_Sheet');
+  };
+
+  window.onBatchChangeShr = function(sel) {
+    var bid = sel.value;
+    document.getElementById('hdr-batch-id').value = bid;
+    if (!bid) {
+      ['hdr-item','hdr-spec'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
+      document.getElementById('hdr-qty-avail').textContent='0';
+      document.getElementById('hdr-kg-avail').textContent='0';
+      document.getElementById('hdr-wgpce-input').value=0;
+      document.getElementById('hdr-t').value=0;  // 🟢 BUG-FIX #5 — reset T saat batch cleared
+      _sheetOwner='FC'; setHeaderOwnerDisplay('FC'); return;
+    }
+    var r = _stokData.find(function(x){ return String(x.Batch_ID||x.SPK_Ref||x.SPK_CTL_No||'').trim()===bid; });
+    if (!r) return;
+    document.getElementById('hdr-item').value = r.Item_Code||'';
+    document.getElementById('hdr-spec').value = r.Description||r.Spec||'';
+    document.getElementById('hdr-qty-avail').textContent = Math.round(parseFloat(r.Qty_Avail||0));
+    document.getElementById('hdr-kg-avail').textContent  = Math.round(parseFloat(r.Kg_Avail||r.KG_Avail||0));
+    var wgPce = parseFloat(r.Kg_Avail||0)/parseFloat(r.Qty_Avail||1);
+    document.getElementById('hdr-wgpce-input').value = isNaN(wgPce)?0:wgPce;
+    document.getElementById('hdr-t').value = parseFloat(r.T)||0;  // 🟢 BUG-FIX #5 — auto-fill T dari batch Stok_Sheet
+    _sheetOwner = String(r.Owner||'FC').trim().toUpperCase();
+    setHeaderOwnerDisplay(_sheetOwner);
+    document.querySelectorAll('.shr-block').forEach(function(b){
+      var n = b.id.replace('shr-block-','');
+      var oInp = document.getElementById('shr-owner-'+n);
+      if (oInp) oInp.value = _sheetOwner;
+      handleShrTargetChange(n);
+    });
+    var qtyInp = document.getElementById('hdr-qty-input');
+    // ✅ Bug 4: jangan auto-fill Proses QTY — admin isi manual
+    calcHeaderKg();
+  };
+
+  function setHeaderOwnerDisplay(owner) {
+    var hi = document.getElementById('hdr-owner');
+    var hd = document.getElementById('hdr-owner-display');
+    if (hi) hi.value = owner;
+    if (hd) { hd.textContent = owner; hd.className = 'owner-badge '+(owner==='DRC'?'badge-drc':'badge-fc'); }
+  }
+
+  window.calcHeaderKg = function() {
+    var qty = parseFloat(document.getElementById('hdr-qty-input').value)||0;
+    var wgpce = parseFloat(document.getElementById('hdr-wgpce-input').value)||0;
+    document.getElementById('hdr-kg-input').textContent = Math.round(qty*wgpce);
+    document.querySelectorAll('.shr-block').forEach(function(b){ calcQtyPlan(b.id.replace('shr-block-','')); });
+  };
+
+  window.calcQtyPlan = function(n) {
+    var baseQty = parseFloat(document.getElementById('hdr-qty-input').value)||0;
+    var p = parseFloat(document.getElementById('shr-cutp-'+n).value)||1;
+    var l = parseFloat(document.getElementById('shr-cutl-'+n).value)||1;
+    var totalSht = Math.round(baseQty*p*l);
+    document.getElementById('shr-qty-'+n).value = totalSht;
+    var wgPce = parseFloat(document.getElementById('shr-wgpce-'+n).value)||0;
+    document.getElementById('shr-kg-plan-'+n).value = Math.round(totalSht*wgPce);
+    updateYieldSummary();
+  };
+
+  window.updateYieldSummary = function() {
+    var inKg = parseFloat(document.getElementById('hdr-kg-input').textContent)||0;
+    var outKg = 0;
+    document.querySelectorAll('.shr-block').forEach(function(b){
+      outKg += parseFloat(document.getElementById('shr-kg-plan-'+b.id.replace('shr-block-','')).value)||0;
+    });
+    var scrap = inKg-outKg;
+    var pct = inKg>0?(scrap/inKg)*100:0;
+    document.getElementById('yield-in').textContent = Math.round(inKg);
+    document.getElementById('yield-out').textContent = Math.round(outKg);
+    var elS = document.getElementById('yield-scrap');
+    var elP = document.getElementById('yield-scrap-pct');
+    elS.textContent = Math.round(scrap);
+    elP.textContent = pct.toFixed(1);
+    if (scrap<0||pct>3) { elS.classList.add('yield-alert'); elP.classList.add('yield-alert'); }
+    else { elS.classList.remove('yield-alert'); elP.classList.remove('yield-alert'); }
+  };
+
+  /* ── AUTOCOMPLETE ── */
+  function createAutocomplete(dropId, filterFn, onSelectFn) {
+    return {
+      drop:null, inputEl:null, results:[], selIdx:-1,
+      init:function(){
+        this.drop=document.getElementById(dropId);
+        var self=this;
+        document.addEventListener('mousedown',function(e){if(!self.drop.contains(e.target)&&e.target!==self.inputEl)self.hide();});
+        window.addEventListener('scroll',function(){if(self.drop.style.display!=='none')self.reposition();},true);
+      },
+      norm:function(s){return String(s||'').toLowerCase().replace(/[×\s]+/g,'x').replace(/x+/g,'x');},
+      hl:function(t,q){
+        if(!q) return t;
+        var idx=this.norm(t).indexOf(this.norm(q));
+        if(idx<0) return t;
+        return t.slice(0,idx)+'<span class="ac-hl">'+t.slice(idx,idx+q.length)+'</span>'+t.slice(idx+q.length);
+      },
+      open:function(el){this.inputEl=el;this.search(el.value);},
+      search:function(q){this.results=filterFn.call(this,q);this.selIdx=-1;this.render(q);},
+      render:function(q){
+        if(!this.results.length){this.drop.innerHTML='<div class="ac-empty">Tidak ditemukan</div>';}
+        else{
+          var h='',self=this;
+          this.results.forEach(function(r,i){h+=self.renderItem(r,i,q);});
+          this.drop.innerHTML=h;
+          this.drop.querySelectorAll('.ac-item').forEach(function(el){el.addEventListener('mousedown',function(e){e.preventDefault();self.select(parseInt(el.dataset.idx));});});
+        }
+        this.reposition();this.drop.style.display='block';
+      },
+      renderItem:function(r,i,q){
+        return '<div class="ac-item" data-idx="'+i+'"><b>'+this.hl(r.Item_Code||'',q)+'</b><span>'+this.hl(r.Description||'',q)+'</span></div>';
+      },
+      reposition:function(){
+        if(!this.inputEl)return;
+        var r=this.inputEl.getBoundingClientRect();
+        this.drop.style.top=(r.bottom+2)+'px';this.drop.style.left=r.left+'px';
+        this.drop.style.width=Math.max(300,r.width)+'px';
+      },
+      setHL:function(idx){this.selIdx=idx;this.drop.querySelectorAll('.ac-item').forEach(function(el,i){el.classList.toggle('ac-active',i===idx);});},
+      select:function(idx){
+        var item=this.results[idx];if(!item||!this.inputEl)return;
+        var next=onSelectFn.call(this,item);
+        if(next===false)return;this.hide();
+        if(next&&typeof next.focus==='function')setTimeout(function(){next.focus();if(next.select)next.select();},20);
+      },
+      hide:function(){this.drop.style.display='none';this.selIdx=-1;},
+      key:function(e){
+        var vis=this.drop.style.display!=='none';
+        if(!vis){if(e.key==='Tab'||e.key==='ArrowDown'){e.preventDefault();this.search(this.inputEl?this.inputEl.value:'');}return;}
+        switch(e.key){
+          case 'ArrowDown':e.preventDefault();this.setHL(Math.min(this.selIdx+1,this.results.length-1));break;
+          case 'ArrowUp':e.preventDefault();this.setHL(Math.max(this.selIdx-1,0));break;
+          case 'Enter':e.preventDefault();if(this.selIdx>=0)this.select(this.selIdx);else if(this.results.length)this.select(0);break;
+          case 'Tab':e.preventDefault();if(this.selIdx>=0)this.select(this.selIdx);else if(this.results.length)this.select(0);else this.hide();break;
+          case 'Escape':e.preventDefault();this.hide();break;
+        }
+      }
+    };
+  }
+
+  var _acItem = createAutocomplete('ac-dropdown',
+    function(q){
+      if(!q)return[];
+      var nq=this.norm(q);
+      return _masterItems.filter(function(r){
+        return this.norm(r.Description||'').indexOf(nq)>-1||this.norm(r.Item_Code||'').indexOf(nq)>-1;
+      }.bind(this)).slice(0,15);
+    },
+    function(item){
+      var n=this.inputEl.dataset.shridx;
+      var isValid=validateItemVsSo(n,item.Item_Code);if(!isValid)return false;
+      this.inputEl.value=item.Description||'';
+      var ic=document.getElementById('shr-itemcode-'+n);if(ic)ic.value=item.Item_Code||'';
+      var wgPce=parseFloat(item['Wg/Pce FC']||item['Wg/Pce_FC']||0)||0;
+      var wgEl=document.getElementById('shr-wgpce-'+n);if(wgEl){wgEl.value=wgPce;calcQtyPlan(n);}
+      return document.getElementById('shr-cutp-'+n)||null;
+    }
+  );
+
+  window.acItemInput=function(el,n){_acItem.inputEl=el;el.dataset.shridx=n;_acItem.search(el.value);};
+  window.acItemFocus=function(el,n){el.dataset.shridx=n;_acItem.open(el);};
+  window.acItemKey  =function(e,el,n){el.dataset.shridx=n;_acItem.key(e);};
+
+  /* ── OWNER AUTO-LOCK ── */
+  window.handleShrTargetChange = function(n) {
+    var targetEl     = document.getElementById('shr-target-'+n);
+    var ownerInp     = document.getElementById('shr-owner-'+n);
+    var ownerUsedInp = document.getElementById('shr-owner-used-'+n);
+    var badge        = document.getElementById('shr-badge-'+n);
+    if (!targetEl||!ownerInp||!ownerUsedInp||!badge) return;
+    var target   = targetEl.value;
+    var matOwner = ownerInp.value;
+    if (target==='WIP_Cust'||target==='WIP_Stamping') {
+      ownerUsedInp.value=matOwner; badge.textContent=matOwner;
+      badge.className='owner-badge '+(matOwner==='DRC'?'badge-drc':'badge-fc');
+      badge.style.cursor='default'; badge.style.pointerEvents='none'; badge.style.opacity='0.65';
+    } else if (target==='Scrap_Area') {
+      ownerUsedInp.value='FC'; badge.textContent='FC'; badge.className='owner-badge badge-fc';
+      badge.style.cursor='pointer'; badge.style.pointerEvents=''; badge.style.opacity='1';
+    } else {
+      badge.style.cursor='pointer'; badge.style.pointerEvents=''; badge.style.opacity='1';
+    }
+    var custEl=document.getElementById('shr-cust-'+n);
+    if (custEl&&custEl.value&&target!=='Scrap_Area') applyOwnerUsedByCust(n,custEl.value);
+  };
+
+  window.applyOwnerUsedByCust = function(n,custVal) {
+    var cust=String(custVal||'').trim().toUpperCase();
+    var isDrc=(cust==='DRC'||cust.indexOf('DRC')===0);
+    if (!isDrc) return;
+    var targetEl=document.getElementById('shr-target-'+n);
+    if (targetEl&&targetEl.value==='Scrap_Area') return;
+    var ownerUsedInp=document.getElementById('shr-owner-used-'+n);
+    var badge=document.getElementById('shr-badge-'+n);
+    if (!ownerUsedInp||!badge) return;
+    ownerUsedInp.value='DRC'; badge.textContent='DRC'; badge.className='owner-badge badge-drc';
+    badge.style.cursor='default'; badge.style.pointerEvents='none'; badge.style.opacity='0.75';
+    badge.title='Terkunci — customer DRC';
+  };
+
+  window.toggleOwner = function(n) {
+    var inp=document.getElementById('shr-owner-used-'+n);
+    var bdg=document.getElementById('shr-badge-'+n);
+    if (!inp||!bdg) return;
+    if (bdg.style.pointerEvents==='none') return;
+    if (inp.value==='FC'){inp.value='DRC';bdg.textContent='DRC';bdg.className='owner-badge badge-drc';}
+    else{inp.value='FC';bdg.textContent='FC';bdg.className='owner-badge badge-fc';}
+  };
+
+  /* ── SO CHANGE ── */
+  window.handleSoChangeShr = function(n) {
+    var soEl = document.getElementById('shr-so-'+n);
+    var soVal = String(soEl.value||'').trim().toUpperCase();
+    if (soVal&&_soData.length===0) { alert('🛑 Data SO tidak terbaca!'); return; }
+    var custVal='';
+    if (soVal&&_soData.length>0) {
+      var found=_soData.find(function(r){
+        var rSo=String(r.SO_No||r['SO No']||r.SONO||'').trim().toUpperCase();
+        return rSo===soVal||rSo.indexOf(soVal)>-1;
+      });
+      if (found) custVal=String(found.Cust||found.CUST||found.Customer||'').trim();
+    }
+    document.getElementById('shr-cust-'+n).value=custVal;
+    if (custVal) applyOwnerUsedByCust(n,custVal);
+  };
+
+  /* ── VALIDASI ITEM vs SO ── */
+  window.validateItemVsSo = function(n,itemCode) {
+    var soNo=String((document.getElementById('shr-so-'+n)||{value:''}).value||'').trim();
+    if (!soNo) return confirm('⚠️ KONFIRMASI:\nKolom SO kosong. Proses ini BUKAN untuk SO Customer?\n[OK] Lanjut | [Cancel] Isi SO dulu');
+    return true;
+  };
+
+  /* ── ADD / REMOVE OUT SHR ── */
+  window.addOutShr = function() {
+    _shrCount++;
+    var n = _shrCount;
+    var baseSpk = window._editingSpkShrNo || _spkNo || 'SHR-??????';
+    var idp     = baseSpk+'-'+String(n).padStart(2,'0');
+    var initOwner  = _sheetOwner||'FC';
+    var ownerClass = 'owner-badge '+(initOwner==='DRC'?'badge-drc':'badge-fc');
+
+    var html =
+      '<div class="shr-block" id="shr-block-'+n+'">'
+      +'<div class="shr-head-row">'
+       +'<span class="shr-head-label">OUT SHR '+n+'</span>'
+       +'<input type="hidden" id="shr-owner-'+n+'" value="'+initOwner+'">'
+       +'<span style="font-weight:600;color:#555;font-size:11px;">UsedBy:</span>'
+       +'<span class="'+ownerClass+'" id="shr-badge-'+n+'" onclick="toggleOwner('+n+')">'+initOwner+'</span>'
+       +'<input type="hidden" id="shr-owner-used-'+n+'" value="'+initOwner+'">'
+       +'<input type="hidden" id="shr-wgpce-'+n+'" value="0">'
+       +'<input type="hidden" id="shr-kg-plan-'+n+'" value="0">'
+       +'<span style="font-weight:600;color:#555;margin-left:10px">SO No</span>'
+       +'<input id="shr-so-'+n+'" style="width:140px" placeholder="Nomor SO" onchange="handleSoChangeShr('+n+')">'
+       +'<span style="font-weight:600;color:#555">Cust</span>'
+       +'<input id="shr-cust-'+n+'" style="width:100px" placeholder="Customer">'
+       +'<div class="action-group">'
+        +'<button class="btn-act btn-hps" onclick="removeShr('+n+')">🗑️ Hapus</button>'
+       +'</div>'
+      +'</div>'
+      +'<table class="shr-tbl"><thead><tr>'
+       +'<th style="width:125px">ID_Process</th>'
+       +'<th style="width:110px">Item_Code</th>'
+       +'<th>Description</th>'
+       +'<th style="width:105px;text-align:center">Cut P / L</th>'
+       +'<th style="width:90px">QTY_Plan</th>'
+       +'<th style="width:150px">Target_Loc</th>'
+      +'</tr></thead>'
+      +'<tbody><tr>'
+       +'<td><input value="'+idp+'" readonly style="width:100%"></td>'
+       +'<td><input id="shr-itemcode-'+n+'" readonly style="width:100%"></td>'
+       +'<td><input id="shr-desc-'+n+'" style="width:100%" placeholder="Ketik Ukuran Hasil..." autocomplete="off"'
+        +' oninput="acItemInput(this,'+n+')" onfocus="acItemFocus(this,'+n+')" onkeydown="acItemKey(event,this,'+n+')"></td>'
+       +'<td style="text-align:center;white-space:nowrap">'
+        +'<input id="shr-cutp-'+n+'" type="number" style="width:38px;text-align:center" value="1" min="1" oninput="calcQtyPlan('+n+')"> / '
+        +'<input id="shr-cutl-'+n+'" type="number" style="width:38px;text-align:center" value="1" min="1" oninput="calcQtyPlan('+n+')">'
+       +'</td>'
+       +'<td><input id="shr-qty-'+n+'" readonly style="width:100%;text-align:center;font-weight:bold;background:#e8f5e9;color:var(--shr-green)"></td>'
+       +'<td><select id="shr-target-'+n+'" style="width:100%" onchange="handleShrTargetChange('+n+')">'
+        +'<option value="FG_Cust">FG_Cust</option>'
+        +'<option value="WIP_Cust">WIP_Cust</option>'
+        +'<option value="WIP_Stamping">WIP_Stamping</option>'
+        +'<option value="FG_RM_Stamping">FG_RM_Stamping</option>'
+        +'<option value="Stok_Sheet">Stok_Sheet</option>'
+        +'<option value="Scrap_Area">Scrap_Area</option>'
+       +'</select></td>'
+      +'</tr></tbody></table>'
+      +'</div>';
+
+    document.getElementById('out-shr-list').insertAdjacentHTML('beforeend', html);
+    handleShrTargetChange(n);
+    calcQtyPlan(n);
+  };
+
+  window.removeShr = function(n) {
+    var block = document.getElementById('shr-block-'+n);
+    if (!block) return;
+    var isEdit  = !!window._editingSpkShrNo;
+    var isExist = block.dataset&&block.dataset.existing==='1';
+    if (isEdit&&isExist) {
+      if (!confirm('Tandai SHR-OUT ini CANCELLED di sheet?')) return;
+      block.style.opacity='0.4';
+      block.dataset.pendingCancel = block.dataset.spkNo||'';
+      var btnH=block.querySelector('.btn-hps');
+      if (btnH){btnH.textContent='⛔ (akan dicancel)';btnH.disabled=true;}
+    } else {
+      block.remove();
+      updateYieldSummary();
+    }
+  };
+
+  /* ── INIT ── */
+  function init() {
+    _acItem.init();
+    document.getElementById('hdr-date').textContent =
+      new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+
+    // ✅ TIDAK ADA generateSpkNoSHR() di sini
+    document.getElementById('hdr-spkno').textContent = '(auto)';
+    _spkNo = '';
+
+    google.script.run.withSuccessHandler(function(d){_masterItems=d||[];}).getSheetData('M_ITEM');
+    google.script.run.withSuccessHandler(function(d){_soData=d||[];}).getSheetData('SO');
+    // Stok diload saat openCreateSHR() dipanggil
+  }
+
+  /* ── SAVE ── */
+  window.saveSPK_SHR = function() {
+    var batchId  = document.getElementById('hdr-batch-id').value;
+    var inputQty = parseFloat(document.getElementById('hdr-qty-input').value)||0;
+    var isEditMode = !!window._editingSpkShrNo;
+
+    if (!batchId) { alert('Pilih Batch Lembaran yang akan dipotong!'); return; }
+    if (inputQty<=0) {
+      alert('❌ Proses QTY Sht harus diisi manual sebelum simpan.\n\nCek total yang ingin Anda proses dari batch ini.');
+      return;
+    }
+    if (!document.querySelectorAll('.shr-block').length) { alert('Tambahkan minimal 1 instruksi potongan (OUT SHR)!'); return; }
+
+    var inKg = parseFloat(document.getElementById('hdr-kg-input').textContent)||0;
+    var outKg = 0;
+    document.querySelectorAll('.shr-block').forEach(function(b){
+      outKg += parseFloat(document.getElementById('shr-kg-plan-'+b.id.replace('shr-block-','')).value)||0;
+    });
+    var pct = inKg>0?((inKg-outKg)/inKg)*100:0;
+    if (pct>3&&!confirm('⚠️ YIELD CONTROL ALERT (WASTE > 3%)\n\nScrap mencapai '+pct.toFixed(1)+'%. Lanjut simpan?')) return;
+
+    var outShr = [];
+    document.querySelectorAll('.shr-block').forEach(function(b){
+      var n = b.id.replace('shr-block-','');
+      outShr.push({
+        existing_spk_no: (b.dataset&&b.dataset.existing==='1') ? b.dataset.spkNo : null,
+        pending_cancel  : b.dataset ? (b.dataset.pendingCancel||null) : null,
+        item_code  : document.getElementById('shr-itemcode-'+n).value,
+        description: document.getElementById('shr-desc-'+n).value,
+        so_no      : document.getElementById('shr-so-'+n).value,
+        cust       : document.getElementById('shr-cust-'+n).value,
+        target_loc : document.getElementById('shr-target-'+n).value,
+        owner      : document.getElementById('shr-owner-'+n).value,
+        owner_used : document.getElementById('shr-owner-used-'+n).value,
+        cut_p      : parseFloat(document.getElementById('shr-cutp-'+n).value)||1,
+        cut_l      : parseFloat(document.getElementById('shr-cutl-'+n).value)||1,
+        qty_plan   : parseFloat(document.getElementById('shr-qty-'+n).value)||0,
+        kg_plan    : parseFloat(document.getElementById('shr-kg-plan-'+n).value)||0
+      });
+    });
+
+    var payload = {
+      spk_no    : isEditMode ? window._editingSpkShrNo : null,
+      batch_id  : batchId,
+      batch_owner: _sheetOwner,
+      item_input : document.getElementById('hdr-item').value,
+      spec_input : document.getElementById('hdr-spec').value,
+      machine    : document.getElementById('hdr-machine').value,
+      priority   : document.getElementById('hdr-priority').value,
+      source_loc : document.getElementById('hdr-source-loc').value,
+      op         : document.getElementById('hdr-op').value,
+      qty_input  : inputQty,
+      kg_input   : inKg,
+      owner      : document.getElementById('hdr-owner').value||'FC',
+      thick      : parseFloat(document.getElementById('hdr-t').value)||0,
+      out_shr    : outShr
+    };
+
+    var btn = document.getElementById('btn-save');
+    btn.textContent='⏳ Menyimpan...'; btn.disabled=true;
+
+    var successHandler = function(res){
+      btn.disabled=false;
+      btn.textContent= isEditMode ? '💾 Simpan Perubahan' : '💾 SIMPAN & CETAK SPK';
+      window._editingSpkShrNo = null;
+
+      // ✅ Stop timer refresh stok segera (sudah tidak perlu di view-detail)
+      if (window._stokRefreshTimerSHR) {
+        clearInterval(window._stokRefreshTimerSHR);
+        window._stokRefreshTimerSHR = null;
+      }
+
+      // ✅ Navigate ke detail (sole async call, prioritas tertinggi)
+      openDetailSHR(res.spk_no);
+
+      // ✅ Refresh list di background setelah delay (tidak compete dgn openDetail)
+      setTimeout(function(){
+        loadListSHR();
+      }, 2000);
+
+      // ✅ Print di background setelah delay (hanya untuk save BARU)
+      if (!isEditMode) {
+        setTimeout(function(){
+          var dataInduk={spk_no:res.spk_no,tanggal:document.getElementById('hdr-date').textContent,batch_id:batchId,
+            lokasi_asal:document.getElementById('hdr-source-loc').value,qty_induk:inputQty,
+            kg_induk:inKg,operator:document.getElementById('hdr-op').value,
+            spec_induk:document.getElementById('hdr-spec').value};
+          var dataAnak=outShr.map(function(s,idx){return{spk_child_no:res.spk_no+'-'+String(idx+1).padStart(2,'0'),
+            so_no:s.so_no||'--',cust:s.cust||'--',spec_hasil:s.description||'--',
+            cut_p:s.cut_p||1,cut_l:s.cut_l||1,target_loc:s.target_loc||'',qty_target:s.qty_plan||0};});
+          printSPK_SHR(dataInduk,dataAnak);
+        }, 3500);
+      }
+    };
+    var failureHandler = function(err){
+      btn.disabled=false; btn.textContent=isEditMode?'💾 Simpan Perubahan':'💾 SIMPAN & CETAK SPK';
+      alert('❌ Gagal Menyimpan:\n'+err.message);
+    };
+
+    if (isEditMode) {
+      google.script.run.withSuccessHandler(successHandler).withFailureHandler(failureHandler).updateAndAppendSpkSHR(payload);
+    } else {
+      google.script.run.withSuccessHandler(successHandler).withFailureHandler(failureHandler).saveSPK_SHR_Final(payload);
+    }
+  };
+
+  /* ── RESET FORM ── */
+  window.resetFormSHR = function() {
+    window._editingSpkShrNo = null;
+    _spkNo = ''; _shrCount = 0; _sheetOwner = 'FC';
+    _acItem.hide && _acItem.hide();
+
+    var sel = document.getElementById('hdr-batch');
+    sel.innerHTML='<option value="">-- Pilih Batch --</option>';
+    sel.disabled=false; sel.style.background='';
+    document.getElementById('hdr-batch-id').value='';
+    ['hdr-item','hdr-spec','hdr-op','hdr-wgpce-input'].forEach(function(id){
+      var e=document.getElementById(id);if(e)e.value='';
+    });
+    ['hdr-qty-avail','hdr-kg-avail','hdr-kg-input'].forEach(function(id){
+      var e=document.getElementById(id);if(e)e.textContent='0';
+    });
+    document.getElementById('hdr-qty-input').value='';
+    document.getElementById('hdr-priority').value='Normal';
+    setHeaderOwnerDisplay('FC');
+    document.getElementById('out-shr-list').innerHTML='';
+    updateYieldSummary();
+
+    // ✅ Tidak ada generateSpkNoSHR()
+    document.getElementById('hdr-spkno').textContent='(auto)';
+    document.getElementById('hdr-spkno').style.color='';
+    document.getElementById('hdr-spkno').title='Nomor SPK digenerate otomatis saat simpan';
+
+    var old=document.getElementById('edit-mode-banner-shr');
+    if (old) old.remove();
+
+    var btn=document.getElementById('btn-save');
+    btn.textContent='💾 SIMPAN & CETAK SPK'; btn.style.background='';
+  };
+
+  init();
+})();
+
+/* ================================================================
+   POPULATE FORM DARI EXISTING SPK SHR (Edit Mode)
+================================================================ */
+window._editingSpkShrNo = null;
+
+function populateFormFromSpkShr(res) {
+  if (!res||!res.header){alert('Data SPK tidak valid!');return;}
+  var h=res.header;
+  window._editingSpkShrNo=h.spk_no;
+
+  var spkDisplay=document.getElementById('hdr-spkno');
+  spkDisplay.textContent=h.spk_no; spkDisplay.style.color='#e65100';
+  spkDisplay.title='MODE EDIT — SPK '+h.spk_no;
+
+  var selBatch=document.getElementById('hdr-batch');
+  var found=false;
+  for (var i=0;i<selBatch.options.length;i++) {
+    if (selBatch.options[i].value===h.batch_id){selBatch.selectedIndex=i;found=true;break;}
+  }
+  if (!found) {
+    var opt=document.createElement('option');
+    opt.value=h.batch_id; opt.textContent=h.batch_id+' (existing)';
+    selBatch.appendChild(opt); selBatch.value=h.batch_id;
+  }
+  selBatch.disabled=true; selBatch.style.background='#f5e8d0';
+  document.getElementById('hdr-batch-id').value=h.batch_id;
+  document.getElementById('hdr-item').value=h.item_code||'';
+  document.getElementById('hdr-spec').value=h.input_spec||'';
+  document.getElementById('hdr-priority').value=h.priority||'Normal';
+  document.getElementById('hdr-source-loc').value=h.source_loc||'WIP_Transit_Shearing';
+  document.getElementById('hdr-op').value=h.op||'';
+  document.getElementById('hdr-machine').value=h.mc_no||'SHR-01';
+  document.getElementById('hdr-qty-input').value=h.qty_target||0;
+
+  var ownerVal=String(h.owner||'FC').trim().toUpperCase();
+  document.getElementById('hdr-owner').value=ownerVal;
+  var hd=document.getElementById('hdr-owner-display');
+  if (hd){hd.textContent=ownerVal;hd.className='owner-badge '+(ownerVal==='DRC'?'badge-drc':'badge-fc');}
+
+  var wgpceHdr=(h.qty_target&&h.qty_target>0)?(h.kg_target/h.qty_target):0;
+  document.getElementById('hdr-wgpce-input').value=wgpceHdr;
+  document.getElementById('hdr-qty-avail').textContent=h.qty_target||0;
+  document.getElementById('hdr-kg-avail').textContent=Math.round(h.kg_target||0);
+  calcHeaderKg();
+
+  document.getElementById('out-shr-list').innerHTML='';
+
+  if (res.out_shr&&res.out_shr.length>0) {
+    res.out_shr.forEach(function(shr){
+      addOutShr();
+      var blocks=document.querySelectorAll('.shr-block');
+      var block=blocks[blocks.length-1];
+      var n=block.id.replace('shr-block-','');
+      block.dataset.existing='1'; block.dataset.spkNo=shr.spk_no;
+
+      var idInput=block.querySelector('.shr-tbl tbody tr td:first-child input');
+      if (idInput) idInput.value=shr.spk_no;
+
+      var lbl=block.querySelector('.shr-head-label');
+      if (lbl&&lbl.innerHTML.indexOf('EXISTING')===-1)
+        lbl.innerHTML+=' <span style="color:#e65100;font-size:9px;background:#fff3cd;padding:1px 5px;border-radius:3px;margin-left:4px;">🔓 EXISTING</span>';
+      var btnH=block.querySelector('.btn-hps');
+      if (btnH){btnH.textContent='🚫 Cancel';btnH.title='Set CANCELLED di sheet';}
+
+      document.getElementById('shr-itemcode-'+n).value=shr.item_code||'';
+      document.getElementById('shr-desc-'+n).value=shr.description||'';
+      document.getElementById('shr-so-'+n).value=shr.so_no||'';
+      document.getElementById('shr-cust-'+n).value=shr.cust||'';
+      document.getElementById('shr-target-'+n).value=shr.target_loc||'FG_Cust';
+      document.getElementById('shr-cutp-'+n).value=shr.cut_p||1;
+      document.getElementById('shr-cutl-'+n).value=shr.cut_l||1;
+      var wg=(shr.qty_plan&&shr.qty_plan>0)?(shr.kg_plan/shr.qty_plan):0;
+      document.getElementById('shr-wgpce-'+n).value=wg;
+      document.getElementById('shr-owner-'+n).value=shr.owner||ownerVal;
+      document.getElementById('shr-owner-used-'+n).value=shr.owner_used||shr.owner||ownerVal;
+      var bdg=document.getElementById('shr-badge-'+n);
+      if (bdg){var ou=shr.owner_used||shr.owner||ownerVal;bdg.textContent=ou;bdg.className='owner-badge '+(ou==='DRC'?'badge-drc':'badge-fc');}
+
+      handleShrTargetChange(n);
+      if (shr.cust) applyOwnerUsedByCust(n,shr.cust);
+      calcQtyPlan(n);
+    });
+  }
+
+  var btn=document.getElementById('btn-save');
+  btn.textContent='💾 Simpan Perubahan'; btn.style.background='#e65100';
+  showEditBannerSHR(h.spk_no);
+}
+
+function showEditBannerSHR(spkNo) {
+  var old=document.getElementById('edit-mode-banner-shr');if(old)old.remove();
+  var banner=document.createElement('div');
+  banner.id='edit-mode-banner-shr';
+  banner.style.cssText='background:#fff3cd;border:1px solid #e65100;color:#7a3e00;padding:8px 14px;margin-bottom:8px;border-radius:4px;font-weight:600;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;';
+  banner.innerHTML='<span>✏️ <b>MODE EDIT</b> &mdash; SPK <b>'+spkNo+'</b> &nbsp;|&nbsp; Tombol <b>🚫 Cancel</b> = CANCELLED di sheet.</span>'
+    +'<button onclick="backFromCreateSHR()" style="background:#7a3e00;color:#fff;border:none;padding:5px 12px;border-radius:3px;cursor:pointer;font-weight:700;">✖ Batal Edit</button>';
+  var wrap=document.getElementById('spk-shr-wrap');
+  var section=wrap.querySelector('.section-title');
+  if (section) section.parentNode.insertBefore(banner,section);
+}
+
+/* ================================================================
+   PRINT SPK SHR — Preserved dari existing (iframe print)
+================================================================ */
+function printSPK_SHR(dataSPK, dataOut) {
+  var htmlPrint = '<html><head><title>Print SPK - '+dataSPK.spk_no+'</title><style>'
+    +'@page{size:108mm 140mm;margin:5mm}'
+    +'*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;color:#000;margin:0;padding:0}'
+    +'body{font-size:9pt;line-height:1.2;background:#fff}'
+    +'.bold{font-weight:bold}.line-double{border-bottom:2px solid #000;margin:4px 0}'
+    +'.line-dashed{border-bottom:1px dashed #000;margin:4px 0}.line-thin{border-bottom:1px solid #000;margin:4px 0}'
+    +'.tw{display:table;width:100%}.tr{display:table-row}.tc{display:table-cell;vertical-align:top}'
+    +'.section-title{font-size:8.5pt;font-weight:bold;margin-top:3px;text-transform:uppercase}'
+    +'.induk-box{border:1px solid #000;padding:4px;font-size:8.5pt;margin-bottom:5px}'
+    +'.child-item{padding:4px 0;page-break-inside:avoid}'
+    +'.child-title{font-weight:bold;font-size:9pt;margin-bottom:2px}'
+    +'.box-aktual{display:inline-block;border:1px solid #000;width:40mm;height:5mm;vertical-align:middle}'
+    +'</style></head><body>'
+    +'<div class="tw"><div class="tr">'
+    +'<div class="tc" style="width:45%;font-size:10pt;font-weight:bold;">[LOGO F/C]<br><span style="font-size:7.5pt;font-weight:normal;">PT Flambindo Cortama</span></div>'
+    +'<div class="tc" style="width:55%;font-size:8pt;text-align:right;"><span style="font-size:11pt;font-weight:bold;">SPK SHEARING</span><br>No SPK: <span class="bold">'+dataSPK.spk_no+'</span><br>Tgl: '+dataSPK.tanggal+' &nbsp;|&nbsp; M/C: '+dataSPK.mc_no+'</div>'
+    +'</div></div>'
+    +'<div class="line-double"></div>'
+    +'<div class="section-title">A. Material Induk (Input)</div>'
+    +'<div class="induk-box"><div class="tw"><div class="tr">'
+    +'<div class="tc" style="width:55%;">Batch ID: <span class="bold">'+dataSPK.batch_id+'</span><br>Asal: <span class="bold">'+dataSPK.lokasi_asal+'</span></div>'
+    +'<div class="tc" style="width:45%;text-align:right;">Target: <span class="bold">'+dataSPK.qty_induk+' Lbr ('+dataSPK.kg_induk+' Kg)</span><br>OP: <span class="bold">'+dataSPK.operator+'</span></div>'
+    +'</div></div><div class="line-thin" style="margin:2px 0;"></div>'
+    +'<div style="font-size:9.5pt;">Spec: <span class="bold">'+dataSPK.spec_induk+'</span></div></div>'
+    +'<div class="section-title">B. Instruksi Potong (SHR-OUT)</div>'
+    +'<div class="line-thin"></div>';
+
+  dataOut.forEach(function(item, index) {
+    htmlPrint += '<div class="child-item"><div class="child-title">#'+(index+1)+' | ID: '+item.spk_child_no+'</div>'
+      +'<div class="tw"><div class="tr">'
+      +'<div class="tc" style="width:55%;font-size:8.5pt;">Cust/SO: <span class="bold">'+item.cust+'</span> / '+item.so_no+'<br>'
+      +'Size: <span class="bold" style="font-size:9pt;">'+item.spec_hasil+'</span><br>'
+      +'Pola: <span class="bold">Cut_P: '+item.cut_p+' &nbsp;&nbsp; Cut_L: '+item.cut_l+'</span></div>'
+      +'<div class="tc" style="width:45%;font-size:8.5pt;padding-left:2px;">Loc Target: <span class="bold">'+item.target_loc+'</span><br>'
+      +'Qty Target: <span class="bold" style="font-size:10pt;">'+item.qty_target+' Pcs</span><br>'
+      +'Aktual: <div class="box-aktual"></div> Pcs</div>'
+      +'</div></div></div><div class="line-dashed"></div>';
+  });
+
+  htmlPrint += '<div style="font-size:7.5pt;font-style:italic;margin-top:3px;">Catatan: ....................................................................</div>'
+    +'<div style="margin-top:15px;page-break-inside:avoid;"><div class="tw" style="font-size:8pt;"><div class="tr">'
+    +'<div class="tc" style="width:50%;text-align:center;">Dibuat Oleh,<br><br><br><br>( Admin PPIC )</div>'
+    +'<div class="tc" style="width:50%;text-align:center;">Diterima Oleh,<br><br><br><br>( Leader SHR )</div>'
+    +'</div></div></div>'
+    +'</body></html>';
+
+  var printFrame=document.createElement('iframe');
+  printFrame.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+  document.body.appendChild(printFrame);
+  printFrame.contentDocument.open();
+  printFrame.contentDocument.write(htmlPrint);
+  printFrame.contentDocument.close();
+  printFrame.onload=function(){
+    printFrame.contentWindow.focus();
+    printFrame.contentWindow.print();
+    setTimeout(function(){document.body.removeChild(printFrame);},3000);
+  };
+}
+
+/* Auto-load list saat halaman pertama aktif */
+window.addEventListener('load', function(){ loadListSHR(); });
+</script>

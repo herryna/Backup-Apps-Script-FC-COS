@@ -1,0 +1,285 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+/* =========================================
+   1. GLOBAL & LAYOUT ANTI MELAR
+========================================== */
+html, body {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  color: #333;
+  background: #fafaf8;
+  min-height: 100vh;
+  overflow: hidden; /* Dikunci agar scrollbar utama hanya ada di lembar kerja (main) */
+  width: 100%;
+}
+
+.app {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+
+/* =========================================
+   2. TOPBAR HEADER
+========================================== */
+.topbar { 
+  display: flex; align-items: stretch; justify-content: space-between; 
+  padding: 0; height: 36px; min-height: 36px; 
+  background-color: #ffffff; /* Warna biru */
+  z-index: 1001; position: relative; flex-shrink: 0; 
+  border: none; 
+}
+.header-brand {
+  width: 260px; display: flex; justify-content: flex-start; align-items: center; padding: 0;
+  background-color: #ffffff;
+}
+.header-brand img {
+  height: 100%; width: auto; object-fit: contain; object-position: left;
+}
+.header-main {
+  flex-grow: 1; display: flex; justify-content: flex-end; align-items: center; padding: 0 16px;
+}
+.topbar h1 { font-size: 18px; font-weight: bold; color: #ffffff; letter-spacing: 0.5px; margin: 0; }
+.topbar h1 { font-size: 18px; font-weight: bold; color: #ffffff; letter-spacing: 0.5px; margin: 0; }
+
+.conn { font-size: 11px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 5px; font-weight: 600; width: 95px; height: 26px; transition: all 0.3s ease; box-sizing: border-box; }
+.conn.ok { background: #E1F5EE; color: #085041; }
+.conn.err { background: #FCEBEB; color: #A32D2D; }
+.conn.loading { background: transparent; color: #ffffff; }
+
+/* =========================================
+   3. STRUKTUR APP BODY & MAIN CONTENT
+========================================== */
+.app-body {
+  display: flex;
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+main#main-content {
+  flex: 1;
+  margin-left: 52px; /* Lebar sidebar kempis */
+  padding: 20px;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #fafaf8;
+}
+
+/* =========================================
+   4. FLOATING HOVER SIDEBAR WITH GROUP HEADERS
+========================================== */
+.sidebar {
+  position: absolute;
+  top: 0; left: 0;
+  width: 52px; /* Lebar sidebar kempis */
+  height: 100%;
+  background: #ffffff;
+  border-right: 1px solid #e0e0e0;
+  z-index: 1000;
+  overflow-x: hidden;
+  overflow-y: auto;
+  white-space: nowrap;
+  transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Mengembang mulus saat kursor menyorot area samping */
+.sidebar:hover {
+  width: 260px; 
+  box-shadow: 5px 0 15px rgba(0,0,0,0.08);
+}
+
+/* Kelas kontrol untuk langsung memaksa sidebar mengempis setelah klik menu */
+.sidebar.force-collapse { width: 50px !important; }
+
+/* LABEL KATEGORI PILAR (GROUP HEADERS) */
+.nav-header {
+  padding: 14px 20px 6px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #a0a0a0;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  opacity: 0; /* Tersembunyi saat sidebar mengecil */
+  transition: opacity 0.15s ease;
+  display: block;
+}
+.sidebar:hover .nav-header {
+  opacity: 1; /* Muncul saat melebar */
+  transition-delay: 0.1s;
+}
+
+/* ITEM MENU UTAMA */
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 12px; /* Padding kiri-kanan dikurangi jadi 12px biar ikon tetap di tengah */
+  color: #555;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: background 0.2s, color 0.2s;
+}
+.nav-item:hover, .nav-item.on {
+  background: #f0f4f8;
+  color: #1565c0;
+  border-left-color: #1565c0;
+}
+.nav-icon {
+  font-size: 20px;
+  min-width: 24px;
+  text-align: center;
+}
+.nav-text {
+  margin-left: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0; /* Tersembunyi saat mengecil */
+  transition: opacity 0.2s ease-in-out;
+}
+.sidebar:hover .nav-text {
+  opacity: 1; /* Muncul saat melebar */
+  transition-delay: 0.05s; 
+}
+.sub-arrow {
+  margin-left: auto;
+  font-size: 14px;
+  opacity: 0;
+  color: #aaa;
+}
+.sidebar:hover .sub-arrow { opacity: 1; }
+
+/* CONTAINER SUB MENU (DROPDOWN) */
+.sub-menu {
+  display: none; /* Default tertutup */
+  background: #fcfcfc;
+  border-bottom: 1px solid #f0f0f0;
+  flex-direction: column;
+}
+.sub-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 20px 10px 60px; /* Jarak indentasi masuk ke dalam agar rapi */
+  color: #666;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.sub-item:hover, .sub-item.on {
+  color: #1565c0;
+  font-weight: 600;
+  background: #eaf0fb;
+}
+.sub-item i { margin-right: 10px; font-size: 15px; }
+
+/* =========================================
+   5. UTILITAS KODE (TOAST, BADGE, TABEL, DLL)
+========================================== */
+.loading { padding:40px; text-align:center; color:#888; font-size:13px; }
+@keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+.ti-loader.spin-anim { animation: spin 1s linear infinite; font-size: 16px; }
+
+.toast { position:fixed; bottom:20px; right:20px; padding:10px 16px; border-radius:6px; font-size:13px; font-weight:500; box-shadow:0 2px 8px rgba(0,0,0,.15); z-index:9999; display:none; }
+.toast.success { background:#1D9E75; color:#fff; }
+.toast.error { background:#E24B4A; color:#fff; }
+.toast.show { display:block; }
+
+.bdg { display:inline-block; padding:2px 9px; border-radius:10px; font-size:11px; font-weight:500; white-space:nowrap; }
+.bdg-q { background:#FAEEDA; color:#633806; }
+.bdg-p { background:#E6F1FB; color:#0C447C; }
+.bdg-s { background:#E1F5EE; color:#085041; }
+
+.btn { padding:6px 14px; border-radius:6px; font-size:12px; cursor:pointer; border:0.5px solid #ccc !important; background:#fff; color:#222; transition:transform 0.2s; }
+.btn:hover { transform:scale(1.05); }
+.btn-p { background:#222; color:#fff; border:none !important; font-weight:500; padding:7px 16px; }
+.btn-sm { padding:3px 9px; font-size:11px; border-radius:4px; }
+
+.tbl { width:100%; border-collapse:collapse; font-size:12px; background:#fff; }
+.tbl th { text-align:left; padding:8px 10px; font-size:11px; font-weight:500; color:#666; border-bottom:0.5px solid #e0e0e0; background:#fafaf8; }
+.tbl td { padding:8px 10px; border-bottom:0.5px solid #f0f0f0; }
+.tbl-no { font-weight:500; font-family:ui-monospace,monospace; font-size:11px; }
+
+.section-title { font-size:11px; font-weight:500; color:#666; text-transform:uppercase; letter-spacing:.4px; margin-bottom:10px; }
+.metric-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; margin-bottom:18px; }
+.mc { background:#f5f5f3; border-radius:8px; padding:14px; }
+.ml { font-size:11px; color:#666; margin-bottom:5px; }
+.mv { font-size:24px; font-weight:500; }
+.ms { font-size:11px; color:#888; margin-top:3px; }
+
+/* Filter & Card SPK List */
+.card { background: white; padding: 18px; border-radius: 10px; box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
+.filter-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+select, input[type="date"] { padding: 6px 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 12px; }
+.filter-bar button { padding: 6px 10px; border-radius: 6px; border: 1px solid #ccc !important; cursor: pointer; font-size: 12px; color: black; background:#fff; transition: transform 0.2s, border-color 0.2s; }
+.filter-bar button:hover { border-color: #2667eb !important; transform: scale(1.05); }
+.badge { padding: 3px 8px; border-radius: 6px; font-weight: 600; font-size: 10px; }
+.badge-antrian { background: #fff3e0; color: #ef6c00; }
+.badge-selesai { background: #e8f5e9; color: #2e7d32; }
+tr.row-antrian:hover { background: #ffe9cc; }
+tr.row-selesai:hover { background: #dff5e8; }
+.row-antrian { background: #fffaf3; }
+.row-selesai { background: #f1f8f4; }
+/* ANIMASI MESIN RUNNING */
+.running-box { display: flex; align-items: center; justify-content: flex-end; gap: 8px; color: #22c55e; font-weight: 900; font-size: 14px; text-transform: uppercase; }
+.pulse-dot { width: 12px; height: 12px; background: #22c55e; border-radius: 50%; box-shadow: 0 0 0 0 rgba(34,197,94, 0.7); animation: pulse-green 1.5s infinite; }
+.spin-gear { display: inline-block; font-size: 16px; animation: spin-gear 2s linear infinite; }
+
+@keyframes pulse-green {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34,197,94, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(34,197,94, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34,197,94, 0); }
+}
+@keyframes spin-gear { 100% { transform: rotate(360deg); } }
+
+
+
+/* ============================================================== */
+/* ⭐ SIDEBAR COLLAPSED — rapatkan ikon, hilangkan gap header     */
+/* ============================================================== */
+
+/* Default state: nav-header collapse TOTAL (height 0, bukan cuma invisible) */
+.nav-header {
+  height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  overflow: hidden;
+  transition: opacity 0.15s ease,
+              height 0.2s ease,
+              padding 0.2s ease;
+}
+
+/* Hover state: nav-header expand kembali — kecuali sedang force-collapse */
+.sidebar:hover:not(.force-collapse) .nav-header {
+  height: auto;
+  padding-top: 14px;
+  padding-bottom: 6px;
+}
+
+/* Saat collapsed: paksa sub-menu yang terbuka ikut tertutup,
+   biar tidak ada item dropdown yang nyembul jadi gap aneh */
+.sidebar:not(:hover) .sub-menu,
+.sidebar.force-collapse .sub-menu {
+  display: none !important;
+}
+
+/* Sub-arrow tidak perlu reserve space saat collapsed */
+.sidebar:not(:hover) .sub-arrow,
+.sidebar.force-collapse .sub-arrow {
+  display: none;
+}
+/* =========================================
+   DIVIDER ANTAR CLUSTER DOMAIN (REV STRUKTUR MENU)
+========================================== */
+.nav-divider {
+  height: 1px;
+  background: #e8e8e8;
+  margin: 10px 14px;
+  border: 0;
+}
+
+</style>

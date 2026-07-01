@@ -1,0 +1,412 @@
+<style>
+/* ================================================================
+   DELIVERY MANAGEMENT SYSTEM — STYLE UI
+================================================================ */
+:root {
+  --bg-app: #eef2f5; --bg-panel: #ffffff;
+  --text-main: #202b3c; --text-muted: #6b7785;
+  --border-color: #cbd5e1; --primary-blue: #0265dc;
+  --success-green: #108a4f; --danger-red: #d32f2f;
+  --table-head: #f1f5f9; --warning-orange: #f97316;
+}
+
+body { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 12px; color: var(--text-main); background: var(--bg-app); margin: 0; padding: 16px; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; }
+* { box-sizing: border-box; }
+
+.view-container { display: none; flex-direction: column; gap: 12px; height: 100%; }
+.view-container.active { display: flex; }
+
+.panel { background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 4px; display: flex; flex-direction: column; flex-shrink: 0;}
+.panel-head { font-weight: 700; color: #0f172a; background: #f8fafc; padding: 10px 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+.panel-body { padding: 12px 16px; }
+.row { display: flex; gap: 12px; margin-bottom: 10px; } .row:last-child { margin-bottom: 0; }
+.col { flex: 1; display: flex; flex-direction: column; gap: 4px; } .col-2 { flex: 2; display: flex; flex-direction: column; gap: 4px; }
+label { font-weight: 600; color: var(--text-muted); font-size: 11px; }
+.f-inp { border: 1px solid var(--border-color); border-radius: 3px; padding: 6px 10px; font-size: 12px; height: 28px; width: 100%; transition: 0.1s; box-sizing: border-box;}
+.f-inp:focus { outline: none; border-color: var(--primary-blue); box-shadow: 0 0 0 2px rgba(2,101,220,0.15); }
+
+.btn { padding: 0 16px; height: 28px; border-radius: 3px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; display: inline-flex; align-items: center; justify-content: center; transition: 0.1s; gap:6px;}
+.btn-primary { background: var(--primary-blue); color: #fff; } .btn-primary:hover { background: #014da8; }
+.btn-success { background: var(--success-green); color: #fff; } .btn-success:hover { background: #0c6b3d; }
+.btn-outline { background: #fff; color: var(--text-main); border: 1px solid var(--border-color); } .btn-outline:hover { background: #f1f5f9; }
+
+.table-wrap { flex-grow: 1; overflow-y: auto; overflow-x: auto; background: #fff; border: 1px solid var(--border-color); border-radius: 4px; min-height: 200px; }
+table { width: 100%; border-collapse: collapse; text-align: left; table-layout: fixed; }
+th { background: var(--table-head); font-size: 11px; padding: 10px 12px; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 10; color: var(--text-muted); text-transform: uppercase;}
+td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
+
+/* Status Badges Lampu Lalu Lintas Urgensi */
+.badge { padding: 2px 6px; border-radius: 3px; font-weight: 700; font-size: 10px; display: inline-block; text-align: center;}
+.badge-red { background: #fef2f2; color: var(--danger-red); border: 1px solid #fca5a5; }
+.badge-yellow { background: #fffbeb; color: var(--warning-orange); border: 1px solid #fcd34d; }
+.badge-green { background: #f0fdf4; color: var(--success-green); border: 1px solid #86efac; }
+
+/* Progress Bar Muatan Truk */
+.truck-capacity-box { background: #f8fafc; border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 4px; margin-bottom: 10px; }
+.progress-container { background: #e2e8f0; border-radius: 4px; height: 16px; width: 100%; overflow: hidden; margin-top: 6px; position: relative;}
+.progress-bar { background: var(--primary-blue); height: 100%; width: 0%; transition: width 0.3s ease; }
+.progress-bar.overload { background: var(--danger-red); }
+
+.summary-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 12px; }
+.summary-card { background: #fff; border: 1px solid var(--border-color); padding: 10px 14px; border-radius: 4px; border-left: 4px solid var(--text-muted); }
+.summary-card.heavy { border-left-color: var(--warning-orange); background: #fff7ed; }
+
+.so-ov { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.8); z-index: 9999; justify-content: center; align-items: center; flex-direction: column; }
+.so-ov.on { display: flex; }
+.spinner { width: 40px; height: 40px; border: 4px solid var(--border-color); border-top-color: var(--primary-blue); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
+<div id="view-delv-dashboard" class="view-container active">
+  <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-shrink:0;">
+    <div>
+      <h1 style="font-size:20px; font-weight:800; color:#0f172a; margin:0;">Delivery &amp; Surat Jalan Log</h1>
+      <span style="color:var(--text-muted); font-size:12px;">Daftar riwayat Surat Jalan (SJ) yang telah keluar dari gerbang pabrik.</span>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-outline" onclick="loadDeliveryDashboard(1)">🔄 Refresh</button>
+      <button class="btn btn-primary" onclick="openLoadPlanningPool()">🚚 Buat Plan Loading Truk</button>
+    </div>
+  </div>
+
+  <div class="table-wrap" style="border-radius:4px 4px 0 0;">
+    <table>
+      <thead>
+        <tr>
+          <th width="10%">Tanggal Kirim</th>
+          <th width="15%">No. Surat Jalan</th>
+          <th width="12%">Customer</th>
+          <th width="12%">No. SO Ref</th>
+          <th width="15%">Item Code</th>
+          <th width="12%">Qty / KG Kirim</th>
+          <th width="12%">No. Armada</th>
+          <th width="12%">Nama Driver</th>
+        </tr>
+      </thead>
+      <tbody id="delv-dash-tbody"></tbody>
+    </table>
+  </div>
+  <div class="pagination" style="display:flex; justify-content:center; align-items:center; gap:12px; background:#fff; padding:10px; border:1px solid var(--border-color); border-top:none; border-radius:0 0 4px 4px;">
+    <button class="btn btn-outline" id="dv-pg-prev" onclick="changeDelvPage(-1)">◀ Prev</button>
+    <span style="font-weight:700;" id="dv-pg-info">Halaman 1 / 1</span>
+    <button class="btn btn-outline" id="dv-pg-next" onclick="changeDelvPage(1)">Next ▶</button>
+  </div>
+</div>
+
+<div id="view-delv-pool" class="view-container">
+  <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-shrink:0;">
+    <div>
+      <h1 style="font-size:20px; font-weight:800; color:#0f172a; margin:0;">Papan Konsolidasi Barang Ready (Pool FG)</h1>
+      <span style="color:var(--text-muted); font-size:12px;">Pilih gabungan barang yang searah untuk mengoptimalkan kuota muatan Truk 8 Ton.</span>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-outline" onclick="showView('view-delv-dashboard')">✖ Batal</button>
+      <button class="btn btn-primary" style="background:var(--warning-orange);" onclick="proceedToManifest()">Lanjut Susun Manifest Truk ▶</button>
+    </div>
+  </div>
+
+  <div class="summary-card-grid" id="cust-summary-box"></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th width="4%" style="text-align:center;">Pilih</th>
+          <th width="11%">Urgensi SO</th>
+          <th width="10%">Target Kirim</th>
+          <th width="10%">Customer</th>
+          <th width="13%">Batch ID</th>
+          <th width="14%">Item Code</th>
+          <th width="20%">Deskripsi</th>
+          <th width="10%">Qty / Berat KG</th>
+          <th width="8%">Owner</th>
+        </tr>
+      </thead>
+      <tbody id="delv-pool-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="view-delv-manifest" class="view-container">
+  <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-shrink:0;">
+    <div>
+      <h1 style="font-size:20px; font-weight:800; color:#0f172a; margin:0;">Form Manifest Pengiriman Truk</h1>
+      <span style="color:var(--text-muted); font-size:12px;">Konfigurasi sopir, nomor armada, dan validasi batas tonase.</span>
+    </div>
+    <button class="btn btn-outline" onclick="showView('view-delv-pool')">◀ Kembali ke Pool</button>
+  </div>
+
+  <div class="truck-capacity-box">
+    <div style="display:flex; justify-content:space-between; font-weight:700; font-size:13px;">
+      <span>⚖️ Rencana Utilisasi Muatan Truk:</span>
+      <span id="txt-truck-weight">0.00 / 8,000.00 KG (0%)</span>
+    </div>
+    <div class="progress-container">
+      <div class="progress-bar" id="bar-truck-weight"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">Informasi Pengiriman &amp; Kendaraan</div>
+    <div class="panel-body">
+      <div class="row">
+        <div class="col"><label>Tanggal Pengiriman *</label><input type="date" class="f-inp" id="man-tanggal"></div>
+        <div class="col"><label>No. Armada / Plat Nomor *</label><input type="text" class="f-inp" id="man-armada" placeholder="Contoh: B 9911 FXX"></div>
+        <div class="col"><label>Nama Driver / Supir *</label><input type="text" class="f-inp" id="man-driver" placeholder="Nama lengkap supir"></div>
+        <div class="col-2"><label>Catatan Tambahan Pengiriman (Opsional)</label><input type="text" class="f-inp" id="man-note" placeholder="Catatan rute / bongkaran..."></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="flex-grow:1; overflow:hidden;">
+    <div class="panel-head">Daftar Muatan yang Akan Masuk Truk</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th width="10%">Customer</th>
+            <th width="15%">No. SO Ref</th>
+            <th width="15%">Batch ID</th>
+            <th width="15%">Item Code</th>
+            <th width="25%">Deskripsi</th>
+            <th width="10%">Qty</th>
+            <th width="10%">Berat (KG)</th>
+          </tr>
+        </thead>
+        <tbody id="man-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div style="display:flex; justify-content:flex-end; flex-shrink:0;">
+    <button class="btn btn-success" style="height:36px; padding:0 40px; font-size:14px;" onclick="executeShipmentSubmit()">📥 Konfirmasi Pengiriman &amp; Terbitkan SJ</button>
+  </div>
+</div>
+
+<div class="so-ov" id="delv-ov"><div class="spinner"></div><h4 style="margin-top:16px; color:#1e293b;" id="delv-msg">Memuat...</h4></div>
+
+<script>
+// ==========================================
+// GLOBAL STATE APP DELIVERY
+// ==========================================
+var DV_POOL_DATA = [];
+var DV_DASH_STATE = { data: [], page: 1, total: 1 };
+var DV_SELECTED_ITEMS = [];
+
+function showView(id) {
+  document.querySelectorAll('.view-container').forEach(el => el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function dvOv(show, msg) {
+  document.getElementById('delv-ov').classList[show?'add':'remove']('on');
+  if(msg) document.getElementById('delv-msg').textContent = msg;
+}
+
+// Inisialisasi awal modul delivery
+(function initDeliveryModule() {
+  document.getElementById('man-tanggal').value = new Date().toISOString().split('T')[0];
+  loadDeliveryData();
+})();
+
+function loadDeliveryData() {
+  dvOv(true, "Sinkronisasi Modul Pengiriman...");
+  google.script.run.withSuccessHandler(function(jsonStr) {
+    dvOv(false);
+    var res = JSON.parse(jsonStr);
+    if(res.error) return alert("Sistem Error: " + res.error);
+    
+    DV_POOL_DATA = res.pool || [];
+    DV_DASH_STATE.data = res.dash.data || [];
+    DV_DASH_STATE.page = res.dash.currentPage || 1;
+    DV_DASH_STATE.total = res.dash.totalPages || 1;
+    
+    renderDeliveryDashboardTable();
+  }).withFailureHandler(function(e){ dvOv(false); alert("Gagal koneksi server: "+e.message); }).getDeliveryInitData();
+}
+
+// ==========================================
+// RENDER VIEW 1: DASHBOARD UTAMA LOG SJ
+// ==========================================
+function loadDeliveryDashboard(page) {
+  dvOv(true, "Memuat data halaman...");
+  google.script.run.withSuccessHandler(function(jsonStr) {
+    dvOv(false);
+    var res = JSON.parse(jsonStr);
+    DV_DASH_STATE.data = res.data; DV_DASH_STATE.page = res.currentPage; DV_DASH_STATE.total = res.totalPages;
+    renderDeliveryDashboardTable();
+  }).getDeliveryDashboardPage(page);
+}
+
+function changeDelvPage(dir) {
+  var t = DV_DASH_STATE.page + dir;
+  if(t >= 1 && t <= DV_DASH_STATE.total) loadDeliveryDashboard(t);
+}
+
+function renderDeliveryDashboardTable() {
+  var tbody = document.getElementById('delv-dash-tbody');
+  document.getElementById('dv-pg-info').textContent = 'Halaman ' + DV_DASH_STATE.page + ' / ' + DV_DASH_STATE.total;
+  document.getElementById('dv-pg-prev').disabled = (DV_DASH_STATE.page === 1);
+  document.getElementById('dv-pg-next').disabled = (DV_DASH_STATE.page === DV_DASH_STATE.total);
+
+  if(!DV_DASH_STATE.data.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#94a3b8; font-style:italic; padding:30px;">Belum ada riwayat pengiriman Surat Jalan.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = DV_DASH_STATE.data.map(r => `
+    <tr>
+      <td>${r.tanggal}</td>
+      <td style="color:var(--primary-blue); font-weight:700;">${r.sj_no}</td>
+      <td style="font-weight:700; color:#1e293b;">${r.cust}</td>
+      <td>${r.so_no}</td>
+      <td>${r.item_code}</td>
+      <td><b>${r.qty}</b> <span style="font-weight:normal; color:#64748b;">/ ${r.kg} KG</span></td>
+      <td><span style="background:#f1f5f9; padding:2px 6px; border-radius:3px; font-weight:bold;">${r.armada}</span></td>
+      <td>${r.driver}</td>
+    </tr>
+  `).join('');
+}
+
+// ==========================================
+// RENDER VIEW 2: POOL BARANG SIAP KIRIM (READY TO SHIP)
+// ==========================================
+function openLoadPlanningPool() {
+  DV_SELECTED_ITEMS = [];
+  renderPoolTableAndSummary();
+  showView('view-delv-pool');
+}
+
+function renderPoolTableAndSummary() {
+  var tbody = document.getElementById('delv-pool-tbody');
+  var summaryBox = document.getElementById('cust-summary-box');
+  
+  if(!DV_POOL_DATA.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#94a3b8; font-style:italic; padding:40px;">Gudang FG Kosong. Belum ada item produksi berstatus READY.</td></tr>';
+    summaryBox.innerHTML = '<div style="color:#64748b; font-style:italic;">Tidak ada akumulasi berat customer.</div>';
+    return;
+  }
+
+  // 1. Hitung Akumulasi Berat per Customer untuk Summary Cards
+  var sums = {};
+  DV_POOL_DATA.forEach(i => { sums[i.cust] = (sums[i.cust] || 0) + i.kg; });
+  
+  summaryBox.innerHTML = Object.keys(sums).map(custName => {
+    var totalTon = sums[custName] / 1000;
+    var cardClass = totalTon >= 4 ? 'summary-card heavy' : 'summary-card'; // Beri tanda jika berat besar
+    return `
+      <div class="${cardClass}">
+        <div style="font-size:10px; text-transform:uppercase; font-weight:700; color:var(--text-muted);">${custName}</div>
+        <div style="font-size:16px; font-weight:800; color:#0f172a; margin-top:2px;">${sums[custName].toFixed(2)} <span style="font-size:11px; font-weight:normal;">KG</span></div>
+        <div style="font-size:10px; color:#64748b; margin-top:1px;">📊 ${(totalTon).toFixed(2)} Ton Ready</div>
+      </div>
+    `;
+  }).join('');
+
+  // 2. Tampilkan Detail Item Tabel Baris
+  tbody.innerHTML = DV_POOL_DATA.map((r, idx) => {
+    var bLabel = 'FUTURE'; var bClass = 'badge-green';
+    if(r.urgency === 'RED') { bLabel = '🔴 OVERDUE'; bClass = 'badge-red'; }
+    else if(r.urgency === 'YELLOW') { bLabel = '🟡 DUE TODAY'; bClass = 'badge-yellow'; }
+    
+    return `
+      <tr>
+        <td style="text-align:center;"><input type="checkbox" style="transform:scale(1.2); cursor:pointer;" onchange="togglePoolItemSelection(${idx}, this)"></td>
+        <td><span class="badge ${bClass}">${bLabel}</span></td>
+        <td style="color:${r.urgency==='RED'?'var(--danger-red)':'var(--text-main)'}; font-weight:700;">${r.schedule_str}</td>
+        <td style="font-weight:700;">${r.cust}</td>
+        <td style="color:var(--primary-blue); font-weight:bold;">${r.batch_id}</td>
+        <td>${r.item_code}</td>
+        <td style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px;" title="${r.description}">${r.description}</td>
+        <td><b>${r.qty}</b> <span style="font-weight:normal; color:#64748b;">/ ${r.kg} KG</span></td>
+        <td><span style="color:#475569; font-weight:600;">${r.owner}</span></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function togglePoolItemSelection(index, checkbox) {
+  var item = DV_POOL_DATA[index];
+  if(checkbox.checked) {
+    DV_SELECTED_ITEMS.push(item);
+  } else {
+    DV_SELECTED_ITEMS = DV_SELECTED_ITEMS.filter(i => i.batch_id !== item.batch_id);
+  }
+}
+
+// ==========================================
+// RENDER VIEW 3: MANIFEST TRUK & BATAS TONASE 8 TON
+// ==========================================
+function proceedToManifest() {
+  if(!DV_SELECTED_ITEMS.length) return alert("Pokayoke: Pilih minimal 1 item di tabel pool untuk dinaikkan ke Truk!");
+  
+  var tbody = document.getElementById('man-tbody');
+  var totalWeight = 0;
+
+  tbody.innerHTML = DV_SELECTED_ITEMS.map(r => {
+    totalWeight += r.kg;
+    return `
+      <tr>
+        <td style="font-weight:bold; color:var(--primary-blue);">${r.cust}</td>
+        <td>${r.so_no}</td>
+        <td><b>${r.batch_id}</b></td>
+        <td>${r.item_code}</td>
+        <td style="font-size:11px; color:#64748b;">${r.description}</td>
+        <td>${r.qty}</td>
+        <td style="font-weight:bold;">${r.kg.toFixed(2)}</td>
+      </tr>
+    `;
+  }).join('');
+
+  // Hitung utilisasi Truk 8 Ton (8.000 KG)
+  var maxCapacity = 8000;
+  var pct = (totalWeight / maxCapacity) * 100;
+  
+  document.getElementById('txt-truck-weight').textContent = totalWeight.toLocaleString('id-ID', {minimumFractionDigits:2}) + " / 8,000.00 KG (" + pct.toFixed(1) + "%)";
+  
+  var bar = document.getElementById('bar-truck-weight');
+  bar.style.width = Math.min(pct, 100) + "%";
+  
+  if(totalWeight > maxCapacity) {
+    bar.classList.add('overload');
+    alert("⚠️ Peringatan Overload: Total muatan (" + totalWeight.toFixed(2) + " KG) telah melebihi batas kapasitas maksimal truk 8 Ton! Harap kurangi item.");
+  } else {
+    bar.classList.remove('overload');
+  }
+
+  showView('view-delv-manifest');
+}
+
+function executeShipmentSubmit() {
+  var info = {
+    tanggal: document.getElementById('man-tanggal').value,
+    no_armada: document.getElementById('man-armada').value,
+    driver: document.getElementById('man-driver').value,
+    note: document.getElementById('man-note').value
+  };
+
+  if(!info.tanggal || !info.no_armada || !info.driver) return alert("Pokayoke: Kolom Tanggal, No Armada, dan Driver wajib diisi!");
+  
+  var totalWeight = DV_SELECTED_ITEMS.reduce((sum, i) => sum + i.kg, 0);
+  if(totalWeight > 8000) {
+    var conf = confirm("Muatan terdeteksi Overload (> 8 Ton). Apakah Anda yakin tetap ingin memproses pengiriman ini?");
+    if(!conf) return;
+  }
+
+  dvOv(true, "Memproses Surat Jalan & Memotong Stok Gudang...");
+  google.script.run.withSuccessHandler(function(jsonStr) {
+    dvOv(false);
+    var res = JSON.parse(jsonStr);
+    if(res.error) return alert("Gagal Simpan Manifest: " + res.error);
+    
+    alert(`Sukses! Muatan truk berhasil diproses. Sistem sukses memecah dan menerbitkan ${res.total_sj} Surat Jalan berdasarkan masing-masing nomor SO.`);
+    
+    // Reset parameter form input manifest
+    document.getElementById('man-armada').value = '';
+    document.getElementById('man-driver').value = '';
+    document.getElementById('man-note').value = '';
+    
+    showView('view-delv-dashboard');
+    loadDeliveryData(); // Refresh ulang dashboard dan pool
+  }).withFailureHandler(function(e){ dvOv(false); alert("Error Jaringan: "+e.message); })
+  .saveLoadPlanDelivery({ info: info, items: DV_SELECTED_ITEMS });
+}
+</script>

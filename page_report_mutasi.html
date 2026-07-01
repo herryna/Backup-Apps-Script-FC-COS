@@ -1,0 +1,1249 @@
+<style>
+/* ================================================================
+   PAGE REPORT — MUTASI STOK BULANAN
+   Step 2A: Skeleton + Filter + Tab Nav + Ringkasan View
+================================================================ */
+.rpt-container { padding-bottom: 20px; max-width: 100%; }
+
+/* === HEAD === */
+.rpt-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; }
+.rpt-head h1 { font-size: 20px; font-weight: 700; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 8px; }
+.rpt-head .rpt-sub { font-size: 12px; color: #6b7785; margin-top: 2px; }
+
+/* === FILTER BAR === */
+.rpt-filter {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 1fr auto auto auto auto;
+  gap: 10px; align-items: end;
+  padding: 14px; background: #fff; border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+  margin-bottom: 14px;
+}
+.rpt-field label { font-size: 10px; font-weight: 600; color: #6b7785; text-transform: uppercase; margin-bottom: 3px; display: block; letter-spacing: 0.4px; }
+.rpt-field input, .rpt-field select {
+  width: 100%; padding: 6px 10px; height: 32px;
+  border: 1px solid #cbd5e1; border-radius: 4px;
+  font-size: 12px; background: #fff; box-sizing: border-box;
+}
+.rpt-field input:focus, .rpt-field select:focus { outline: none; border-color: #1565c0; box-shadow: 0 0 0 2px rgba(21,101,192,0.15); }
+
+/* Unit toggle */
+.rpt-unit-toggle { display: inline-flex; height: 32px; border: 1px solid #cbd5e1; border-radius: 4px; overflow: hidden; }
+.rpt-unit-toggle button { padding: 0 14px; border: none; background: #fff; cursor: pointer; font-size: 12px; font-weight: 600; color: #475569; }
+.rpt-unit-toggle button.on { background: #1565c0; color: #fff; }
+.rpt-unit-toggle button:not(.on):hover { background: #f0f4f8; }
+
+/* Action buttons */
+.rpt-btn { height: 32px; padding: 0 14px; border: 1px solid #cbd5e1; background: #fff; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; color: #334155; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; }
+.rpt-btn:hover { background: #f0f4f8; border-color: #1565c0; color: #1565c0; }
+.rpt-btn.primary { background: #1565c0; color: #fff; border-color: #1565c0; }
+.rpt-btn.primary:hover { background: #0f4d99; }
+.rpt-btn.disabled, .rpt-btn:disabled { opacity: 0.5; pointer-events: none; }
+
+/* === INFO BAR === */
+.rpt-info-bar {
+  padding: 10px 14px; background: #fff; border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+  margin-bottom: 14px; font-size: 12px; color: #475569;
+  display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+}
+.rpt-info-bar strong { color: #0f172a; font-weight: 700; }
+.rpt-info-bar .rpt-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+.rpt-tag.empty { background: #f1f5f9; color: #475569; }
+.rpt-tag.computed { background: #dbeafe; color: #1e40af; }
+.rpt-tag.locked { background: #dcfce7; color: #166534; }
+
+/* === SUMMARY CARDS === */
+.rpt-summary-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 14px; }
+.rpt-card { background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); padding: 12px 14px; }
+.rpt-card-label { font-size: 10px; font-weight: 700; color: #6b7785; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+.rpt-card-value { font-size: 18px; font-weight: 700; color: #0f172a; }
+.rpt-card-sub { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+.rpt-card.in .rpt-card-value { color: #166534; }
+.rpt-card.out .rpt-card-value { color: #991b1b; }
+
+/* === TAB NAV === */
+.rpt-tabs { display: flex; gap: 2px; border-bottom: 1px solid #e0e0e0; margin-bottom: 14px; overflow-x: auto; white-space: nowrap; }
+.rpt-tab { padding: 9px 14px; cursor: pointer; font-size: 12px; font-weight: 600; color: #6b7785; border-bottom: 2px solid transparent; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.rpt-tab:hover { color: #1565c0; }
+.rpt-tab.active { color: #1565c0; border-bottom-color: #1565c0; }
+.rpt-tab-count { background: #f1f5f9; color: #475569; padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+.rpt-tab.active .rpt-tab-count { background: #dbeafe; color: #1e40af; }
+.rpt-tab-content { display: none; }
+.rpt-tab-content.active { display: block; }
+
+/* === SECTION (per Owner) === */
+.rpt-section { background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); margin-bottom: 14px; overflow: hidden; }
+.rpt-section-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 16px; background: #f8fafc; border-bottom: 1px solid #e0e0e0;
+  cursor: pointer; user-select: none;
+}
+.rpt-section-head:hover { background: #f0f4f8; }
+.rpt-section-title { font-size: 14px; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px; }
+.rpt-section-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+.rpt-section-badge.fc { background: #dbeafe; color: #1e40af; }
+.rpt-section-badge.drc { background: #fef3c7; color: #92400e; }
+.rpt-section-badge.grand { background: #ddd6fe; color: #5b21b6; }
+.rpt-section-stats { font-size: 11px; color: #6b7785; display: flex; gap: 14px; align-items: center; }
+.rpt-section-stats .stat-num { color: #0f172a; font-weight: 700; font-family: ui-monospace, monospace; }
+.rpt-section-stats .in { color: #166534; }
+.rpt-section-stats .out { color: #991b1b; }
+.rpt-collapse-icon { font-size: 16px; color: #6b7785; transition: transform 0.2s; }
+.rpt-section.collapsed .rpt-collapse-icon { transform: rotate(-90deg); }
+.rpt-section.collapsed .rpt-section-body { display: none; }
+
+.rpt-section-toolbar { padding: 10px 14px; border-bottom: 1px solid #e0e0e0; display: flex; gap: 10px; align-items: center; background: #fff; }
+.rpt-section-search { flex: 1; max-width: 280px; }
+.rpt-section-search input { width: 100%; padding: 6px 10px; height: 30px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; }
+.rpt-section-pagination { display: flex; gap: 4px; align-items: center; font-size: 11px; color: #6b7785; margin-left: auto; }
+.rpt-pg-btn { width: 28px; height: 28px; border: 1px solid #cbd5e1; background: #fff; border-radius: 4px; cursor: pointer; font-size: 13px; color: #475569; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+.rpt-pg-btn:hover:not(:disabled) { background: #f0f4f8; border-color: #1565c0; }
+.rpt-pg-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.rpt-pg-info { padding: 0 8px; }
+
+/* === TABLE === */
+.rpt-table-wrap { overflow-x: auto; max-height: 480px; overflow-y: auto; }
+.rpt-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.rpt-table thead th {
+  position: sticky; top: 0; z-index: 5;
+  text-align: left; padding: 8px 10px;
+  font-size: 10px; font-weight: 700; color: #475569;
+  text-transform: uppercase; letter-spacing: 0.3px;
+  background: #f8fafc; border-bottom: 1px solid #e0e0e0;
+  white-space: nowrap;
+}
+.rpt-table thead th.num { text-align: right; }
+.rpt-table tbody td {
+  padding: 6px 10px; border-bottom: 1px solid #f0f0f0;
+  white-space: nowrap;
+}
+.rpt-table tbody td.num { text-align: right; font-family: ui-monospace, monospace; }
+.rpt-table tbody tr:hover td { background: #f0f9ff; }
+.rpt-table td.col-in { color: #166534; }
+.rpt-table td.col-out { color: #991b1b; }
+.rpt-table td.col-adj { color: #92400e; }
+.rpt-table td.col-var { font-weight: 700; }
+.rpt-table td.var-warn { background: #fef3c7; color: #92400e; }
+.rpt-table td.var-error { background: #fee2e2; color: #991b1b; }
+.rpt-table td.muted, .rpt-table .muted { color: #94a3b8; }
+
+/* Total row */
+.rpt-table tfoot td {
+  padding: 9px 10px;
+  font-size: 12px; font-weight: 700;
+  background: #f1f5f9; color: #0f172a;
+  border-top: 2px solid #cbd5e1;
+  white-space: nowrap;
+  position: sticky; bottom: 0; z-index: 4;
+}
+.rpt-table tfoot td.num { text-align: right; font-family: ui-monospace, monospace; }
+.rpt-table tfoot td.col-in { color: #166534; }
+.rpt-table tfoot td.col-out { color: #991b1b; }
+
+/* Item code column */
+.rpt-table td.item-code { font-family: ui-monospace, monospace; font-weight: 600; color: #1e40af; }
+
+/* === EMPTY / LOADING STATE === */
+.rpt-empty { padding: 40px; text-align: center; color: #94a3b8; font-size: 13px; }
+.rpt-empty i { font-size: 40px; display: block; margin-bottom: 10px; color: #cbd5e1; }
+.rpt-loading { padding: 40px; text-align: center; color: #6b7785; font-size: 13px; }
+.rpt-loading::before {
+  content: ''; display: inline-block; width: 16px; height: 16px;
+  border: 2px solid #e0e0e0; border-top-color: #1565c0;
+  border-radius: 50%; animation: rpt-spin 0.8s linear infinite;
+  margin-right: 10px; vertical-align: middle;
+}
+@keyframes rpt-spin { to { transform: rotate(360deg); } }
+
+.rpt-error { padding: 14px; background: #fee2e2; border: 1px solid #fca5a5; border-radius: 8px; color: #991b1b; font-size: 12px; margin-bottom: 14px; }
+
+/* === Placeholder for Rincian tabs (Step 2B) === */
+.rpt-placeholder { background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); padding: 60px 20px; text-align: center; color: #94a3b8; }
+.rpt-placeholder i { font-size: 48px; display: block; margin-bottom: 12px; color: #cbd5e1; }
+.rpt-placeholder .title { font-size: 14px; font-weight: 600; color: #6b7785; margin-bottom: 6px; }
+.rpt-placeholder .desc { font-size: 12px; color: #94a3b8; }
+
+/* === Freeze first columns === */
+.rpt-table th.frz, .rpt-table td.frz { position: sticky; left: 0; background: #fff; z-index: 2; }
+.rpt-table thead th.frz { background: #f8fafc; z-index: 6; }
+.rpt-table tfoot td.frz { background: #f1f5f9; z-index: 5; }
+.rpt-table tbody tr:hover td.frz { background: #f0f9ff; }
+
+/* === Print Styles === */
+@media print {
+  @page { size: A4 landscape; margin: 10mm; }
+  body * { visibility: hidden; }
+  .rpt-container, .rpt-container * { visibility: visible; }
+  .rpt-container { position: absolute; left: 0; top: 0; width: 100%; padding: 0; }
+  .rpt-filter, .rpt-tabs, .rpt-section-toolbar, .rpt-error,
+  #rptBtnRefresh, #rptBtnExport, #rptBtnPrint, .rpt-unit-toggle,
+  .rpt-collapse-icon { display: none !important; }
+  .rpt-tab-content:not(.active) { display: none !important; }
+  .rpt-section { box-shadow: none; border: 1px solid #999; page-break-inside: avoid; break-inside: avoid; margin-bottom: 12px; }
+  .rpt-section.collapsed .rpt-section-body { display: block !important; }
+  .rpt-section-head { background: #f0f0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; cursor: default !important; }
+  .rpt-section-head:hover { background: #f0f0f0 !important; }
+  .rpt-table-wrap { max-height: none !important; overflow: visible !important; }
+  .rpt-table { font-size: 9px; }
+  .rpt-table thead th, .rpt-table tfoot td { position: static !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .rpt-table th.frz, .rpt-table td.frz { position: static !important; }
+  .rpt-table td, .rpt-table th { padding: 3px 5px !important; }
+  .rpt-info-bar, .rpt-summary-cards { page-break-inside: avoid; }
+  .rpt-card, .rpt-info-bar { box-shadow: none; border: 1px solid #ccc; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+/* === PRINT === */
+@media print {
+  body, .rpt-container { background: #fff !important; padding: 0 !important; }
+  .rpt-filter, .rpt-tabs, .rpt-section-toolbar, .rpt-error, .rpt-info-bar { display: none !important; }
+  .rpt-tab-content:not(.active) { display: none !important; }
+  .rpt-summary-cards { page-break-after: avoid; }
+  .rpt-section { box-shadow: none !important; border: 1px solid #ccc !important; page-break-inside: avoid; margin-bottom: 12px !important; }
+  .rpt-section.collapsed .rpt-section-body { display: block !important; }
+  .rpt-table-wrap { max-height: none !important; overflow: visible !important; }
+  .rpt-table { font-size: 9px !important; }
+  .rpt-table thead th { background: #f0f0f0 !important; -webkit-print-color-adjust: exact; }
+  .rpt-table tfoot td { background: #f0f0f0 !important; -webkit-print-color-adjust: exact; }
+  .rpt-table th.frz, .rpt-table td.frz { position: static !important; }
+}
+</style>
+
+<div class="rpt-container">
+  <!-- HEAD -->
+  <div class="rpt-head">
+    <div>
+      <h1><i class="ti ti-chart-bar"></i> Laporan Mutasi Stok</h1>
+      <span class="rpt-sub">Ringkasan mutasi & rincian transaksi per Owner — untuk HPP &amp; reconciliation Accounting</span>
+    </div>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div class="rpt-filter">
+    <div class="rpt-field">
+      <label>Periode</label>
+      <select id="rptFltPeriod"></select>
+    </div>
+    <div class="rpt-field">
+      <label>Owner</label>
+      <select id="rptFltOwner">
+        <option value="">Semua (FC + DRC + Grand)</option>
+        <option value="FC">FC saja</option>
+        <option value="DRC">DRC saja</option>
+      </select>
+    </div>
+    <div class="rpt-field">
+      <label>Lokasi</label>
+      <select id="rptFltLoc">
+        <option value="">Semua</option>
+        <option value="Coil">Coil</option>
+        <option value="Sheet">Sheet</option>
+        <option value="WIP">WIP</option>
+        <option value="FG">FG</option>
+        <option value="NG">NG</option>
+      </select>
+    </div>
+    <div class="rpt-field">
+      <label>Unit</label>
+      <div class="rpt-unit-toggle" id="rptUnitToggle">
+        <button data-unit="kg" class="on">KG</button>
+        <button data-unit="qty">QTY</button>
+      </div>
+    </div>
+    <div class="rpt-field" style="align-self:end">
+      <button class="rpt-btn primary" id="rptBtnRefresh" title="Muat ulang data"><i class="ti ti-refresh"></i> Refresh</button>
+    </div>
+    <div class="rpt-field" style="align-self:end">
+      <button class="rpt-btn disabled" id="rptBtnExport" title="Export ke Excel (xlsx multi-sheet)"><i class="ti ti-file-spreadsheet"></i> Export Excel</button>
+    </div>
+    <div class="rpt-field" style="align-self:end">
+      <button class="rpt-btn disabled" id="rptBtnPrint" title="Print laporan"><i class="ti ti-printer"></i> Print</button>
+    </div>
+  </div>
+
+  <!-- INFO BAR -->
+  <div class="rpt-info-bar" id="rptInfoBar" style="display:none">
+    <span><strong id="rptInfoPeriod">—</strong></span>
+    <span>Saldo Awal: <span id="rptInfoAwal" class="rpt-tag empty">—</span></span>
+    <span>Saldo Akhir: <span id="rptInfoAkhir" class="rpt-tag empty">—</span></span>
+    <span>Filter: <span id="rptInfoFilter">—</span></span>
+  </div>
+
+  <!-- SUMMARY CARDS -->
+  <div class="rpt-summary-cards" id="rptSummaryCards" style="display:none">
+    <div class="rpt-card">
+      <div class="rpt-card-label">Items</div>
+      <div class="rpt-card-value" id="rptCardItems">0</div>
+      <div class="rpt-card-sub">unique item codes</div>
+    </div>
+    <div class="rpt-card">
+      <div class="rpt-card-label">Batches</div>
+      <div class="rpt-card-value" id="rptCardBatches">0</div>
+      <div class="rpt-card-sub">batch records</div>
+    </div>
+    <div class="rpt-card in">
+      <div class="rpt-card-label">Total IN</div>
+      <div class="rpt-card-value" id="rptCardTotalIn">0</div>
+      <div class="rpt-card-sub" id="rptCardTotalInSub">KG</div>
+    </div>
+    <div class="rpt-card out">
+      <div class="rpt-card-label">Total OUT</div>
+      <div class="rpt-card-value" id="rptCardTotalOut">0</div>
+      <div class="rpt-card-sub" id="rptCardTotalOutSub">KG</div>
+    </div>
+    <div class="rpt-card">
+      <div class="rpt-card-label">ICT Volume</div>
+      <div class="rpt-card-value" id="rptCardICT">0</div>
+      <div class="rpt-card-sub" id="rptCardICTSub">KG</div>
+    </div>
+  </div>
+
+  <!-- ERROR DISPLAY -->
+  <div class="rpt-error" id="rptError" style="display:none"></div>
+
+  <!-- TAB NAV -->
+  <div class="rpt-tabs" id="rptTabs">
+    <div class="rpt-tab active" data-tab="ringkasan"><i class="ti ti-layout-grid"></i> Ringkasan</div>
+    <div class="rpt-tab" data-tab="gr"><i class="ti ti-truck-loading"></i> GR <span class="rpt-tab-count" id="rptTabCnt_gr">0</span></div>
+    <div class="rpt-tab" data-tab="delv"><i class="ti ti-truck-delivery"></i> Penjualan <span class="rpt-tab-count" id="rptTabCnt_delv">0</span></div>
+    <div class="rpt-tab" data-tab="prod"><i class="ti ti-settings-cog"></i> Produksi <span class="rpt-tab-count" id="rptTabCnt_prod">0</span></div>
+    <div class="rpt-tab" data-tab="cons"><i class="ti ti-tool"></i> Konsumsi <span class="rpt-tab-count" id="rptTabCnt_cons">0</span></div>
+    <div class="rpt-tab" data-tab="ng"><i class="ti ti-alert-triangle"></i> NG <span class="rpt-tab-count" id="rptTabCnt_ng">0</span></div>
+    <div class="rpt-tab" data-tab="ict"><i class="ti ti-arrows-exchange"></i> ICT <span class="rpt-tab-count" id="rptTabCnt_ict">0</span></div>
+    <div class="rpt-tab" data-tab="adj"><i class="ti ti-edit"></i> Adjustment <span class="rpt-tab-count" id="rptTabCnt_adj">0</span></div>
+  </div>
+
+  <!-- TAB CONTENTS -->
+
+  <!-- Tab: Ringkasan -->
+  <div class="rpt-tab-content active" data-content="ringkasan">
+    <div id="rptRingkasanContent">
+      <div class="rpt-empty">
+        <i class="ti ti-database-off"></i>
+        Belum ada data. Pilih periode lalu klik Refresh.
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: GR / Penjualan / Produksi / Konsumsi / NG / ICT / Adjustment (placeholder Step 2B) -->
+  <div class="rpt-tab-content" data-content="gr"><div class="rpt-placeholder"><i class="ti ti-hammer"></i><div class="title">Rincian GR (Penerimaan)</div><div class="desc">Akan dibangun di Step 2B</div></div></div>
+  <div class="rpt-tab-content" data-content="delv"><div class="rpt-placeholder"><i class="ti ti-hammer"></i><div class="title">Rincian Penjualan</div><div class="desc">Akan dibangun di Step 2B</div></div></div>
+  <div class="rpt-tab-content" data-content="prod"><div class="rpt-placeholder"><i class="ti ti-hammer"></i><div class="title">Rincian Produksi</div><div class="desc">Akan dibangun di Step 2B</div></div></div>
+  <div class="rpt-tab-content" data-content="cons"><div class="rpt-placeholder"><i class="ti ti-hammer"></i><div class="title">Rincian Konsumsi</div><div class="desc">Akan dibangun di Step 2B</div></div></div>
+  <div class="rpt-tab-content" data-content="ng"><div class="rpt-placeholder"><i class="ti ti-hammer"></i><div class="title">Rincian NG</div><div class="desc">Akan dibangun di Step 2B</div></div></div>
+  <div class="rpt-tab-content" data-content="ict"><div class="rpt-placeholder"><i class="ti ti-hammer"></i><div class="title">Rincian ICT (Cross-Billing)</div><div class="desc">Akan dibangun di Step 2B</div></div></div>
+  <div class="rpt-tab-content" data-content="adj"><div class="rpt-placeholder"><i class="ti ti-hammer"></i><div class="title">Rincian Adjustment (Opname)</div><div class="desc">Akan dibangun di Step 2B</div></div></div>
+
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ========================================================
+  // STATE
+  // ========================================================
+  var S = {
+    initData: null,
+    report: null,
+    activeTab: 'ringkasan',
+    filter: { period: '', owner: '', loc: '', unit: 'kg' },
+    sectionState: {
+      fc:    { search: '', page: 1, pageSize: 100, collapsed: false },
+      drc:   { search: '', page: 1, pageSize: 100, collapsed: false },
+      grand: { search: '', page: 1, pageSize: 100, collapsed: false }
+    },
+    detailState: {
+      gr:   { search: '', page: 1, pageSize: 100 },
+      delv: { search: '', page: 1, pageSize: 100 },
+      prod: { search: '', page: 1, pageSize: 100 },
+      cons: { search: '', page: 1, pageSize: 100 },
+      ng:   { search: '', page: 1, pageSize: 100 },
+      ict:  { search: '', page: 1, pageSize: 100 },
+      adj:  { search: '', page: 1, pageSize: 100 }
+    },
+    loading: false
+  };
+
+  // ========================================================
+  // DOM SHORTCUTS & UTIL
+  // ========================================================
+  var $ = function(id) { return document.getElementById(id); };
+
+  function fmtNum(n, decimals) {
+    decimals = decimals === undefined ? 0 : decimals;
+    if (n === null || n === undefined || n === '') return '0';
+    n = parseFloat(n) || 0;
+    return n.toLocaleString('id-ID', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  }
+  function fmtKG(n) {
+    var v = parseFloat(n) || 0;
+    if (v === 0) return '<span class="muted">—</span>';
+    var decimals = (v % 1 === 0) ? 0 : 2;
+    return fmtNum(v, decimals);
+  }
+  function fmtQty(n) {
+    var v = parseFloat(n) || 0;
+    if (v === 0) return '<span class="muted">—</span>';
+    return fmtNum(v, 0);
+  }
+  function escapeHtml(s) {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/[&<>"']/g, function(c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function fmtDate(s) {
+    if (!s) return '—';
+    var d = s instanceof Date ? s : new Date(s);
+    if (isNaN(d.getTime())) return String(s);
+    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  function fmtDateTime(s) {
+    if (!s) return '—';
+    var d = s instanceof Date ? s : new Date(s);
+    if (isNaN(d.getTime())) return String(s);
+    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) +
+           ', ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false });
+  }
+  function showError(msg) {
+    var el = $('rptError');
+    el.textContent = '⚠️ ' + msg;
+    el.style.display = 'block';
+  }
+  function clearError() { $('rptError').style.display = 'none'; }
+
+  function debounce(fn, ms) {
+    var timer;
+    return function() {
+      var ctx = this, args = arguments;
+      clearTimeout(timer);
+      timer = setTimeout(function() { fn.apply(ctx, args); }, ms);
+    };
+  }
+
+  // ========================================================
+  // INIT
+  // ========================================================
+  function init() {
+    google.script.run
+      .withSuccessHandler(onInitData)
+      .withFailureHandler(function(err) {
+        showError('Gagal load init data: ' + (err.message || err));
+      })
+      .getReportInitData();
+    attachEvents();
+  }
+
+  function onInitData(res) {
+    if (!res || !res.success) {
+      showError('Init data gagal: ' + (res && res.message || 'unknown'));
+      return;
+    }
+    S.initData = res;
+    populatePeriodDropdown(res);
+  }
+
+  function populatePeriodDropdown(d) {
+    var sel = $('rptFltPeriod');
+    sel.innerHTML = '';
+    var lockedSet = {};
+    (d.locked_periods || []).forEach(function(p) { lockedSet[p] = true; });
+    (d.periods || []).slice().reverse().forEach(function(p) {
+      var opt = document.createElement('option');
+      opt.value = p;
+      opt.textContent = p + (lockedSet[p] ? ' 🔒' : '');
+      if (p === d.suggested) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    S.filter.period = d.suggested || '';
+  }
+
+  // ========================================================
+  // EVENT BINDING
+  // ========================================================
+  function attachEvents() {
+    $('rptFltPeriod').addEventListener('change', function() { S.filter.period = this.value; });
+    $('rptFltOwner').addEventListener('change', function() {
+      S.filter.owner = this.value;
+      if (S.report) renderRingkasan();
+    });
+    $('rptFltLoc').addEventListener('change', function() { S.filter.loc = this.value; });
+
+    var unitBtns = document.querySelectorAll('#rptUnitToggle button');
+    unitBtns.forEach(function(b) {
+      b.addEventListener('click', function() {
+        unitBtns.forEach(function(x) { x.classList.remove('on'); });
+        this.classList.add('on');
+        S.filter.unit = this.getAttribute('data-unit');
+        if (S.report) {
+          updateSummaryCards();
+          renderRingkasan();
+        }
+      });
+    });
+
+    $('rptBtnRefresh').onclick = loadReport;
+    $('rptBtnExport').onclick = exportExcel;
+    $('rptBtnPrint').onclick = printReport;
+    $('rptBtnExport').addEventListener('click', function() { if (!this.classList.contains('disabled')) exportExcel(); });
+    $('rptBtnPrint').addEventListener('click', function() { if (!this.classList.contains('disabled')) window.print(); });
+
+    document.querySelectorAll('#rptTabs .rpt-tab').forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        var t = this.getAttribute('data-tab');
+        document.querySelectorAll('#rptTabs .rpt-tab').forEach(function(x) { x.classList.remove('active'); });
+        this.classList.add('active');
+        document.querySelectorAll('.rpt-tab-content').forEach(function(c) { c.classList.remove('active'); });
+        var content = document.querySelector('.rpt-tab-content[data-content="' + t + '"]');
+        if (content) content.classList.add('active');
+        S.activeTab = t;
+        if (t !== 'ringkasan' && S.report) renderDetailTab(t);
+      });
+    });
+  }
+
+  // ========================================================
+  // LOAD REPORT
+  // ========================================================
+  function loadReport() {
+    if (S.loading) return;
+    if (!S.filter.period) { showError('Pilih periode dulu.'); return; }
+    S.loading = true;
+    clearError();
+    $('rptBtnRefresh').disabled = true;
+    $('rptRingkasanContent').innerHTML = '<div class="rpt-loading">Memuat data periode ' + escapeHtml(S.filter.period) + '…</div>';
+
+    google.script.run
+      .withSuccessHandler(onReportLoaded)
+      .withFailureHandler(function(err) {
+        S.loading = false;
+        $('rptBtnRefresh').disabled = false;
+        showError('Gagal load report: ' + (err.message || err));
+        $('rptRingkasanContent').innerHTML = '<div class="rpt-empty"><i class="ti ti-alert-circle"></i>Error loading data</div>';
+      })
+      .getMutasiReportFull(S.filter.period, { loc: S.filter.loc });
+  }
+
+  function onReportLoaded(res) {
+    S.loading = false;
+    $('rptBtnRefresh').disabled = false;
+
+    if (!res || !res.success) {
+      showError('Report gagal: ' + (res && res.message || 'unknown'));
+      $('rptRingkasanContent').innerHTML = '<div class="rpt-empty"><i class="ti ti-alert-circle"></i>Error</div>';
+      return;
+    }
+    S.report = res;
+    S.sectionState.fc.page = 1;
+    S.sectionState.drc.page = 1;
+    S.sectionState.grand.page = 1;
+
+    updateInfoBar();
+    updateSummaryCards();
+    updateTabCounts();
+    renderRingkasan();
+
+    $('rptBtnExport').classList.remove('disabled');
+    $('rptBtnPrint').classList.remove('disabled');
+  }
+
+  // ========================================================
+  // INFO BAR
+  // ========================================================
+  function updateInfoBar() {
+    var r = S.report;
+    $('rptInfoBar').style.display = 'flex';
+    $('rptInfoPeriod').textContent = 'Periode ' + r.period + ' (' + fmtDate(r.period_start) + ' → ' + fmtDate(r.period_end) + ')';
+
+    var awalTag = $('rptInfoAwal');
+    awalTag.textContent = r.saldo_awal_source;
+    awalTag.className = 'rpt-tag ' + (r.saldo_awal_source === 'OPNAME_LOCKED' ? 'locked' : (r.saldo_awal_source === 'COMPUTED' ? 'computed' : 'empty'));
+
+    var akhirTag = $('rptInfoAkhir');
+    akhirTag.textContent = r.saldo_akhir_source;
+    akhirTag.className = 'rpt-tag ' + (r.saldo_akhir_source === 'OPNAME_LOCKED' ? 'locked' : (r.saldo_akhir_source === 'COMPUTED' ? 'computed' : 'empty'));
+
+    $('rptInfoFilter').textContent = (S.filter.loc || 'Semua Lokasi');
+  }
+
+  // ========================================================
+  // SUMMARY CARDS
+  // ========================================================
+  function updateSummaryCards() {
+    if (!S.report) return;
+    $('rptSummaryCards').style.display = 'grid';
+
+    var unit = S.filter.unit;
+    var sum = S.report.grand.summary;
+    var ictTotal = 0;
+    (S.report.grand.by_item || []).forEach(function(it) {
+      ictTotal += parseFloat(unit === 'kg' ? it.tf_in_kg : it.tf_in_qty) || 0;
+    });
+
+    $('rptCardItems').textContent = fmtNum(sum.total_items);
+    $('rptCardBatches').textContent = fmtNum(sum.total_batches);
+
+    if (unit === 'kg') {
+      $('rptCardTotalIn').textContent = fmtNum(sum.total_in_kg, 2);
+      $('rptCardTotalOut').textContent = fmtNum(sum.total_out_kg, 2);
+      $('rptCardICT').textContent = fmtNum(ictTotal, 2);
+      $('rptCardTotalInSub').textContent = 'KG';
+      $('rptCardTotalOutSub').textContent = 'KG';
+      $('rptCardICTSub').textContent = 'KG';
+    } else {
+      $('rptCardTotalIn').textContent = fmtNum(sum.total_in_qty);
+      $('rptCardTotalOut').textContent = fmtNum(sum.total_out_qty);
+      $('rptCardICT').textContent = fmtNum(ictTotal);
+      $('rptCardTotalInSub').textContent = 'QTY';
+      $('rptCardTotalOutSub').textContent = 'QTY';
+      $('rptCardICTSub').textContent = 'QTY';
+    }
+  }
+
+  // ========================================================
+  // TAB COUNTS
+  // ========================================================
+  function updateTabCounts() {
+    if (!S.report || !S.report.details) return;
+    var d = S.report.details;
+    $('rptTabCnt_gr').textContent = (d.gr || []).length;
+    $('rptTabCnt_delv').textContent = (d.delv || []).length;
+    $('rptTabCnt_prod').textContent = (d.prod || []).length;
+    $('rptTabCnt_cons').textContent = (d.cons || []).length;
+    $('rptTabCnt_ng').textContent = (d.ng || []).length;
+    $('rptTabCnt_ict').textContent = (d.ict || []).length;
+    $('rptTabCnt_adj').textContent = (d.adj || []).length;
+  }
+
+  // ========================================================
+  // RENDER RINGKASAN (3 sections)
+  // ========================================================
+  function renderRingkasan() {
+    if (!S.report) {
+      $('rptRingkasanContent').innerHTML = '<div class="rpt-empty"><i class="ti ti-database-off"></i>Belum ada data. Pilih periode lalu klik Refresh.</div>';
+      return;
+    }
+
+    var html = '';
+    var showFC    = !S.filter.owner || S.filter.owner === 'FC';
+    var showDRC   = !S.filter.owner || S.filter.owner === 'DRC';
+    var showGrand = !S.filter.owner;
+
+    if (showFC)    html += renderSectionSkeleton('fc',    'FC',    'PT Flambindo Cortama', S.report.fc.summary);
+    if (showDRC)   html += renderSectionSkeleton('drc',   'DRC',   'PT Dian Raya Cipta',   S.report.drc.summary);
+    if (showGrand) html += renderSectionSkeleton('grand', 'GRAND', 'Combined FC + DRC',    S.report.grand.summary);
+
+    $('rptRingkasanContent').innerHTML = html;
+
+    // Populate each section: table + pagination + events
+    document.querySelectorAll('#rptRingkasanContent .rpt-section').forEach(function(sec) {
+      var key = sec.getAttribute('data-section');
+      renderSectionContent(key);
+
+      // Collapse on header click
+      var head = sec.querySelector('.rpt-section-head');
+      head.addEventListener('click', function() {
+        sec.classList.toggle('collapsed');
+        S.sectionState[key].collapsed = sec.classList.contains('collapsed');
+      });
+
+      // Search
+      var searchInput = sec.querySelector('.rpt-section-search input');
+      if (searchInput) {
+        searchInput.addEventListener('input', debounce(function() {
+          S.sectionState[key].search = searchInput.value;
+          S.sectionState[key].page = 1;
+          renderSectionContent(key);
+        }, 250));
+      }
+    });
+  }
+
+  function renderSectionSkeleton(key, badge, fullName, sum) {
+    var st = S.sectionState[key];
+    var collapsedCls = st.collapsed ? ' collapsed' : '';
+    var unit = S.filter.unit;
+    var inVal = unit === 'kg' ? sum.total_in_kg : sum.total_in_qty;
+    var outVal = unit === 'kg' ? sum.total_out_kg : sum.total_out_qty;
+
+    var html = '<div class="rpt-section' + collapsedCls + '" data-section="' + key + '">';
+    html += '<div class="rpt-section-head">';
+    html +=   '<div class="rpt-section-title">';
+    html +=     '<i class="ti ti-chevron-down rpt-collapse-icon"></i>';
+    html +=     '<span class="rpt-section-badge ' + key + '">' + badge + '</span>';
+    html +=     '<span>' + escapeHtml(fullName) + '</span>';
+    html +=   '</div>';
+    html +=   '<div class="rpt-section-stats">';
+    html +=     '<span>Items: <span class="stat-num">' + fmtNum(sum.total_items) + '</span></span>';
+    html +=     '<span>Batches: <span class="stat-num">' + fmtNum(sum.total_batches) + '</span></span>';
+    html +=     '<span>IN: <span class="stat-num in">' + fmtNum(inVal, unit === 'kg' ? 2 : 0) + '</span> ' + unit.toUpperCase() + '</span>';
+    html +=     '<span>OUT: <span class="stat-num out">' + fmtNum(outVal, unit === 'kg' ? 2 : 0) + '</span> ' + unit.toUpperCase() + '</span>';
+    html +=   '</div>';
+    html += '</div>';
+    html += '<div class="rpt-section-body">';
+    html +=   '<div class="rpt-section-toolbar">';
+    html +=     '<div class="rpt-section-search"><input type="text" placeholder="Cari Item_Code / Description…" value="' + escapeHtml(st.search) + '"></div>';
+    html +=     '<div class="rpt-section-pagination" data-pg-info></div>';
+    html +=   '</div>';
+    html +=   '<div class="rpt-table-wrap" data-table-wrap></div>';
+    html += '</div>';
+    html += '</div>';
+    return html;
+  }
+
+  // Render table + pagination + attach event ke 1 section
+  function renderSectionContent(key) {
+    var sec = document.querySelector('#rptRingkasanContent .rpt-section[data-section="' + key + '"]');
+    if (!sec) return;
+
+    var st = S.sectionState[key];
+    var filtered = getFilteredItems(key);
+    var totalRows = filtered.length;
+    var maxPage = Math.max(1, Math.ceil(totalRows / st.pageSize));
+    if (st.page > maxPage) st.page = maxPage;
+    var start = (st.page - 1) * st.pageSize;
+    var end = Math.min(start + st.pageSize, totalRows);
+    var pageItems = filtered.slice(start, end);
+
+    // Render table
+    var wrap = sec.querySelector('[data-table-wrap]');
+    wrap.innerHTML = buildTableHtml(pageItems, filtered, start);
+
+    // Render pagination
+    var pgEl = sec.querySelector('[data-pg-info]');
+    pgEl.innerHTML =
+      '<button class="rpt-pg-btn rpt-pg-prev"' + (st.page <= 1 ? ' disabled' : '') + '>‹</button>' +
+      '<span class="rpt-pg-info">' + (totalRows === 0 ? '0' : (start + 1) + '-' + end) + ' / ' + totalRows + '</span>' +
+      '<button class="rpt-pg-btn rpt-pg-next"' + (st.page >= maxPage ? ' disabled' : '') + '>›</button>';
+
+    // Attach pagination events (re-attach setiap render)
+    var pgPrev = pgEl.querySelector('.rpt-pg-prev');
+    var pgNext = pgEl.querySelector('.rpt-pg-next');
+    if (pgPrev) pgPrev.addEventListener('click', function() {
+      if (st.page > 1) { st.page--; renderSectionContent(key); }
+    });
+    if (pgNext) pgNext.addEventListener('click', function() {
+      if (st.page < maxPage) { st.page++; renderSectionContent(key); }
+    });
+  }
+
+  function getFilteredItems(key) {
+    var data = S.report[key];
+    var items = (data.by_item || []).slice();
+    var st = S.sectionState[key];
+    if (st.search) {
+      var q = st.search.toLowerCase();
+      items = items.filter(function(it) {
+        return (String(it.item_code || '')).toLowerCase().indexOf(q) >= 0 ||
+               (String(it.description || '')).toLowerCase().indexOf(q) >= 0;
+      });
+    }
+    return items;
+  }
+
+  function buildTableHtml(pageItems, filtered, startIdx) {
+    var unit = S.filter.unit;
+    var fmt = function(v) { return unit === 'kg' ? fmtKG(v) : fmtQty(v); };
+    var fk = function(it, kgField, qtyField) {
+      return unit === 'kg' ? fmt(it[kgField]) : fmt(it[qtyField]);
+    };
+
+    var html = '<table class="rpt-table">';
+    // Header
+    html += '<thead><tr>';
+    html += '<th class="frz">#</th>';
+    html += '<th class="frz">Item Code</th>';
+    html += '<th>Description</th>';
+    html += '<th>UoM</th>';
+    html += '<th class="num">Saldo Awal</th>';
+    html += '<th class="num">Receipt</th>';
+    html += '<th class="num">Produksi</th>';
+    html += '<th class="num">Konsumsi</th>';
+    html += '<th class="num">Delivery</th>';
+    html += '<th class="num">NG</th>';
+    html += '<th class="num">ICT In</th>';
+    html += '<th class="num">ICT Out</th>';
+    html += '<th class="num">Adj</th>';
+    html += '<th class="num">Saldo Akhir</th>';
+    html += '<th class="num">Variance</th>';
+    html += '</tr></thead>';
+
+    // Body
+    html += '<tbody>';
+    if (pageItems.length === 0) {
+      html += '<tr><td colspan="15" style="text-align:center;padding:30px;color:#94a3b8">';
+      html += (filtered.length === 0 ? 'Tidak ada data di periode ini.' : 'Tidak ada item yang cocok dengan pencarian.');
+      html += '</td></tr>';
+    } else {
+      pageItems.forEach(function(it, i) {
+        var rowNo = startIdx + i + 1;
+        var varVal = unit === 'kg' ? (parseFloat(it.variance_kg) || 0) : (parseFloat(it.variance_qty) || 0);
+        var akhirVal = unit === 'kg' ? (parseFloat(it.saldo_akhir_kg) || 0) : (parseFloat(it.saldo_akhir_qty) || 0);
+        var varCls = '';
+        if (Math.abs(varVal) > 0.001) {
+          var ratio = akhirVal !== 0 ? Math.abs(varVal / akhirVal) : 1;
+          varCls = ratio > 0.05 ? ' var-error' : ' var-warn';
+        }
+
+        html += '<tr>';
+        html += '<td class="frz">' + rowNo + '</td>';
+        html += '<td class="frz item-code">' + escapeHtml(it.item_code) + '</td>';
+        html += '<td>' + escapeHtml(it.description || '') + '</td>';
+        html += '<td>' + escapeHtml(it.uom || '') + '</td>';
+        html += '<td class="num">' + fk(it, 'saldo_awal_kg', 'saldo_awal_qty') + '</td>';
+        html += '<td class="num col-in">' + fk(it, 'in_receipt_kg', 'in_receipt_qty') + '</td>';
+        html += '<td class="num col-in">' + fk(it, 'in_prod_kg', 'in_prod_qty') + '</td>';
+        html += '<td class="num col-out">' + fk(it, 'out_cons_kg', 'out_cons_qty') + '</td>';
+        html += '<td class="num col-out">' + fk(it, 'out_delv_kg', 'out_delv_qty') + '</td>';
+        html += '<td class="num col-out">' + fk(it, 'out_ng_kg', 'out_ng_qty') + '</td>';
+        html += '<td class="num col-in">' + fk(it, 'tf_in_kg', 'tf_in_qty') + '</td>';
+        html += '<td class="num col-out">' + fk(it, 'tf_out_kg', 'tf_out_qty') + '</td>';
+        html += '<td class="num col-adj">' + fk(it, 'adj_kg', 'adj_qty') + '</td>';
+        html += '<td class="num"><strong>' + fk(it, 'saldo_akhir_kg', 'saldo_akhir_qty') + '</strong></td>';
+        html += '<td class="num col-var' + varCls + '">' + (Math.abs(varVal) < 0.001 ? '<span class="muted">—</span>' : fmt(varVal)) + '</td>';
+        html += '</tr>';
+      });
+    }
+    html += '</tbody>';
+
+    // Total Row
+    if (filtered.length > 0) {
+      var totals = sumItems(filtered);
+      html += '<tfoot><tr>';
+      html += '<td class="frz" colspan="4"><strong>TOTAL</strong></td>';
+      html += '<td class="num">' + fk(totals, 'saldo_awal_kg', 'saldo_awal_qty') + '</td>';
+      html += '<td class="num col-in">' + fk(totals, 'in_receipt_kg', 'in_receipt_qty') + '</td>';
+      html += '<td class="num col-in">' + fk(totals, 'in_prod_kg', 'in_prod_qty') + '</td>';
+      html += '<td class="num col-out">' + fk(totals, 'out_cons_kg', 'out_cons_qty') + '</td>';
+      html += '<td class="num col-out">' + fk(totals, 'out_delv_kg', 'out_delv_qty') + '</td>';
+      html += '<td class="num col-out">' + fk(totals, 'out_ng_kg', 'out_ng_qty') + '</td>';
+      html += '<td class="num col-in">' + fk(totals, 'tf_in_kg', 'tf_in_qty') + '</td>';
+      html += '<td class="num col-out">' + fk(totals, 'tf_out_kg', 'tf_out_qty') + '</td>';
+      html += '<td class="num col-adj">' + fk(totals, 'adj_kg', 'adj_qty') + '</td>';
+      html += '<td class="num">' + fk(totals, 'saldo_akhir_kg', 'saldo_akhir_qty') + '</td>';
+      html += '<td class="num">' + fk(totals, 'variance_kg', 'variance_qty') + '</td>';
+      html += '</tr></tfoot>';
+    }
+    html += '</table>';
+    return html;
+  }
+
+  function sumItems(items) {
+    var t = {
+      saldo_awal_kg: 0, saldo_awal_qty: 0,
+      in_receipt_kg: 0, in_receipt_qty: 0,
+      in_prod_kg: 0, in_prod_qty: 0,
+      out_cons_kg: 0, out_cons_qty: 0,
+      out_delv_kg: 0, out_delv_qty: 0,
+      out_ng_kg: 0, out_ng_qty: 0,
+      tf_in_kg: 0, tf_in_qty: 0,
+      tf_out_kg: 0, tf_out_qty: 0,
+      adj_kg: 0, adj_qty: 0,
+      saldo_akhir_kg: 0, saldo_akhir_qty: 0,
+      variance_kg: 0, variance_qty: 0
+    };
+    items.forEach(function(it) {
+      for (var k in t) t[k] += parseFloat(it[k]) || 0;
+    });
+    return t;
+  }
+
+  // ========================================================
+  // DETAIL CONFIG (per Rincian tab)
+  // ========================================================
+  var DETAIL_CONFIG = {
+    gr: {
+      label: 'Rincian GR (Penerimaan)',
+      cols: [
+        { key: 'tgl_masuk', label: 'Tanggal', type: 'date' },
+        { key: 'batch_id', label: 'Batch ID', type: 'code' },
+        { key: 'item_code', label: 'Item Code', type: 'code' },
+        { key: 'description', label: 'Description' },
+        { key: 'spec', label: 'Spec' },
+        { key: 't', label: 'T', type: 'num' },
+        { key: 'p', label: 'P', type: 'num' },
+        { key: 'supplier', label: 'Supplier' },
+        { key: 'no_coil', label: 'No Coil' },
+        { key: 'no_po', label: 'No PO' },
+        { key: 'no_do', label: 'No DO' },
+        { key: 'qty', label: 'QTY', type: 'num' },
+        { key: 'kg', label: 'KG', type: 'num' },
+        { key: 'owner', label: 'Owner' },
+        { key: 'target_loc', label: 'Loc' }
+      ],
+      searchFields: ['batch_id', 'item_code', 'description', 'supplier', 'no_po', 'no_do']
+    },
+    delv: {
+      label: 'Rincian Penjualan',
+      cols: [
+        { key: 'tanggal', label: 'Tanggal', type: 'date' },
+        { key: 'sj_no', label: 'SJ No', type: 'code' },
+        { key: 'so_no', label: 'SO No', type: 'code' },
+        { key: 'batch_id', label: 'Batch ID', type: 'code' },
+        { key: 'item_code', label: 'Item Code', type: 'code' },
+        { key: 'description', label: 'Description' },
+        { key: 'uom', label: 'UoM' },
+        { key: 'delv_q', label: 'QTY', type: 'num' },
+        { key: 'delv_kg', label: 'KG', type: 'num' },
+        { key: 'cust', label: 'Customer' },
+        { key: 'owner', label: 'Owner' },
+        { key: 'spk_ref', label: 'SPK Ref' },
+        { key: 'no_armada', label: 'Armada' },
+        { key: 'driver', label: 'Driver' },
+        { key: 'diterima_finance', label: 'Diterima Finance' }
+      ],
+      searchFields: ['sj_no', 'so_no', 'batch_id', 'item_code', 'description', 'cust']
+    },
+    prod: {
+      label: 'Rincian Produksi',
+      cols: [
+        { key: 'tgl_buat', label: 'Tanggal', type: 'date' },
+        { key: 'batch_id', label: 'Batch ID', type: 'code' },
+        { key: 'type', label: 'Type' },
+        { key: 'source_batch', label: 'Source Batch', type: 'code' },
+        { key: 'spk_ref', label: 'SPK Ref' },
+        { key: 'item_code', label: 'Item Code', type: 'code' },
+        { key: 'description', label: 'Description' },
+        { key: 'spec', label: 'Spec' },
+        { key: 'qty', label: 'QTY', type: 'num' },
+        { key: 'kg', label: 'KG', type: 'num' },
+        { key: 'operator', label: 'Operator' },
+        { key: 'mc_no', label: 'Mesin' },
+        { key: 'owner', label: 'Owner' }
+      ],
+      searchFields: ['batch_id', 'item_code', 'description', 'spk_ref', 'operator', 'source_batch']
+    },
+    cons: {
+      label: 'Rincian Konsumsi',
+      cols: [
+        { key: 'selesai_dt', label: 'Selesai', type: 'datetime' },
+        { key: 'spk_no', label: 'SPK No', type: 'code' },
+        { key: 'spk_type', label: 'Type' },
+        { key: 'batch_id', label: 'Batch ID', type: 'code' },
+        { key: 'item_code', label: 'Item Code', type: 'code' },
+        { key: 'description', label: 'Description' },
+        { key: 'qty_actual', label: 'QTY Actual', type: 'num' },
+        { key: 'kg_actual', label: 'KG Actual', type: 'num' },
+        { key: 'mc_no', label: 'Mesin' },
+        { key: 'op', label: 'Op' },
+        { key: 'owner', label: 'Owner' },
+        { key: 'owner_used', label: 'Owner Used' },
+        { key: 'source_loc', label: 'Source' },
+        { key: 'target_loc', label: 'Target' }
+      ],
+      searchFields: ['spk_no', 'batch_id', 'item_code', 'description']
+    },
+    ng: {
+      label: 'Rincian NG',
+      cols: [
+        { key: 'tgl_buat', label: 'Tanggal', type: 'date' },
+        { key: 'batch_id_ng', label: 'Batch ID (NG)', type: 'code' },
+        { key: 'source_batch', label: 'Source Batch', type: 'code' },
+        { key: 'spk_ref', label: 'SPK Ref' },
+        { key: 'item_code', label: 'Item Code', type: 'code' },
+        { key: 'description', label: 'Description' },
+        { key: 'qty', label: 'QTY', type: 'num' },
+        { key: 'kg', label: 'KG', type: 'num' },
+        { key: 'operator', label: 'Operator' },
+        { key: 'mc_no', label: 'Mesin' },
+        { key: 'owner', label: 'Owner' }
+      ],
+      searchFields: ['batch_id_ng', 'item_code', 'description', 'spk_ref', 'source_batch']
+    },
+    ict: {
+      label: 'Rincian ICT (Cross-Billing)',
+      cols: [
+        { key: 'tgl_transfer', label: 'Tanggal', type: 'date' },
+        { key: 'spk_no', label: 'SPK No', type: 'code' },
+        { key: 'item_code', label: 'Item Code', type: 'code' },
+        { key: 'description', label: 'Description' },
+        { key: 'dari_owner', label: 'Dari Owner' },
+        { key: 'ke_owner', label: 'Ke Owner' },
+        { key: 'qty_sht', label: 'QTY (Sht)', type: 'num' },
+        { key: 'qty_kg', label: 'KG', type: 'num' }
+      ],
+      searchFields: ['spk_no', 'item_code', 'description', 'dari_owner', 'ke_owner']
+    },
+    adj: {
+      label: 'Rincian Adjustment (Opname)',
+      cols: [
+        { key: 'period', label: 'Period' },
+        { key: 'batch_id', label: 'Batch ID', type: 'code' },
+        { key: 'item_code', label: 'Item Code', type: 'code' },
+        { key: 'loc', label: 'Loc' },
+        { key: 'owner', label: 'Owner' },
+        { key: 'qty_system', label: 'QTY Sys', type: 'num' },
+        { key: 'kg_system', label: 'KG Sys', type: 'num' },
+        { key: 'qty_fisik', label: 'QTY Fisik', type: 'num' },
+        { key: 'kg_fisik', label: 'KG Fisik', type: 'num' },
+        { key: 'qty_selisih', label: 'QTY Selisih', type: 'num' },
+        { key: 'kg_selisih', label: 'KG Selisih', type: 'num' },
+        { key: 'note', label: 'Note' },
+        { key: 'locked_by', label: 'Locked By' }
+      ],
+      searchFields: ['batch_id', 'item_code', 'note', 'locked_by']
+    }
+  };
+
+  function renderDetailTab(tabKey) {
+    if (!S.report || !S.report.details) return;
+    var config = DETAIL_CONFIG[tabKey];
+    if (!config) return;
+    var rows = (S.report.details[tabKey] || []).slice();
+    var st = S.detailState[tabKey];
+
+    if (st.search) {
+      var q = st.search.toLowerCase();
+      rows = rows.filter(function(r) {
+        for (var i = 0; i < config.searchFields.length; i++) {
+          var f = config.searchFields[i];
+          if (String(r[f] == null ? '' : r[f]).toLowerCase().indexOf(q) >= 0) return true;
+        }
+        return false;
+      });
+    }
+
+    var totalRows = rows.length;
+    var maxPage = Math.max(1, Math.ceil(totalRows / st.pageSize));
+    if (st.page > maxPage) st.page = maxPage;
+    var start = (st.page - 1) * st.pageSize;
+    var end = Math.min(start + st.pageSize, totalRows);
+    var pageRows = rows.slice(start, end);
+
+    var container = document.querySelector('.rpt-tab-content[data-content="' + tabKey + '"]');
+    if (!container) return;
+
+    var html = '<div class="rpt-section">';
+    html += '<div class="rpt-section-head" style="cursor:default">';
+    html +=   '<div class="rpt-section-title"><span>' + escapeHtml(config.label) + '</span></div>';
+    html +=   '<div class="rpt-section-stats"><span>Total: <span class="stat-num">' + fmtNum(totalRows) + '</span> records</span></div>';
+    html += '</div>';
+    html += '<div class="rpt-section-body">';
+    html += '<div class="rpt-section-toolbar">';
+    html +=   '<div class="rpt-section-search"><input type="text" placeholder="Cari…" value="' + escapeHtml(st.search) + '"></div>';
+    html +=   '<div class="rpt-section-pagination">';
+    html +=     '<button class="rpt-pg-btn rpt-pg-prev"' + (st.page <= 1 ? ' disabled' : '') + '>‹</button>';
+    html +=     '<span class="rpt-pg-info">' + (totalRows === 0 ? '0' : (start + 1) + '-' + end) + ' / ' + totalRows + '</span>';
+    html +=     '<button class="rpt-pg-btn rpt-pg-next"' + (st.page >= maxPage ? ' disabled' : '') + '>›</button>';
+    html +=   '</div>';
+    html += '</div>';
+    html += '<div class="rpt-table-wrap">';
+    html += '<table class="rpt-table">';
+    html += '<thead><tr><th class="frz">#</th>';
+    config.cols.forEach(function(c) {
+      html += '<th' + (c.type === 'num' ? ' class="num"' : '') + '>' + escapeHtml(c.label) + '</th>';
+    });
+    html += '</tr></thead><tbody>';
+
+    if (pageRows.length === 0) {
+      html += '<tr><td colspan="' + (config.cols.length + 1) + '" style="text-align:center;padding:30px;color:#94a3b8">' +
+              (st.search ? 'Tidak ada record yang cocok pencarian.' : 'Tidak ada data di periode ini.') + '</td></tr>';
+    } else {
+      pageRows.forEach(function(r, i) {
+        html += '<tr><td class="frz">' + (start + i + 1) + '</td>';
+        config.cols.forEach(function(c) {
+          var v = r[c.key];
+          var disp;
+          if (c.type === 'date') {
+            disp = fmtDate(v);
+          } else if (c.type === 'datetime') {
+            disp = fmtDateTime(v);
+          } else if (c.type === 'num') {
+            var n = parseFloat(v) || 0;
+            disp = n === 0 ? '<span class="muted">—</span>' : fmtNum(n, (n % 1 === 0) ? 0 : 2);
+          } else if (c.type === 'code') {
+            disp = (v === null || v === undefined || v === '') ? '<span class="muted">—</span>' : '<span class="item-code">' + escapeHtml(String(v)) + '</span>';
+          } else {
+            disp = (v === null || v === undefined || v === '') ? '<span class="muted">—</span>' : escapeHtml(String(v));
+          }
+          html += '<td' + (c.type === 'num' ? ' class="num"' : '') + '>' + disp + '</td>';
+        });
+        html += '</tr>';
+      });
+    }
+    html += '</tbody></table></div></div></div>';
+    container.innerHTML = html;
+
+    // Attach events
+    var sec = container.querySelector('.rpt-section');
+    var searchInput = sec.querySelector('.rpt-section-search input');
+    if (searchInput) {
+      searchInput.addEventListener('input', debounce(function() {
+        st.search = searchInput.value;
+        st.page = 1;
+        renderDetailTab(tabKey);
+      }, 250));
+    }
+    var pgPrev = sec.querySelector('.rpt-pg-prev');
+    var pgNext = sec.querySelector('.rpt-pg-next');
+    if (pgPrev) pgPrev.addEventListener('click', function() {
+      if (st.page > 1) { st.page--; renderDetailTab(tabKey); }
+    });
+    if (pgNext) pgNext.addEventListener('click', function() {
+      if (st.page < maxPage) { st.page++; renderDetailTab(tabKey); }
+    });
+  }
+
+  // ========================================================
+  // EXPORT EXCEL (SheetJS multi-sheet)
+  // ========================================================
+  var _exportRunning = false;
+
+  function loadSheetJS(cb) {
+    if (window.XLSX) { cb(); return; }
+    var btn = $('rptBtnExport');
+    var ORIG_HTML = '<i class="ti ti-file-spreadsheet"></i> Export Excel';
+    btn.innerHTML = '<i class="ti ti-loader"></i> Loading…';
+    btn.disabled = true;
+    var s = document.createElement('script');
+    s.src = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+    s.onload = function() {
+      btn.innerHTML = ORIG_HTML;
+      btn.disabled = false;
+      cb();
+    };
+    s.onerror = function() {
+      btn.innerHTML = ORIG_HTML;
+      btn.disabled = false;
+      showError('Gagal load library SheetJS — cek koneksi internet.');
+    };
+    document.head.appendChild(s);
+  }
+
+  function exportExcel() {
+    if (_exportRunning) return;
+    if (!S.report) { showError('Belum ada data. Klik Refresh dulu.'); return; }
+    _exportRunning = true;
+    clearError();
+    loadSheetJS(function() {
+      try { doExport(); }
+      catch (e) { showError('Export gagal: ' + (e.message || e)); }
+      _exportRunning = false;
+    });
+  }
+
+  function doExport() {
+    var r = S.report;
+    var wb = XLSX.utils.book_new();
+    var num = function(v) { return parseFloat(v) || 0; };
+
+    // === Sheet 1: Ringkasan Mutasi ===
+    var aoa = [];
+    aoa.push(['LAPORAN MUTASI STOK']);
+    aoa.push(['Periode: ' + r.period + ' (' + fmtDate(r.period_start) + ' – ' + fmtDate(r.period_end) + ')']);
+    aoa.push(['Filter Lokasi: ' + (S.filter.loc || 'Semua')]);
+    aoa.push(['Saldo Awal: ' + r.saldo_awal_source + '  |  Saldo Akhir: ' + r.saldo_akhir_source]);
+    aoa.push(['Generated: ' + new Date().toLocaleString('id-ID')]);
+
+    var hdr = ['#','Item_Code','Description','UoM',
+      'Awal_Qty','Awal_KG','Receipt_Qty','Receipt_KG','Prod_Qty','Prod_KG',
+      'Cons_Qty','Cons_KG','Delv_Qty','Delv_KG','NG_Qty','NG_KG',
+      'ICT_In_Qty','ICT_In_KG','ICT_Out_Qty','ICT_Out_KG',
+      'Adj_Qty','Adj_KG','Akhir_Qty','Akhir_KG','Var_Qty','Var_KG'];
+
+    function itemToRow(idx, it) {
+      return [idx, it.item_code || '', it.description || '', it.uom || '',
+        num(it.saldo_awal_qty),  num(it.saldo_awal_kg),
+        num(it.in_receipt_qty),  num(it.in_receipt_kg),
+        num(it.in_prod_qty),     num(it.in_prod_kg),
+        num(it.out_cons_qty),    num(it.out_cons_kg),
+        num(it.out_delv_qty),    num(it.out_delv_kg),
+        num(it.out_ng_qty),      num(it.out_ng_kg),
+        num(it.tf_in_qty),       num(it.tf_in_kg),
+        num(it.tf_out_qty),      num(it.tf_out_kg),
+        num(it.adj_qty),         num(it.adj_kg),
+        num(it.saldo_akhir_qty), num(it.saldo_akhir_kg),
+        num(it.variance_qty),    num(it.variance_kg)];
+    }
+    function totalRow(label, t) {
+      return ['TOTAL ' + label, '', '', '',
+        num(t.saldo_awal_qty),  num(t.saldo_awal_kg),
+        num(t.in_receipt_qty),  num(t.in_receipt_kg),
+        num(t.in_prod_qty),     num(t.in_prod_kg),
+        num(t.out_cons_qty),    num(t.out_cons_kg),
+        num(t.out_delv_qty),    num(t.out_delv_kg),
+        num(t.out_ng_qty),      num(t.out_ng_kg),
+        num(t.tf_in_qty),       num(t.tf_in_kg),
+        num(t.tf_out_qty),      num(t.tf_out_kg),
+        num(t.adj_qty),         num(t.adj_kg),
+        num(t.saldo_akhir_qty), num(t.saldo_akhir_kg),
+        num(t.variance_qty),    num(t.variance_kg)];
+    }
+    function addSection(label, data) {
+      aoa.push([]);
+      aoa.push(['=== OWNER: ' + label + ' ===']);
+      aoa.push(hdr);
+      var items = data.by_item || [];
+      items.forEach(function(it, i) { aoa.push(itemToRow(i + 1, it)); });
+      if (items.length > 0) aoa.push(totalRow(label, sumItems(items)));
+    }
+    addSection('FC', r.fc);
+    addSection('DRC', r.drc);
+    addSection('GRAND TOTAL', r.grand);
+
+    var ws1 = XLSX.utils.aoa_to_sheet(aoa);
+    ws1['!cols'] = [{wch:4},{wch:18},{wch:30},{wch:6}];
+    for (var i = 0; i < 22; i++) ws1['!cols'].push({wch:13});
+    XLSX.utils.book_append_sheet(wb, ws1, 'Ringkasan_Mutasi');
+
+    // === Sheet 2-8: Rincian ===
+    var sheetNames = {
+      gr: 'Rincian_GR', delv: 'Rincian_Penjualan', prod: 'Rincian_Produksi',
+      cons: 'Rincian_Konsumsi', ng: 'Rincian_NG', ict: 'Rincian_ICT', adj: 'Rincian_Adjustment'
+    };
+    Object.keys(sheetNames).forEach(function(key) {
+      var config = DETAIL_CONFIG[key];
+      var data = r.details[key] || [];
+      var dAoa = [];
+      dAoa.push([config.label]);
+      dAoa.push(['Periode: ' + r.period + ' | Total: ' + data.length + ' records']);
+      dAoa.push([]);
+      var dhdr = ['#'].concat(config.cols.map(function(c) { return c.label; }));
+      dAoa.push(dhdr);
+      data.forEach(function(row, i) {
+        var arr = [i + 1];
+        config.cols.forEach(function(c) {
+          var v = row[c.key];
+          if (c.type === 'date' || c.type === 'datetime') {
+            if (v) {
+              var d = v instanceof Date ? v : new Date(v);
+              v = isNaN(d.getTime()) ? '' : d;
+            } else { v = ''; }
+          } else if (c.type === 'num') {
+            v = num(v);
+          } else {
+            v = (v === null || v === undefined) ? '' : String(v);
+          }
+          arr.push(v);
+        });
+        dAoa.push(arr);
+      });
+      var ws = XLSX.utils.aoa_to_sheet(dAoa);
+      ws['!cols'] = [{wch:4}].concat(config.cols.map(function(c) {
+        if (c.type === 'date') return {wch:12};
+        if (c.type === 'datetime') return {wch:18};
+        if (c.type === 'num') return {wch:12};
+        if (c.label === 'Description') return {wch:30};
+        return {wch:15};
+      }));
+      XLSX.utils.book_append_sheet(wb, ws, sheetNames[key]);
+    });
+
+    XLSX.writeFile(wb, 'Mutasi_Stok_' + r.period + '.xlsx');
+  }
+
+  // ========================================================
+  // PRINT
+  // ========================================================
+  function printReport() {
+    if (!S.report) { showError('Belum ada data. Klik Refresh dulu.'); return; }
+    window.print();
+  }
+
+  // ========================================================
+  // BOOT
+  // ========================================================
+  init();
+})();
+</script>

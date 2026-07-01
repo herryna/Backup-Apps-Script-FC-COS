@@ -1,0 +1,717 @@
+<style>
+#aw * { box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; }
+
+.a-top { background:#1a2035; border-radius:4px; padding:10px 16px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; }
+.a-top-title { color:#fff; font-size:14px; font-weight:700; }
+.a-top-sub   { color:#8899bb; font-size:11px; margin-top:2px; }
+
+.a-card { background:#fff; border:1.5px solid #dde4f0; border-radius:6px; padding:14px 16px; margin-bottom:12px; }
+.a-card-title { font-size:13px; font-weight:700; color:#1a3a6e; margin-bottom:10px; padding-bottom:7px; border-bottom:1.5px solid #f0f2f8; display:flex; align-items:center; justify-content:space-between; }
+
+/* Autocomplete */
+.ac-wrap { position:relative; display:inline-block; width:100%; }
+.ac-input { width:100%; padding:6px 8px; border:1.5px solid #c8d0e0; border-radius:4px; font-size:12px; }
+.ac-input:focus { outline:none; border-color:#1565c0; box-shadow:0 0 0 2px rgba(21,101,192,.12); }
+.ac-input.ac-selected { background:#f0f8ff; border-color:#1565c0; font-weight:600; }
+.ac-drop { position:fixed; background:#fff; border:1.5px solid #c8d0e0; border-radius:4px; box-shadow:0 6px 24px rgba(0,0,0,.14); z-index:99999; max-height:220px; overflow-y:auto; display:none; }
+.ac-item { padding:7px 10px; cursor:pointer; line-height:1.4; }
+.ac-item:hover, .ac-item.ac-hi { background:#e8f0fe; color:#1565c0; }
+.ac-item .ac-main { font-weight:600; color:#222; }
+.ac-item .ac-sub  { font-size:10px; color:#888; margin-top:1px; }
+.ac-empty { padding:10px; color:#aaa; font-style:italic; text-align:center; font-size:11px; }
+
+/* Batch info */
+.a-batch-panel { background:#f5f7fc; border-radius:4px; padding:10px 14px; margin-top:8px; display:grid; grid-template-columns:repeat(3,1fr); gap:5px 14px; }
+.a-bp-cell { font-size:11px; }
+.a-bp-cell span { color:#999; display:block; font-size:10px; }
+.a-bp-cell b { color:#222; }
+.badge-avail { color:#1b6b45; font-weight:700; font-size:12px; }
+.badge-fc  { background:#e3f2fd; color:#1565c0; padding:1px 7px; border-radius:99px; font-size:10px; font-weight:700; }
+.badge-drc { background:#fff3e0; color:#e65100; padding:1px 7px; border-radius:99px; font-size:10px; font-weight:700; }
+
+/* Table */
+.a-tbl { width:100%; border-collapse:collapse; }
+.a-tbl th { background:#f0f2f8; color:#333; font-weight:700; padding:6px 6px; text-align:left; white-space:nowrap; border-bottom:2px solid #dde4f0; font-size:11px; }
+.a-tbl td { padding:4px 4px; border-bottom:1px solid #f0f2f5; vertical-align:middle; }
+.a-tbl tr:hover td { background:#fafbff; }
+.a-inp { width:100%; padding:5px 6px; border:1.5px solid #dde4f0; border-radius:3px; font-size:11px; }
+.a-inp:focus { outline:none; border-color:#1565c0; }
+.a-inp[readonly] { background:#f5f7fc; color:#555; border-color:#e8eaf0; cursor:default; }
+/* Remove spinners from Qty */
+.a-inp-qty { text-align:right; max-width:72px; -moz-appearance:textfield; }
+.a-inp-qty::-webkit-inner-spin-button,
+.a-inp-qty::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
+.a-inp-kg  { text-align:right; max-width:72px; color:#1b6b45; font-weight:600; background:#f0faf4; border-color:#c8e6c9; }
+.a-sel-sm  { width:100%; padding:5px 6px; border:1.5px solid #dde4f0; border-radius:3px; font-size:11px; background:#fff; }
+.a-sel-sm:focus { outline:none; border-color:#1565c0; }
+
+/* Buttons */
+.a-btn-add { background:#1565c0; color:#fff; border:none; border-radius:3px; padding:5px 12px; cursor:pointer; font-size:11px; font-weight:600; }
+.a-btn-add:hover { background:#0d47a1; }
+.a-btn-del { background:#fbe9e7; color:#c62828; border:none; border-radius:3px; padding:3px 8px; cursor:pointer; font-size:11px; font-weight:700; }
+.a-btn-del:hover { background:#ffcdd2; }
+.a-btn-sub { background:#1b6b45; color:#fff; border:none; border-radius:4px; padding:9px 24px; font-size:13px; font-weight:700; cursor:pointer; }
+.a-btn-sub:hover { background:#145236; }
+.a-btn-sub:disabled { background:#aaa; cursor:not-allowed; }
+
+/* Summary */
+.a-sum { background:#f5f7fc; border-radius:4px; padding:8px 12px; margin-top:10px; display:none; flex-wrap:wrap; gap:8px 20px; font-size:11px; align-items:center; }
+.a-sum-lbl { color:#888; }
+.a-sum-val { font-weight:700; color:#1a3a6e; }
+.a-sum-val.over { color:#c62828; }
+.a-sum-val.ok   { color:#1b6b45; }
+.a-warn { background:#fbe9e7; color:#c62828; border:1px solid #ef9a9a; border-radius:3px; padding:3px 10px; font-size:11px; font-weight:600; display:none; }
+.a-note { width:100%; padding:7px 10px; border:1.5px solid #dde4f0; border-radius:4px; font-size:12px; resize:vertical; font-family:inherit; }
+.a-note:focus { outline:none; border-color:#1a3a6e; }
+.a-fb { padding:8px 14px; border-radius:4px; margin-bottom:10px; font-weight:600; font-size:12px; display:none; }
+.a-fb.ok  { background:#e8f5e9; color:#1b6b45; border:1px solid #a5d6a7; }
+.a-fb.err { background:#fbe9e7; color:#c62828; border:1px solid #ef9a9a; }
+.a-footer { text-align:right; padding-bottom:8px; }
+.a-loading { text-align:center; padding:50px; color:#888; font-style:italic; }
+.a-empty-row { text-align:center; color:#bbb; font-style:italic; padding:18px; }
+/* Keyboard hint */
+.a-hint { font-size:10px; color:#aaa; font-weight:normal; }
+.a-hint kbd { background:#f0f0f0; border:1px solid #ccc; border-radius:2px; padding:1px 4px; font-size:10px; }
+</style>
+
+<div id="ac-drop" class="ac-drop"></div>
+
+<div id="aw">
+  <div id="a-loading" class="a-loading">⏳ Memuat data stok &amp; SO...</div>
+
+  <div id="a-main" style="display:none">
+    <div class="a-top">
+      <div>
+        <div class="a-top-title">📦 Form Allocated Material</div>
+        <div class="a-top-sub">Alokasi stok ke SO tanpa proses mesin · langsung masuk Stok_FG &amp; Rekap_ICT</div>
+      </div>
+    </div>
+
+    <div id="a-fb" class="a-fb"></div>
+
+    <div class="a-card">
+      <div class="a-card-title">
+        <span>1. Pilih Sumber Batch (Stok_Sheet)</span>
+        <div class="a-hint">
+          <kbd>↓↑</kbd> navigasi &nbsp; <kbd>Enter</kbd> / <kbd>→</kbd> pilih &nbsp; <kbd>Tab</kbd> lanjut &nbsp; <kbd>Esc</kbd> tutup
+        </div>
+      </div>
+      <div class="ac-wrap" style="max-width:100%">
+        <input id="inp-batch" class="ac-input" type="text" placeholder="-- Pilih Batch --" autocomplete="off">
+      </div>
+      <div id="batch-panel" style="display:none">
+        <div class="a-batch-panel">
+          <div class="a-bp-cell"><span>Item Code</span><b id="bp-item">-</b></div>
+          <div class="a-bp-cell"><span>Spesifikasi</span><b id="bp-spec">-</b></div>
+          <div class="a-bp-cell"><span>T × P × L</span><b id="bp-tpl">-</b></div>
+          <div class="a-bp-cell"><span>Qty Tersedia</span><b id="bp-qty" class="badge-avail">-</b></div>
+          <div class="a-bp-cell"><span>KG Tersedia</span><b id="bp-kg">-</b></div>
+          <div class="a-bp-cell"><span>Owner</span><b id="bp-owner">-</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="a-card">
+      <div class="a-card-title">
+        <span>2. Alokasi Output <span style="font-weight:400;color:#888;font-size:11px">(multi-SO · item code bisa berbeda)</span></span>
+        <button class="a-btn-add" onclick="addRow()">+ Tambah Baris</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="a-tbl">
+          <thead>
+            <tr>
+              <th style="width:26px">#</th>
+              <th style="min-width:150px">Item Code *</th>
+              <th style="min-width:150px">Deskripsi</th>
+              <th style="min-width:120px">SO_No *</th>
+              <th style="min-width:75px">Customer</th>
+              <th style="min-width:72px">Qty (Sht) *</th>
+              <th style="min-width:72px">KG</th>
+              <th style="min-width:75px">Owner_Used</th>
+              <th style="width:30px"></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div id="a-sum" class="a-sum">
+        <span><span class="a-sum-lbl">Total: </span><b id="sum-qty" class="a-sum-val">0 Sht</b> / <b id="sum-kg" class="a-sum-val">0 KG</b></span>
+        <span><span class="a-sum-lbl">Tersedia: </span><b id="sum-avail" class="a-sum-val">—</b></span>
+        <span id="sum-warn" class="a-warn">⚠️ Melebihi stok!</span>
+      </div>
+    </div>
+
+    <div class="a-card">
+      <div class="a-card-title">3. Catatan (Opsional)</div>
+      <textarea id="inp-note" class="a-note" rows="2" placeholder="Contoh: Palet dipecah — SUP 50 Sht, DRC 50 Sht"></textarea>
+    </div>
+
+    <div class="a-footer">
+      <button id="btn-sub" class="a-btn-sub" onclick="doSubmit()">💾 Simpan Alokasi</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+// ══════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════
+var _batches   = [];
+var _soList    = [];
+var _itemMap   = {};    // item_code → [so_list]
+var _itemCodes = [];
+var _batch     = null;
+var _rows      = [];
+var _rid       = 0;
+
+// ══════════════════════════════════════════════════════════════
+// SHARED AUTOCOMPLETE ENGINE
+// ══════════════════════════════════════════════════════════════
+var AC = (function() {
+  var _dropEl    = document.getElementById('ac-drop');
+  var _options   = [];
+  var _filtered  = [];
+  var _hiIdx     = 0;
+  var _target    = null;
+  var _onPick    = null;
+  var _nextEl    = null;
+  var _isOpen    = false;
+
+  function open(inputEl, opts, onPick, nextEl) {
+    _target  = inputEl;
+    _options = opts;
+    _onPick  = onPick;
+    _nextEl  = nextEl || null;
+    filter(inputEl.value);
+    _isOpen = true;
+  }
+
+  function close() {
+    _isOpen = false;
+    _dropEl.style.display = 'none';
+    _dropEl.innerHTML = '';
+  }
+
+  function filter(q) {
+    var lq = (q || '').toLowerCase().trim();
+    _filtered = lq === ''
+      ? _options.slice(0, 60)
+      : _options.filter(function(o) {
+          return (o.value + ' ' + o.label + ' ' + (o.sub||'')).toLowerCase().indexOf(lq) !== -1;
+        }).slice(0, 60);
+    _hiIdx = 0;
+    render();
+  }
+
+  function render() {
+    if (!_isOpen || !_target) return;
+    if (_filtered.length === 0) {
+      _dropEl.innerHTML = '<div class="ac-empty">Tidak ditemukan</div>';
+    } else {
+      _dropEl.innerHTML = _filtered.map(function(o, i) {
+        var sub = o.sub ? '<div class="ac-sub">' + esc(o.sub) + '</div>' : '';
+        return '<div class="ac-item' + (i === _hiIdx ? ' ac-hi' : '') + '" data-i="' + i + '">' +
+          '<div class="ac-main">' + highlight(esc(o.label), _target.value) + '</div>' + sub + '</div>';
+      }).join('');
+      _dropEl.querySelectorAll('.ac-item').forEach(function(el) {
+        el.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          pick(parseInt(this.dataset.i, 10));
+        });
+      });
+    }
+    // Position
+    var r = _target.getBoundingClientRect();
+    _dropEl.style.cssText =
+      'display:block;left:' + (r.left + window.scrollX) + 'px;' +
+      'top:'  + (r.bottom + window.scrollY + 2) + 'px;' +
+      'width:' + Math.max(r.width, 220) + 'px;max-height:220px;overflow-y:auto;';
+  }
+
+  function moveHi(dir) {
+    _hiIdx = Math.max(0, Math.min(_filtered.length - 1, _hiIdx + dir));
+    render();
+    var el = _dropEl.querySelector('.ac-hi');
+    if (el) el.scrollIntoView({ block:'nearest' });
+  }
+
+  function pick(idx) {
+    var item = _filtered[idx];
+    if (!item) return;
+    _target.value = item.value;
+    _target.classList.add('ac-selected');
+    close();
+    if (_onPick) _onPick(item);
+    if (_nextEl) { setTimeout(function() { _nextEl.focus(); }, 20); }
+  }
+
+  function pickActive() { if (_hiIdx >= 0) pick(_hiIdx); }
+
+  document.addEventListener('keydown', function(e) {
+    if (!_isOpen) return;
+    if (e.target !== _target) { close(); return; }
+    switch(e.key) {
+      case 'ArrowDown': e.preventDefault(); moveHi(1);  break;
+      case 'ArrowUp':   e.preventDefault(); moveHi(-1); break;
+      case 'Enter':
+      case 'ArrowRight':
+        if (_filtered.length > 0) { e.preventDefault(); pickActive(); }
+        else close();
+        break;
+      case 'Tab':
+        if (_filtered.length > 0) { e.preventDefault(); pickActive(); }
+        else close();
+        break;
+      case 'Escape':
+      case 'ArrowLeft': close(); break;
+    }
+  });
+
+  document.addEventListener('click', function(e) {
+    if (_isOpen && !_dropEl.contains(e.target)) {
+      if (_target && !_target.contains(e.target)) close();
+    }
+  });
+
+  function highlight(str, q) {
+    if (!q) return str;
+    var lq = q.toLowerCase();
+    var ls = str.toLowerCase();
+    var i  = ls.indexOf(lq);
+    if (i === -1) return str;
+    return str.slice(0,i) + '<mark style="background:#fff176;border-radius:2px;">' + str.slice(i, i+q.length) + '</mark>' + str.slice(i+q.length);
+  }
+
+  return { open:open, close:close, filter:filter, isOpen:function(){ return _isOpen; } };
+})();
+
+// ══════════════════════════════════════════════════════════════
+// BATCH AUTOCOMPLETE
+// ══════════════════════════════════════════════════════════════
+var batchInput = document.getElementById('inp-batch');
+
+// Helper untuk format string Batch seperti dropdown di gambar
+function formatBatchLabel(b) {
+  var tpl = [b.T, b.P, b.L].filter(Boolean).join('X');
+  // Utamakan Description lengkap; fallback ke spec + TxP jika desc kosong
+  var deskripsi = b.desc && b.desc.trim()
+                ? b.desc.trim()
+                : b.spec + (tpl ? ' ' + tpl + ' mm' : '');
+  return b.batch_id + ' | ' + deskripsi + ' | ' + b.qty_avail + ' Sht | ' + Math.round(b.kg_avail) + ' kg | ' + b.owner;
+}
+
+batchInput.addEventListener('input', function() {
+  if (!_batches.length) return;
+  var opts = _batches.map(function(b) {
+    var lbl = formatBatchLabel(b);
+    return { value: lbl, label: lbl, sub: '', data: b };
+  });
+  AC.open(batchInput, opts, function(item) { selectBatch(item.data); }, null);
+  AC.filter(this.value);
+});
+
+batchInput.addEventListener('focus', function() {
+  if (_batches.length && !AC.isOpen()) {
+    var opts = _batches.map(function(b) {
+      var lbl = formatBatchLabel(b);
+      return { value: lbl, label: lbl, sub: '', data: b };
+    });
+    AC.open(batchInput, opts, function(item) { selectBatch(item.data); }, null);
+    AC.filter(this.value);
+  }
+});
+
+function selectBatch(b) {
+  _batch = b;
+  batchInput.value = formatBatchLabel(b);
+
+  document.getElementById('bp-item').textContent = b.item_code || '-';
+  document.getElementById('bp-spec').textContent = b.spec || '-';
+  document.getElementById('bp-tpl').textContent  = [b.T,b.P,b.L].filter(Boolean).join(' × ') || '-';
+  document.getElementById('bp-qty').textContent  = b.qty_avail + ' Sht';
+  document.getElementById('bp-kg').textContent   = b.kg_avail.toFixed(2) + ' KG';
+
+  var ownerEl = document.getElementById('bp-owner');
+  ownerEl.textContent = b.owner;
+  ownerEl.className   = b.owner === 'DRC' ? 'badge-drc' : 'badge-fc';
+
+  document.getElementById('batch-panel').style.display = 'block';
+
+  // Recalculate KG for existing rows
+  _rows.forEach(function(r) { calcKg(r); });
+  refreshKgCells();
+  updateSummary();
+}
+
+// ══════════════════════════════════════════════════════════════
+// ROW MANAGEMENT
+// ══════════════════════════════════════════════════════════════
+window.addRow = function() {
+  var rid = 'r' + (_rid++);
+  _rows.push({ id:rid, so_no:'', item_code:'', desc:'', cust:'', qty:0, kg:0, owner_used:'FC' });
+  renderRows();
+  updateSummary();
+
+  // Auto-focus Item Code input of new row
+  setTimeout(function() {
+    var el = document.querySelector('[data-rid="' + rid + '"] .ic-inp');
+    if (el) el.focus();
+  }, 30);
+};
+
+window.removeRow = function(rid) {
+  _rows = _rows.filter(function(r) { return r.id !== rid; });
+  renderRows();
+  updateSummary();
+};
+
+function getRow(rid) {
+  return _rows.filter(function(r) { return r.id === rid; })[0] || null;
+}
+
+function calcKg(row) {
+  row.kg = _batch && row.qty > 0
+    ? Math.round(row.qty * _batch.kg_per_sht * 100) / 100
+    : 0;
+}
+
+function refreshKgCells() {
+  _rows.forEach(function(r) {
+    var el = document.querySelector('[data-rid="' + r.id + '"] .kg-cell');
+    if (el) el.value = r.kg > 0 ? r.kg.toFixed(2) : '';
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// RENDER ROWS
+// ══════════════════════════════════════════════════════════════
+function renderRows() {
+  var tbody = document.getElementById('tbody');
+  if (_rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="a-empty-row">Klik "+ Tambah Baris" untuk mulai</td></tr>';
+    return;
+  }
+  tbody.innerHTML = _rows.map(function(r, idx) {
+    var isDrc = r.cust.toUpperCase() === 'DRC';
+    var custBadge = r.cust
+      ? '<span class="' + (isDrc?'badge-drc':'badge-fc') + '">' + r.cust + '</span>'
+      : '<span style="color:#bbb">—</span>';
+
+    return '<tr data-rid="' + r.id + '">' +
+      '<td style="text-align:center;color:#aaa;font-size:11px;">' + (idx+1) + '</td>' +
+      // 1. Item Code
+      '<td><div class="ac-wrap"><input class="ac-input ic-inp' + (r.item_code?' ac-selected':'') + '" type="text" ' +
+        'value="' + esc(r.item_code) + '" placeholder="Cari item code..." autocomplete="off" ' +
+        'data-rid="' + r.id + '" ' +
+        'onfocus="onIcFocus(this)" oninput="onIcInput(this)"></div></td>' +
+      // 2. Description (readonly)
+      '<td><input class="a-inp" value="' + esc(r.desc) + '" readonly placeholder="auto"></td>' +
+      // 3. SO No
+      '<td><div class="ac-wrap"><input class="ac-input so-inp' + (r.so_no?' ac-selected':'') + '" type="text" ' +
+        'value="' + esc(r.so_no) + '" placeholder="Cari SO..." autocomplete="off" ' +
+        'data-rid="' + r.id + '" ' +
+        'onfocus="onSoFocus(this)" oninput="onSoInput(this)"></div></td>' +
+      // 4. Customer
+      '<td style="text-align:center;">' + custBadge + '</td>' +
+      // Qty
+      '<td><input class="a-inp a-inp-qty" type="number" ' +
+        'value="' + (r.qty > 0 ? r.qty : '') + '" min="0" step="1" ' +
+        'data-rid="' + r.id + '" ' +
+        'oninput="onQtyInput(this)" onkeydown="onQtyKey(event,this)"></td>' +
+      // KG
+      '<td><input class="a-inp a-inp-kg kg-cell" value="' + (r.kg>0?r.kg.toFixed(2):'') + '" readonly></td>' +
+      // Owner_Used
+      '<td><select class="a-sel-sm" data-rid="' + r.id + '" ' +
+        (isDrc?'disabled ':'') +
+        'onchange="onOwnerChange(this)">' +
+        '<option value="FC"'  + (r.owner_used==='FC' ?'selected':'') + '>FC</option>' +
+        '<option value="DRC"' + (r.owner_used==='DRC'?'selected':'') + '>DRC</option>' +
+      '</select></td>' +
+      '<td><button class="a-btn-del" onclick="removeRow(\'' + r.id + '\')">✕</button></td>' +
+    '</tr>';
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// ITEM CODE AUTOCOMPLETE HANDLERS (Diisi PERTAMA)
+// ══════════════════════════════════════════════════════════════
+function buildIcOpts() {
+  return _itemCodes.map(function(ic) {
+    var it = _itemMap[ic][0]; // Ambil data pertama untuk deskripsi
+    return { value: ic, label: ic, sub: it.desc, data: { item_code: ic, desc: it.desc } };
+  });
+}
+
+window.onIcFocus = function(el) {
+  var rid = el.dataset.rid;
+  var nextEl = document.querySelector('[data-rid="' + rid + '"] .so-inp');
+  AC.open(el, buildIcOpts(), function(item) {
+    applyIc(rid, item.data);
+    var soEl = document.querySelector('[data-rid="' + rid + '"] .so-inp');
+    if (soEl) soEl.focus();
+  }, nextEl);
+  AC.filter(el.value);
+};
+
+window.onIcInput = function(el) {
+  var rid = el.dataset.rid;
+  var row = getRow(rid); if (!row) return;
+  // Jika Item Code dihapus, reset SO juga
+  if (!el.value) { row.item_code=''; row.desc=''; row.so_no=''; row.cust=''; renderRows(); return; }
+  
+  AC.open(el, buildIcOpts(), function(item) {
+    applyIc(rid, item.data);
+    var soEl = document.querySelector('[data-rid="' + rid + '"] .so-inp');
+    if (soEl) soEl.focus();
+  }, null);
+  AC.filter(el.value);
+};
+
+function applyIc(rid, data) {
+  var row = getRow(rid); if (!row) return;
+  row.item_code  = data.item_code;
+  row.desc       = data.desc;
+  row.so_no      = ''; // Reset SO karena item code berubah
+  row.cust       = '';
+  row.owner_used = 'FC';
+  renderRows();
+  updateSummary();
+}
+
+// ══════════════════════════════════════════════════════════════
+// SO AUTOCOMPLETE HANDLERS (Diisi KEDUA, difilter berdasarkan Item Code)
+// ══════════════════════════════════════════════════════════════
+function buildSoOpts(rid) {
+  var row = getRow(rid); if (!row || !row.item_code) return [];
+  var items = _itemMap[row.item_code] || [];
+  return items.filter(function(it) {
+    return it.so_no && !it._fromBatch;   // hanya SO asli, bukan entri batch
+  }).map(function(it) {
+    return { value: it.so_no, label: it.so_no, sub: it.cust + '  ·  Qty SO: ' + it.bl_q, data: it };
+  });
+}
+
+window.onSoFocus = function(el) {
+  var rid = el.dataset.rid;
+  var row = getRow(rid);
+  if (!row || !row.item_code) { 
+    showFb('⚠️ Pilih Item Code terlebih dahulu', 'err'); 
+    el.blur(); 
+    return; 
+  }
+  var nextEl = document.querySelector('[data-rid="' + rid + '"] .a-inp-qty');
+  AC.open(el, buildSoOpts(rid), function(item) {
+    applySo(rid, item.data);
+    var qtyEl = document.querySelector('[data-rid="' + rid + '"] .a-inp-qty');
+    if (qtyEl) qtyEl.focus();
+  }, nextEl);
+  AC.filter(el.value);
+};
+
+window.onSoInput = function(el) {
+  var rid = el.dataset.rid;
+  var row = getRow(rid); if (!row) return;
+  if (!el.value) { row.so_no=''; row.cust=''; row.owner_used='FC'; renderRows(); return; }
+  AC.open(el, buildSoOpts(rid), function(item) {
+    applySo(rid, item.data);
+    var qtyEl = document.querySelector('[data-rid="' + rid + '"] .a-inp-qty');
+    if (qtyEl) qtyEl.focus();
+  }, null);
+  AC.filter(el.value);
+};
+
+function applySo(rid, data) {
+  var row = getRow(rid); if (!row) return;
+  row.so_no      = data.so_no;
+  row.cust       = data.cust;
+  row.owner_used = data.cust.toUpperCase() === 'DRC' ? 'DRC' : 'FC';
+  renderRows();
+  updateSummary();
+}
+
+// ══════════════════════════════════════════════════════════════
+// QTY HANDLERS
+// ══════════════════════════════════════════════════════════════
+window.onQtyInput = function(el) {
+  var rid = el.dataset.rid;
+  var row = getRow(rid); if (!row) return;
+  row.qty = Math.max(0, parseFloat(el.value) || 0);
+  calcKg(row);
+  var kgEl = el.closest('tr').querySelector('.kg-cell');
+  if (kgEl) kgEl.value = row.kg > 0 ? row.kg.toFixed(2) : '';
+  updateSummary();
+};
+
+window.onQtyKey = function(e, el) {
+  var rid = el.dataset.rid;
+  if (e.key === 'Tab' || e.key === 'ArrowRight') {
+    // Tab naturally goes to Owner_Used (next input in DOM)
+  }
+  if (e.key === 'ArrowLeft' && (el.value === '' || el.selectionStart === 0)) {
+    e.preventDefault();
+    var soEl = el.closest('tr').querySelector('.so-inp');
+    if (soEl) soEl.focus();
+  }
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    // Move to next row's Item Code input
+    var idx = _rows.findIndex(function(r) { return r.id === rid; });
+    if (idx >= 0 && idx < _rows.length - 1) {
+      var nextRid = _rows[idx + 1].id;
+      var nextIc  = document.querySelector('[data-rid="' + nextRid + '"] .ic-inp');
+      if (nextIc) nextIc.focus();
+    }
+  }
+};
+
+// ══════════════════════════════════════════════════════════════
+// OWNER CHANGE
+// ══════════════════════════════════════════════════════════════
+window.onOwnerChange = function(el) {
+  var row = getRow(el.dataset.rid); if (!row) return;
+  row.owner_used = el.value;
+};
+
+// ══════════════════════════════════════════════════════════════
+// SUMMARY
+// ══════════════════════════════════════════════════════════════
+function updateSummary() {
+  var totalQty = _rows.reduce(function(s,r){return s+(parseFloat(r.qty)||0);},0);
+  var totalKg  = _rows.reduce(function(s,r){return s+(parseFloat(r.kg) ||0);},0);
+  document.getElementById('sum-qty').textContent = totalQty + ' Sht';
+  document.getElementById('sum-kg').textContent  = totalKg.toFixed(2) + ' KG';
+  var isOver = false;
+  if (_batch) {
+    document.getElementById('sum-avail').textContent = _batch.qty_avail + ' Sht / ' + _batch.kg_avail.toFixed(2) + ' KG';
+    isOver = totalQty > _batch.qty_avail;
+    document.getElementById('sum-qty').className = 'a-sum-val ' + (isOver?'over':'ok');
+  }
+  document.getElementById('sum-warn').style.display = isOver ? 'inline-block' : 'none';
+  document.getElementById('a-sum').style.display    = _rows.length > 0 ? 'flex' : 'none';
+}
+
+// ══════════════════════════════════════════════════════════════
+// SUBMIT
+// ══════════════════════════════════════════════════════════════
+window.doSubmit = function() {
+  hideFb();
+  if (!_batch) { showFb('❌ Pilih batch sumber terlebih dahulu','err'); return; }
+  if (_rows.length === 0) { showFb('❌ Tambahkan minimal 1 baris output','err'); return; }
+
+  for (var i=0; i<_rows.length; i++) {
+    var r=_rows[i], n=i+1;
+    if (!r.item_code) { showFb('❌ Baris '+n+': Item Code wajib dipilih','err'); return; }
+    if (!r.so_no)     { showFb('❌ Baris '+n+': SO_No wajib dipilih','err'); return; }
+    if (!r.qty||r.qty<=0) { showFb('❌ Baris '+n+': Qty harus > 0','err'); return; }
+  }
+
+  var totalQty = _rows.reduce(function(s,r){return s+(parseFloat(r.qty)||0);},0);
+  if (totalQty > _batch.qty_avail) {
+    showFb('❌ Total Qty ('+totalQty+') melebihi stok tersedia ('+_batch.qty_avail+')','err');
+    return;
+  }
+  var totalKg = _rows.reduce(function(s,r){return s+(parseFloat(r.kg)||0);},0);
+
+  var payload = {
+    batch_id:_batch.batch_id, batch_item_code:_batch.item_code,
+    batch_desc:_batch.desc, batch_spec:_batch.spec, batch_T:_batch.T, batch_P:_batch.P, batch_L:_batch.L,
+    batch_owner:_batch.owner, kg_per_sht:_batch.kg_per_sht,
+    total_qty:totalQty, total_kg:totalKg, created_by:'Admin',
+    note:document.getElementById('inp-note').value.trim(),
+    out_alloc:_rows.map(function(r){
+      return { so_ref:r.so_no, cust:r.cust, item_code:r.item_code,
+               description:r.desc, qty:parseFloat(r.qty)||0,
+               kg:parseFloat(r.kg)||0, owner_used:r.owner_used };
+    })
+  };
+  var btn = document.getElementById('btn-sub');
+  btn.disabled=true; btn.textContent='⏳ Menyimpan...';
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      btn.disabled=false; btn.textContent='💾 Simpan Alokasi';
+      if (res.success) {
+        var ict = res.has_ict ? ' · Rekap_ICT ✅' : '';
+        showFb('✅ Tersimpan: '+res.alloc_no+' ('+res.count_out+' output)'+ict, 'ok');
+        resetForm();
+      } else {
+        showFb('❌ '+res.message,'err');
+      }
+    })
+    .withFailureHandler(function(e){ 
+      btn.disabled=false; btn.textContent='💾 Simpan Alokasi'; showFb('❌ '+e.message,'err'); 
+    })
+    .saveSPK_ALLOC(payload);
+};
+
+function resetForm() {
+  _batch=null; _rows=[];
+  document.getElementById('inp-batch').value='';
+  document.getElementById('inp-batch').classList.remove('ac-selected');
+  document.getElementById('batch-panel').style.display='none';
+  document.getElementById('inp-note').value='';
+  renderRows(); updateSummary();
+}
+
+// ══════════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════════
+function showFb(msg,type){
+  var el=document.getElementById('a-fb');
+  el.textContent=msg; el.className='a-fb '+type; el.style.display='block';
+  if(type==='ok') setTimeout(function(){el.style.display='none';},7000);
+  el.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function hideFb(){document.getElementById('a-fb').style.display='none';}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ══════════════════════════════════════════════════════════════
+// INIT — load data
+// ══════════════════════════════════════════════════════════════
+google.script.run
+  .withSuccessHandler(function(res) {
+    document.getElementById('a-loading').style.display='none';
+    if (!res.success) {
+      document.getElementById('a-loading').textContent='❌ '+res.message;
+      document.getElementById('a-loading').style.display='block';
+      return;
+    }
+    _batches = res.batches || [];
+    _soList  = res.so_list || [];
+    
+    // Grouping SO list berdasarkan Item Code untuk lookup poka-yoke
+    _soList.forEach(function(it) {
+      if (!it.item_code) return; // Abaikan jika item_code kosong
+      if (!_itemMap[it.item_code]) _itemMap[it.item_code] = [];
+      _itemMap[it.item_code].push(it);
+    });
+
+    // Tambahkan item dari batch Stok_Sheet yang tersedia,
+    // supaya item tetap bisa dicari walau belum punya SO aktif.
+    // (Sumber ini sementara — nanti diganti sumber MRP)
+    _batches.forEach(function(b) {
+      if (!b.item_code) return;
+      if (!_itemMap[b.item_code]) _itemMap[b.item_code] = [];
+      // tandai entri ini berasal dari batch (bukan SO) agar desc tetap kebawa
+      var sudahAda = _itemMap[b.item_code].some(function(x){ return x._fromBatch; });
+      if (!sudahAda) {
+        _itemMap[b.item_code].push({
+          so_no: '', cust: '', item_code: b.item_code,
+          desc: b.desc || b.spec || '', bl_q: 0, _fromBatch: true
+        });
+      }
+    });
+
+    _itemCodes = Object.keys(_itemMap).sort();
+    
+    renderRows();
+    document.getElementById('a-main').style.display='block';
+  })
+  .withFailureHandler(function(e){ document.getElementById('a-loading').textContent='❌ '+e.message; })
+  .getInitDataAlloc();
+
+})();
+</script>

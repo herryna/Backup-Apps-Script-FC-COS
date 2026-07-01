@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<title><?= pageTitle ?></title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<?!= include('shared_css'); ?>
+<style>
+  /* Standalone board layout - tanpa sidebar */
+  .standalone-main {
+    padding: 16px;
+    height: calc(100vh - 56px);
+    overflow: auto;
+  }
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .countdown {
+    font-size: 12px;
+    color: rgba(255,255,255,0.85);
+    font-variant-numeric: tabular-nums;
+  }
+  .refresh-btn {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.35);
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+  .refresh-btn:hover  { background: rgba(255,255,255,0.28); }
+  .refresh-btn:active { transform: scale(0.97); }
+  .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <header class="topbar">
+    <h1><i class="ti <?= pageIcon ?>"></i> <?= pageTitle ?></h1>
+    <div class="topbar-right">
+      <span class="countdown" id="countdown">Auto-refresh: 60s</span>
+      <button class="refresh-btn" id="refresh-btn" onclick="refreshBoard()">
+        <i class="ti ti-refresh" id="refresh-icon"></i> Refresh
+      </button>
+      <div id="conn-status" class="conn loading">
+        <i class="ti ti-loader spin-anim"></i>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content" class="standalone-main">
+    <div class="loading"><i class="ti ti-loader" style="animation:spin 1s linear infinite"></i> Memuat board...</div>
+  </main>
+
+</div>
+
+<div id="toast" class="toast"></div>
+
+<?!= include('shared_js'); ?>
+
+<script>
+// ==========================================
+// STANDALONE BOARD - AUTO REFRESH 60 DETIK
+// ==========================================
+var TARGET_PAGE      = '<?= targetPage ?>';
+var REFRESH_INTERVAL = 60; // detik
+
+var countdownValue = REFRESH_INTERVAL;
+var countdownTimer = null;
+var isLoading      = false;
+
+function loadBoard() {
+  if (isLoading) return;
+  isLoading = true;
+
+  var main = document.getElementById('main-content');
+  var icon = document.getElementById('refresh-icon');
+  var btn  = document.getElementById('refresh-btn');
+
+  icon.style.animation = 'spin 1s linear infinite';
+  btn.disabled = true;
+
+  google.script.run
+    .withSuccessHandler(function(html) {
+      main.innerHTML = html;
+
+      // Re-execute <script> tags di dalam halaman target
+      var scripts = main.querySelectorAll('script');
+      scripts.forEach(function(s) {
+        var ns = document.createElement('script');
+        if (s.src) ns.src = s.src;
+        else ns.textContent = s.textContent;
+        document.body.appendChild(ns);
+        s.remove();
+      });
+
+      icon.style.animation = '';
+      btn.disabled = false;
+      isLoading = false;
+      resetCountdown();
+    })
+    .withFailureHandler(function(err) {
+      main.innerHTML = '<div class="loading" style="color:#A32D2D">Error: ' + err.message + '</div>';
+      icon.style.animation = '';
+      btn.disabled = false;
+      isLoading = false;
+      resetCountdown();
+    })
+    .getPageContent(TARGET_PAGE);
+}
+
+function refreshBoard() {
+  loadBoard();
+}
+
+function resetCountdown() {
+  countdownValue = REFRESH_INTERVAL;
+  updateCountdownLabel();
+}
+
+function updateCountdownLabel() {
+  document.getElementById('countdown').textContent = 'Auto-refresh: ' + countdownValue + 's';
+}
+
+function startCountdown() {
+  if (countdownTimer) clearInterval(countdownTimer);
+  countdownTimer = setInterval(function() {
+    countdownValue--;
+    if (countdownValue <= 0) {
+      loadBoard(); // resetCountdown akan dipanggil di handler
+    } else {
+      updateCountdownLabel();
+    }
+  }, 1000);
+}
+
+// Cek koneksi DB
+google.script.run
+  .withSuccessHandler(function() {
+    var conn = document.getElementById('conn-status');
+    conn.className = 'conn ok';
+    conn.innerHTML = '<i class="ti ti-circle-check"></i> Connected';
+  })
+  .withFailureHandler(function(err) {
+    var conn = document.getElementById('conn-status');
+    conn.className = 'conn err';
+    conn.innerHTML = '<i class="ti ti-x"></i> Error';
+  })
+  .getSheetData('M_ITEM');
+
+// Initial load + start countdown
+loadBoard();
+startCountdown();
+</script>
+
+</body>
+</html>
