@@ -12,37 +12,34 @@ function getActualLastRow(sheet) {
 
 function getBaseBatchId_GR(tglObj) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheetSeq = ss.getSheetByName('SYS_Sequence');
-  
-  if (!sheetSeq) {
-    sheetSeq = ss.insertSheet('SYS_Sequence');
-    sheetSeq.appendRow(['Tipe_Doc', 'Tahun', 'Last_Seq']);
-    sheetSeq.hideSheet();
-  }
-  
+  var cfg = ss.getSheetByName('M_Config');
+  if (!cfg) throw new Error('Sheet M_Config tidak ditemukan!');
+
   var tz = Session.getScriptTimeZone();
-  var yy = Utilities.formatDate(tglObj, tz, 'yy'); 
-  var prefix = 'GR' + yy; 
-  var data = sheetSeq.getDataRange().getValues();
-  var rowIndex = -1; 
+  var yy = Utilities.formatDate(tglObj, tz, 'yy');
+  var configKey = 'LAST_GR_' + yy;   // ex: LAST_GR_26
+
+  var data = cfg.getDataRange().getValues();
+  var rowIdx = -1;
   var currentSeq = 0;
-  
+
   for (var i = 1; i < data.length; i++) {
-    if (String(data[i][0]).trim() === 'GR' && String(data[i][1]).trim() === String(yy)) { 
-      rowIndex = i + 1; 
-      currentSeq = parseInt(data[i][2], 10); 
-      break; 
+    if (String(data[i][0]).trim() === configKey) {
+      rowIdx = i + 1;
+      currentSeq = parseInt(data[i][1], 10) || 0;
+      break;
     }
   }
-  
+
   var nextSeq = currentSeq + 1;
-  if (rowIndex === -1) {
-    sheetSeq.appendRow(['GR', "'" + yy, nextSeq]);
+  if (rowIdx === -1) {
+    // Auto-create key untuk tahun baru (rollover)
+    cfg.appendRow([configKey, nextSeq]);
   } else {
-    sheetSeq.getRange(rowIndex, 3).setValue(nextSeq);
+    cfg.getRange(rowIdx, 2).setValue(nextSeq);
   }
-  
-  return prefix + String(nextSeq).padStart(4, '0');
+
+  return 'GR' + yy + String(nextSeq).padStart(4, '0');
 }
 
 function getSuffix(index) {
@@ -66,13 +63,13 @@ function formatTglLabel(dateObj) {
 // ─────────────────────────────────────────────────────────────────────────
 function getInitData() {
   try {
-    var result = { form: getGRFormData(), dash: getDashboardData(1) };
+    var result = { form: getGRFormData(), dash: getGRDashboardData(1) };
     return JSON.stringify(result);
   } catch (e) { return JSON.stringify({ error: e.message }); }
 }
 
-function getDashboardPage(page) {
-  try { return JSON.stringify(getDashboardData(page)); } 
+function getGRDashboardPage(page) {
+  try { return JSON.stringify(getGRDashboardData(page)); } 
   catch (e) { return JSON.stringify({ error: e.message }); }
 }
 
@@ -151,7 +148,7 @@ function getGRFormData() {
 // ─────────────────────────────────────────────────────────────────────────
 // 2. GET DASHBOARD DATA (MENAMPILKAN RIWAYAT)
 // ─────────────────────────────────────────────────────────────────────────
-function getDashboardData(page) {
+function getGRDashboardData(page) {
   var pageSize = 50;
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var allData = [];

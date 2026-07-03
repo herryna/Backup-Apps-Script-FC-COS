@@ -1,0 +1,967 @@
+<style>
+/* ================================================================
+   OPENING BALANCE MODULE — SPA (mirror pattern GR)
+================================================================ */
+:root {
+  --bg-app: #eef2f5; --bg-panel: #ffffff; --text-main: #202b3c; --text-muted: #6b7785;
+  --border-color: #cbd5e1; --primary-blue: #0265dc; --success-green: #108a4f;
+  --danger-red: #d32f2f; --table-head: #f1f5f9; --warning-orange: #f97316;
+  --purple-drc: #7c3aed;
+  --coil-color: #0891b2; --sheet-color: #16a34a; --wip-color: #ea580c;
+}
+
+body { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 12px; color: var(--text-main); background: var(--bg-app); margin: 0; padding: 16px; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; }
+* { box-sizing: border-box; }
+
+.view-container { display: none; flex-direction: column; gap: 12px; height: 100%; }
+.view-container.active { display: flex; }
+
+.panel { background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 4px; display: flex; flex-direction: column; flex-shrink: 0; }
+.panel-head { font-weight: 700; color: #0f172a; background: #f8fafc; padding: 10px 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+.panel-body { padding: 12px 16px; }
+.row { display: flex; gap: 12px; margin-bottom: 10px; } .row:last-child { margin-bottom: 0; }
+.col { flex: 1; display: flex; flex-direction: column; gap: 4px; } .col-2 { flex: 2; display: flex; flex-direction: column; gap: 4px; }
+label { font-weight: 600; color: var(--text-muted); font-size: 11px; }
+
+.f-inp { border: 1px solid var(--border-color); border-radius: 3px; padding: 6px 10px; font-size: 12px; height: 28px; width: 100%; transition: 0.1s; }
+.f-inp:focus { outline: none; border-color: var(--primary-blue); box-shadow: 0 0 0 2px rgba(2,101,220,0.15); }
+.f-inp:disabled { background: #f8fafc; color: #64748b; cursor: not-allowed; font-weight: 600; border-color: transparent; }
+input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; }
+
+.sd-wrap { position: relative; width: 100%; }
+.sd-list { display: none; position: absolute; top: calc(100% + 2px); left: 0; min-width: 320px; background: #fff; border: 1px solid var(--primary-blue); border-radius: 3px; max-height: 260px; overflow-y: auto; z-index: 999; box-shadow: 0 8px 16px rgba(0,0,0,0.15); }
+.sd-item { padding: 6px 10px; cursor: pointer; border-bottom: 1px solid #f1f5f9; }
+.sd-item:hover, .sd-item.active { background: #e2e8f0; border-left: 3px solid var(--primary-blue); }
+.sd-item .title { font-size: 12px; font-weight: 700; color: var(--primary-blue); margin-bottom: 2px; }
+.sd-item .desc { font-size: 10px; color: var(--text-muted); }
+
+.btn { padding: 0 16px; height: 28px; border-radius: 3px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; display: inline-flex; align-items: center; justify-content: center; transition: 0.1s; gap: 6px; }
+.btn-primary { background: var(--primary-blue); color: #fff; } .btn-primary:hover { background: #014da8; }
+.btn-success { background: var(--success-green); color: #fff; } .btn-success:hover { background: #0c6b3d; }
+.btn-outline { background: #fff; color: var(--text-main); border: 1px solid var(--border-color); } .btn-outline:hover { background: #f1f5f9; }
+.btn-danger { background: var(--danger-red); color: #fff; } .btn-danger:hover { background: #a91c1c; }
+
+.table-wrap { flex-grow: 1; overflow-y: auto; overflow-x: auto; background: #fff; border: 1px solid var(--border-color); border-radius: 4px; min-height: 280px; }
+table { width: 100%; border-collapse: collapse; text-align: left; table-layout: fixed; }
+th { background: var(--table-head); font-size: 11px; padding: 10px 12px; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 10; color: var(--text-muted); text-transform: uppercase; }
+td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
+.dash-row { cursor: pointer; transition: background 0.1s; } .dash-row:hover { background: #e2e8f0 !important; }
+.td-link { color: var(--primary-blue); font-weight: 700; text-decoration: none; } .td-link:hover { text-decoration: underline; }
+
+.dash-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px; flex-shrink: 0; }
+.dash-title { font-size: 20px; font-weight: 800; color: #0f172a; margin: 0; }
+.pagination { display: flex; align-items: center; gap: 12px; padding: 12px; background: #fff; border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 4px 4px; justify-content: center; flex-shrink: 0; }
+
+.gr-ov { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.8); z-index: 9999; justify-content: center; align-items: center; flex-direction: column; }
+.gr-ov.on { display: flex; }
+.spinner { width: 40px; height: 40px; border: 4px solid var(--border-color); border-top-color: var(--primary-blue); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.badge { padding: 2px 6px; border-radius: 3px; font-weight: 700; font-size: 10px; display: inline-block; text-align: center; min-width: 50px; }
+.badge-coil { background: #cffafe; color: #0e7490; border: 1px solid #67e8f9; }
+.badge-sheet { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+.badge-wip { background: #ffedd5; color: #9a3412; border: 1px solid #fdba74; }
+.badge-fc { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+.badge-drc { background: #ede9fe; color: #5b21b6; border: 1px solid #c4b5fd; }
+
+/* --- Mode Toggle Radio --- */
+.mode-toggle { display: flex; gap: 6px; }
+.mode-btn { padding: 6px 14px; border-radius: 4px; font-size: 12px; font-weight: 700; cursor: pointer; border: 2px solid var(--border-color); background: #fff; color: var(--text-muted); transition: all 0.15s; }
+.mode-btn.active[data-m="COIL"]  { background: var(--coil-color);  border-color: var(--coil-color);  color: #fff; }
+.mode-btn.active[data-m="SHEET"] { background: var(--sheet-color); border-color: var(--sheet-color); color: #fff; }
+.mode-btn.active[data-m="WIP"]   { background: var(--wip-color);   border-color: var(--wip-color);   color: #fff; }
+
+/* --- Filter Chip Dashboard --- */
+.chip-bar { display: flex; gap: 6px; }
+.chip { padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid var(--border-color); background: #fff; color: var(--text-muted); }
+.chip.active { background: var(--primary-blue); border-color: var(--primary-blue); color: #fff; }
+
+/* --- Multi-row form --- */
+.opn-input-tbl { table-layout: auto; }
+.opn-input-tbl td { padding: 5px 6px; vertical-align: top; }
+.opn-input-tbl td.narrow { padding: 5px 4px; }
+.inp-row { border: 1px solid var(--border-color); border-radius: 3px; padding: 4px 6px; font-size: 11px; height: 26px; width: 100%; }
+.inp-row:focus { outline: none; border-color: var(--primary-blue); }
+.inp-row:disabled { background: #f8fafc; color: #475569; font-weight: 600; border-color: transparent; }
+.btn-row-del { padding: 3px 8px; font-size: 12px; border-radius: 3px; cursor: pointer; background: #fef2f2; color: var(--danger-red); border: 1px solid #fecaca; font-weight: 700; }
+.btn-row-del:hover { background: #fecaca; }
+.hint { font-size: 10px; color: var(--text-muted); font-style: italic; }
+</style>
+
+<!-- ============================================================
+     VIEW 1: DASHBOARD (list opening batch)
+============================================================ -->
+<div id="view-dashboard" class="view-container active">
+  <div class="dash-header">
+    <div>
+      <h1 class="dash-title">💾 Opening Balance</h1>
+      <span style="color:var(--text-muted); font-size:12px;">Input Saldo Awal Stok (Coil / Sheet / WIP) per periode cutoff.</span>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-outline" onclick="opnSync()">🔄 Refresh</button>
+      <button class="btn btn-primary" onclick="openCreateNew()">➕ Input Opening Baru</button>
+    </div>
+  </div>
+
+  <div style="display:flex; justify-content:space-between; align-items:center; padding: 8px 12px; background:#fff; border:1px solid var(--border-color); border-radius:4px 4px 0 0; border-bottom:none;">
+    <div class="chip-bar" id="chip-filter">
+      <div class="chip active" data-f="ALL"   onclick="setFilter('ALL')">All</div>
+      <div class="chip"        data-f="COIL"  onclick="setFilter('COIL')">Coil</div>
+      <div class="chip"        data-f="SHEET" onclick="setFilter('SHEET')">Sheet</div>
+      <div class="chip"        data-f="WIP"   onclick="setFilter('WIP')">WIP</div>
+    </div>
+    <div id="dash-counter" style="font-size:11px; color:var(--text-muted); font-weight:600;">0 batch</div>
+  </div>
+
+  <div class="table-wrap" style="border-radius: 0; min-height: unset; border-top:none;">
+    <table>
+      <thead>
+        <tr>
+          <th width="7%">Tanggal</th>
+          <th width="6%">Mode</th>
+          <th width="14%">Batch ID</th>
+          <th width="12%">Item Code</th>
+          <th width="22%">Description</th>
+          <th width="9%">No Coil / Batch Lama</th>
+          <th width="11%">Qty / KG</th>
+          <th width="6%">Owner</th>
+          <th width="7%">Target</th>
+        </tr>
+      </thead>
+      <tbody id="dash-tbody"></tbody>
+    </table>
+  </div>
+  <div class="pagination">
+    <button class="btn btn-outline" id="pg-prev" onclick="changePage(-1)">◀ Prev</button>
+    <span style="font-weight:700; font-size:12px;" id="pg-info">Halaman 1 / 1</span>
+    <button class="btn btn-outline" id="pg-next" onclick="changePage(1)">Next ▶</button>
+  </div>
+</div>
+
+
+<!-- ============================================================
+     VIEW 2: CREATE (multi-row input form)
+============================================================ -->
+<div id="view-create" class="view-container">
+  <div class="dash-header">
+    <h1 class="dash-title">➕ Input Opening Balance</h1>
+    <button class="btn btn-outline" onclick="showView('view-dashboard')">✖ Batal / Kembali</button>
+  </div>
+
+  <!-- Header form -->
+  <div class="panel">
+    <div class="panel-head">1. Pilih Mode & Tanggal Cutoff</div>
+    <div class="panel-body">
+      <div class="row">
+        <div class="col-2">
+          <label>Jenis Stok *</label>
+          <div class="mode-toggle" id="mode-toggle">
+            <button type="button" class="mode-btn active" data-m="COIL"  onclick="setMode('COIL')">📦 COIL (Coil Utuh)</button>
+            <button type="button" class="mode-btn"        data-m="SHEET" onclick="setMode('SHEET')">📄 SHEET (Lembaran)</button>
+            <button type="button" class="mode-btn"        data-m="WIP"   onclick="setMode('WIP')">🔧 WIP (di Cust/Stamping)</button>
+          </div>
+        </div>
+        <div class="col">
+          <label>Tanggal Cutoff *</label>
+          <input type="date" class="f-inp" id="h-tgl">
+        </div>
+        <div class="col-2">
+          <label>Info</label>
+          <div class="hint" id="mode-hint">Mode COIL: input coil utuh, Qty auto = KG. No_Coil = nomor coil fisik dari supplier.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Multi-row items table -->
+  <div class="panel" style="flex-grow: 1; overflow: hidden;">
+    <div class="panel-head">
+      <span>2. Daftar Material (Owner per Row) <span style="font-weight:400; color:var(--text-muted); font-size:10px;">— KG auto-calc dari (T×P×L×7.85/1jt) × Qty untuk Sheet & WIP</span></span>
+      <button class="btn btn-outline" onclick="addItemRow()">➕ Tambah Baris</button>
+    </div>
+    <div class="table-wrap">
+      <table class="opn-input-tbl">
+        <thead>
+          <tr>
+            <th width="4%" class="narrow">#</th>
+            <th width="14%">Item Code *</th>
+            <th width="20%">Description</th>
+            <th width="8%">Spec / T</th>
+            <th width="6%">P × L</th>
+            <th width="10%" id="th-coil">No Coil *</th>
+            <th width="8%" id="th-qty">Qty *</th>
+            <th width="8%">KG *</th>
+            <th width="8%">Owner *</th>
+            <th width="4%" class="narrow"></th>
+          </tr>
+        </thead>
+        <tbody id="item-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div style="display:flex; justify-content: space-between; flex-shrink: 0;">
+    <div class="hint" id="row-summary">0 baris terisi.</div>
+    <button class="btn btn-success" style="height:36px; padding:0 40px; font-size:14px;" onclick="submitOpening()">
+      📥 Simpan & Auto-Print Label
+    </button>
+  </div>
+</div>
+
+
+<!-- ============================================================
+     VIEW 3: DETAIL (edit qty/kg/no_coil/owner + delete)
+============================================================ -->
+<div id="view-detail" class="view-container">
+  <div class="dash-header">
+    <div>
+      <h1 class="dash-title" id="vd-title">Detail Opening Batch</h1>
+      <span style="color:var(--text-muted); font-size:12px;" id="vd-sub">Mode Read-Only</span>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-outline" onclick="showView('view-dashboard')">◀ Kembali</button>
+      <button class="btn btn-outline" onclick="printSingleLabel()">🖨️ Re-Print Label</button>
+      <button class="btn btn-danger" onclick="deleteBatch()">🗑️ Hapus</button>
+      <button class="btn btn-primary" id="btn-mode-edit" onclick="enableEditMode()">✏️ Edit Data</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">Informasi Opening</div>
+    <div class="panel-body">
+      <div class="row">
+        <div class="col"><label>Batch ID</label><input class="f-inp" id="v-batch" disabled></div>
+        <div class="col"><label>Mode</label><input class="f-inp" id="v-mode" disabled></div>
+        <div class="col"><label>Tgl Cutoff</label><input class="f-inp" id="v-tgl" disabled></div>
+        <div class="col"><label>Target Lokasi</label><input class="f-inp" id="v-loc" disabled></div>
+      </div>
+      <div class="row">
+        <div class="col"><label>Item Code</label><input class="f-inp" id="v-item" disabled></div>
+        <div class="col-2"><label>Description</label><input class="f-inp" id="v-desc" disabled></div>
+        <div class="col"><label>Spec</label><input class="f-inp" id="v-spec" disabled></div>
+        <div class="col"><label>Dimensi (T × P × L)</label><input class="f-inp" id="v-dim" disabled></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head" style="background:#fff7ed; border-bottom-color:#fed7aa; color:#c2410c;">
+      Area Bisa Diedit (Hanya jika batch belum tersentuh SPK)
+    </div>
+    <div class="panel-body">
+      <div class="row">
+        <div class="col" id="vd-wrap-qty"><label>Qty (Sht)</label><input type="number" class="f-inp editable" id="v-qty" disabled oninput="autoCalcKgDetail()"></div>
+        <div class="col"><label>KG</label><input type="number" class="f-inp editable" id="v-kg" step="0.01" disabled></div>
+        <div class="col"><label id="v-lbl-coil">No Coil / Batch Lama</label><input class="f-inp editable" id="v-nocoil" disabled></div>
+        <div class="col">
+          <label>Owner</label>
+          <select class="f-inp editable" id="v-owner" disabled>
+            <option value="FC">FC</option>
+            <option value="DRC">DRC</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex; justify-content: flex-end; flex-shrink: 0;">
+    <button class="btn btn-success" id="btn-save-edit" style="display:none; height:36px; padding:0 40px; font-size:14px;" onclick="submitEdit()">
+      💾 Simpan Perubahan
+    </button>
+  </div>
+</div>
+
+<div class="gr-ov" id="gr-ov"><div class="spinner"></div><h4 style="margin-top:16px; color:#1e293b;" id="ov-msg">Memuat...</h4></div>
+
+
+<script>
+// ================================================================
+// STATE
+// ================================================================
+var OPN = {
+  items: [],                 // master items dari M_ITEM
+  dash: { data: [], allData: [], page: 1, total: 1, filter: 'ALL' },
+  mode: 'COIL',              // COIL | SHEET | WIP
+  rowSeq: 0,                 // counter untuk row_id unik
+  currentDetail: null        // batch yg lagi dilihat di view-detail
+};
+
+// ================================================================
+// UTILITY
+// ================================================================
+function showView(id) {
+  document.querySelectorAll('.view-container').forEach(function(el){ el.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+}
+function opnOv(show, msg) {
+  var ov = document.getElementById('gr-ov');
+  if (show) ov.classList.add('on'); else ov.classList.remove('on');
+  if (msg) document.getElementById('ov-msg').textContent = msg;
+}
+function fmtDate(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function fmtNum(n) {
+  if (n === null || n === undefined || n === '') return '0';
+  return parseFloat(n).toLocaleString('id-ID', { maximumFractionDigits: 2 });
+}
+
+// Hitung KG dari dimensi plat baja: (T × P × L × 7.85 / 1.000.000) × qty
+// Return 0 kalau salah satu dimensi kosong/0 (fallback ke manual)
+function calcKgFromDim(qty, t, p, l) {
+  qty = parseFloat(qty) || 0;
+  t = parseFloat(t) || 0;
+  p = parseFloat(p) || 0;
+  l = parseFloat(l) || 0;
+  if (qty <= 0 || t <= 0 || p <= 0 || l <= 0) return 0;
+  return (t * p * l * 7.85 / 1000000) * qty;
+}
+
+// Cek: mode saat ini pakai auto-kg atau tidak?
+function isAutoKgMode() {
+  return OPN.mode === 'SHEET' || OPN.mode === 'WIP';
+}
+
+// Cek: row punya dimensi lengkap? (bisa auto-calc)
+function rowHasFullDim(tr) {
+  var t = parseFloat(tr.dataset.t) || 0;
+  var p = parseFloat(tr.dataset.p) || 0;
+  var l = parseFloat(tr.dataset.l) || 0;
+  return (t > 0 && p > 0 && l > 0);
+}
+
+// ================================================================
+// INIT
+// ================================================================
+(function init() {
+  // default cutoff: 1 Juli 2026
+  document.getElementById('h-tgl').value = '2026-07-01';
+  setMode('COIL');
+  opnSync();
+})();
+
+function opnSync(cb) {
+  opnOv(true, 'Sinkronisasi Data...');
+  google.script.run
+    .withSuccessHandler(function(jsonStr) {
+      opnOv(false);
+      var res = JSON.parse(jsonStr);
+      if (res.error) return alert('Sistem Error: ' + res.error);
+      OPN.items = res.form.items || [];
+      OPN.dash.allData = res.dash.data || [];
+      OPN.dash.page = res.dash.currentPage || 1;
+      OPN.dash.total = res.dash.totalPages || 1;
+      applyFilter();
+      if (cb) cb();
+    })
+    .withFailureHandler(function(e) { opnOv(false); alert('Error Server: ' + e.message); })
+    .getOpeningInitData();
+}
+
+function loadDashboard(page) {
+  opnOv(true, 'Pindah Halaman...');
+  google.script.run
+    .withSuccessHandler(function(jsonStr) {
+      opnOv(false);
+      var res = JSON.parse(jsonStr);
+      if (res.error) return alert('Error: ' + res.error);
+      OPN.dash.allData = res.data;
+      OPN.dash.page = res.currentPage;
+      OPN.dash.total = res.totalPages;
+      applyFilter();
+    })
+    .withFailureHandler(function(e) { opnOv(false); alert('Error Server: ' + e.message); })
+    .getOpeningDashboardPage(page);
+}
+
+function changePage(dir) {
+  var target = OPN.dash.page + dir;
+  if (target >= 1 && target <= OPN.dash.total) loadDashboard(target);
+}
+
+// ================================================================
+// DASHBOARD FILTER
+// ================================================================
+function setFilter(f) {
+  OPN.dash.filter = f;
+  document.querySelectorAll('#chip-filter .chip').forEach(function(c){
+    c.classList.toggle('active', c.dataset.f === f);
+  });
+  applyFilter();
+}
+
+function applyFilter() {
+  var f = OPN.dash.filter;
+  OPN.dash.data = (f === 'ALL')
+    ? OPN.dash.allData
+    : OPN.dash.allData.filter(function(r){ return r.mode === f; });
+  renderDashboard();
+}
+
+function renderDashboard() {
+  var tbody = document.getElementById('dash-tbody');
+  var pgInfo = document.getElementById('pg-info');
+  var counter = document.getElementById('dash-counter');
+  pgInfo.textContent = 'Halaman ' + OPN.dash.page + ' / ' + OPN.dash.total;
+  document.getElementById('pg-prev').disabled = (OPN.dash.page === 1);
+  document.getElementById('pg-next').disabled = (OPN.dash.page === OPN.dash.total);
+  counter.textContent = OPN.dash.data.length + ' batch ditampilkan';
+
+  if (OPN.dash.data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:30px; color:#94a3b8; font-style:italic;">Belum ada data Opening Balance. Klik "Input Opening Baru" untuk mulai.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = OPN.dash.data.map(function(r, index) {
+    var modeCls = 'badge-' + r.mode.toLowerCase();
+    var ownCls  = 'badge-' + (r.owner === 'DRC' ? 'drc' : 'fc');
+    var qtykg = (r.mode === 'COIL')
+      ? '<b>' + fmtNum(r.kg) + '</b> Kg'
+      : '<b>' + fmtNum(r.qty) + '</b> Sht / ' + fmtNum(r.kg) + ' Kg';
+
+    return '<tr class="dash-row" onclick="openDetail(' + index + ')">'
+      + '<td>' + r.tgl_str + '</td>'
+      + '<td><span class="badge ' + modeCls + '">' + r.mode + '</span></td>'
+      + '<td class="td-link">' + r.batch_id + '</td>'
+      + '<td>' + r.item_code + '</td>'
+      + '<td style="color:var(--primary-blue); font-weight:700;">' + r.description + '</td>'
+      + '<td style="font-family:ui-monospace,monospace; font-size:11px;">' + (r.no_coil || '-') + '</td>'
+      + '<td>' + qtykg + '</td>'
+      + '<td><span class="badge ' + ownCls + '">' + r.owner + '</span></td>'
+      + '<td style="font-size:10px; color:var(--text-muted);">' + r.target_loc + '</td>'
+      + '</tr>';
+  }).join('');
+}
+
+// ================================================================
+// CREATE FORM — MODE TOGGLE
+// ================================================================
+function setMode(m) {
+  OPN.mode = m;
+  document.querySelectorAll('#mode-toggle .mode-btn').forEach(function(b){
+    b.classList.toggle('active', b.dataset.m === m);
+  });
+
+  var thCoil = document.getElementById('th-coil');
+  var thQty  = document.getElementById('th-qty');
+  var hint   = document.getElementById('mode-hint');
+
+  if (m === 'COIL') {
+    thCoil.textContent = 'No Coil *';
+    thQty.textContent  = 'Qty (=KG)';
+    hint.textContent   = 'Mode COIL: input coil utuh. Qty auto-sync ke KG (rule 1:1). No_Coil = nomor coil fisik.';
+  } else if (m === 'SHEET') {
+    thCoil.textContent = 'Batch Lama *';
+    thQty.textContent  = 'Qty (Sht) *';
+    hint.textContent   = 'Mode SHEET: lembaran hasil CTL di gudang. Isi Batch Lama untuk trace ke data lama.';
+  } else {
+    thCoil.textContent = 'Batch Lama / Lokasi *';
+    thQty.textContent  = 'Qty (Sht) *';
+    hint.textContent   = 'Mode WIP: barang di customer/stamping. Masuk ke Stok_Sheet dengan prefix OPN-WP.';
+  }
+  // Refresh row rendering (kolom Qty untuk Coil di-disable)
+  refreshRowsForMode();
+}
+
+function refreshRowsForMode() {
+  var rows = document.querySelectorAll('#item-tbody tr[data-rid]');
+  rows.forEach(function(tr) {
+    var qtyInp = tr.querySelector('.inp-qty');
+    var kgInp  = tr.querySelector('.inp-kg');
+    if (!qtyInp || !kgInp) return;
+
+    if (OPN.mode === 'COIL') {
+      // COIL: qty disabled (mirror kg), kg manual
+      qtyInp.disabled = true;
+      qtyInp.value = kgInp.value || '';
+      qtyInp.placeholder = '(=KG)';
+      kgInp.disabled = false;
+      kgInp.placeholder = 'Input KG';
+      kgInp.style.background = '';
+    } else {
+      // SHEET/WIP: qty manual, kg auto (kalau dimensi lengkap)
+      qtyInp.disabled = false;
+      qtyInp.placeholder = 'Sht';
+      if (rowHasFullDim(tr)) {
+        kgInp.disabled = true;
+        kgInp.placeholder = '(auto)';
+        kgInp.style.background = '#f0fdf4';
+        // Recalc kg dari qty existing
+        var newKg = calcKgFromDim(qtyInp.value, tr.dataset.t, tr.dataset.p, tr.dataset.l);
+        if (newKg > 0) kgInp.value = newKg.toFixed(2);
+      } else {
+        // Fallback: dimensi kosong → user input manual
+        kgInp.disabled = false;
+        kgInp.placeholder = 'Input KG (dim kosong)';
+        kgInp.style.background = '#fef3c7';
+      }
+    }
+  });
+}
+
+// ================================================================
+// CREATE FORM — MULTI ROW
+// ================================================================
+function openCreateNew() {
+  document.getElementById('item-tbody').innerHTML = '';
+  OPN.rowSeq = 0;
+  addItemRow();
+  addItemRow();
+  addItemRow();
+  showView('view-create');
+  updateRowSummary();
+}
+
+function addItemRow() {
+  OPN.rowSeq++;
+  var rid = 'r' + OPN.rowSeq;
+  var tbody = document.getElementById('item-tbody');
+  var tr = document.createElement('tr');
+  tr.setAttribute('data-rid', rid);
+  tr.innerHTML =
+    '<td class="narrow" style="text-align:center; color:var(--text-muted); font-weight:700;">' + OPN.rowSeq + '</td>' +
+    '<td>' +
+      '<div class="sd-wrap">' +
+        '<input class="inp-row inp-code" placeholder="Ketik / cari..." autocomplete="off" oninput="searchItem(this, \'' + rid + '\')" onkeydown="itemKeyNav(event, this, \'' + rid + '\')">' +
+        '<div class="sd-list" id="sdl-' + rid + '"></div>' +
+      '</div>' +
+    '</td>' +
+    '<td><input class="inp-row inp-desc" disabled></td>' +
+    '<td><input class="inp-row inp-spec-t" disabled placeholder="Spec / T"></td>' +
+    '<td><input class="inp-row inp-pl" disabled placeholder="P × L"></td>' +
+    '<td><input class="inp-row inp-nocoil" placeholder="Wajib isi..."></td>' +
+    '<td><input type="number" class="inp-row inp-qty" step="0.01" oninput="onQtyChange(this, \'' + rid + '\')" ' + (OPN.mode === 'COIL' ? 'disabled placeholder="(=KG)"' : '') + '></td>' +
+    '<td><input type="number" class="inp-row inp-kg" step="0.01" oninput="onKgChange(this, \'' + rid + '\')"></td>' +
+    '<td>' +
+      '<select class="inp-row inp-owner">' +
+        '<option value="">- Pilih -</option>' +
+        '<option value="FC">FC</option>' +
+        '<option value="DRC">DRC</option>' +
+      '</select>' +
+    '</td>' +
+    '<td class="narrow" style="text-align:center;"><button class="btn-row-del" onclick="removeItemRow(\'' + rid + '\')" title="Hapus">✕</button></td>';
+  tbody.appendChild(tr);
+  updateRowSummary();
+}
+
+function removeItemRow(rid) {
+  var tr = document.querySelector('#item-tbody tr[data-rid="' + rid + '"]');
+  if (tr) tr.remove();
+  // Renumber baris
+  var i = 0;
+  document.querySelectorAll('#item-tbody tr[data-rid]').forEach(function(tr){
+    i++;
+    tr.querySelector('td:first-child').textContent = i;
+  });
+  updateRowSummary();
+}
+
+function onKgChange(el, rid) {
+  // COIL: qty auto = kg (mirror)
+  if (OPN.mode === 'COIL') {
+    var tr = document.querySelector('#item-tbody tr[data-rid="' + rid + '"]');
+    if (tr) tr.querySelector('.inp-qty').value = el.value;
+  }
+  // SHEET/WIP: kg field disabled saat dimensi lengkap, jadi handler ini gak ke-trigger.
+  //           Kalau fallback (dimensi kosong), user input manual — no action needed.
+}
+
+function onQtyChange(el, rid) {
+  // SHEET/WIP: kg auto-calc dari dimensi
+  if (!isAutoKgMode()) return;
+  var tr = document.querySelector('#item-tbody tr[data-rid="' + rid + '"]');
+  if (!tr || !rowHasFullDim(tr)) return;
+  var kgInp = tr.querySelector('.inp-kg');
+  var newKg = calcKgFromDim(el.value, tr.dataset.t, tr.dataset.p, tr.dataset.l);
+  kgInp.value = newKg > 0 ? newKg.toFixed(2) : '';
+}
+
+function updateRowSummary() {
+  var rows = document.querySelectorAll('#item-tbody tr[data-rid]');
+  var filled = 0;
+  rows.forEach(function(tr){
+    if ((tr.querySelector('.inp-code') || {}).value) filled++;
+  });
+  document.getElementById('row-summary').textContent = filled + ' dari ' + rows.length + ' baris terisi.';
+}
+
+// ================================================================
+// ITEM SEARCH (per row, mirip pattern GR)
+// ================================================================
+var _searchActIdx = {}; // per rid
+
+function searchItem(inp, rid) {
+  var q = inp.value.toLowerCase();
+  var lst = document.getElementById('sdl-' + rid);
+  if (!q) { lst.style.display = 'none'; return; }
+  var res = OPN.items.filter(function(it){
+    return it.item_code.toLowerCase().includes(q) || it.description.toLowerCase().includes(q);
+  }).slice(0, 30);
+  lst.innerHTML = res.map(function(it){
+    return '<div class="sd-item" data-code="' + it.item_code + '">'
+      + '<div class="title">' + it.item_code + '</div>'
+      + '<div class="desc">' + it.description + ' | ' + it.spec + ' | ' + it.t + '×' + it.p + '×' + it.l + '</div>'
+      + '</div>';
+  }).join('');
+  lst.style.display = res.length ? 'block' : 'none';
+  _searchActIdx[rid] = -1;
+
+  // Bind click sekali (event delegation via mousedown)
+  if (!lst.dataset.bound) {
+    lst.addEventListener('mousedown', function(e){
+      var el = e.target.closest('.sd-item');
+      if (el) selectItem(el.dataset.code, rid);
+    });
+    lst.dataset.bound = '1';
+  }
+}
+
+function itemKeyNav(e, inp, rid) {
+  var lst = document.getElementById('sdl-' + rid);
+  var items = lst.querySelectorAll('.sd-item');
+  if (!items.length) return;
+  var idx = _searchActIdx[rid] || 0;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    idx = (idx + 1) % items.length;
+    _searchActIdx[rid] = idx;
+    hiItem(items, idx);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    idx = (idx - 1 + items.length) % items.length;
+    _searchActIdx[rid] = idx;
+    hiItem(items, idx);
+  } else if (e.key === 'Enter' || e.key === 'Tab') {
+    if (lst.style.display === 'block') {
+      e.preventDefault();
+      selectItem(items[Math.max(0, idx)].dataset.code, rid);
+    }
+  } else if (e.key === 'Escape') {
+    lst.style.display = 'none';
+  }
+}
+
+function hiItem(items, idx) {
+  items.forEach(function(el, i){
+    if (i === idx) { el.classList.add('active'); el.scrollIntoView({ block: 'nearest' }); }
+    else el.classList.remove('active');
+  });
+}
+
+function selectItem(code, rid) {
+  var it = OPN.items.find(function(x){ return x.item_code === code; });
+  if (!it) return;
+  var tr = document.querySelector('#item-tbody tr[data-rid="' + rid + '"]');
+  if (!tr) return;
+  tr.querySelector('.inp-code').value = it.item_code;
+  tr.querySelector('.inp-desc').value = it.description;
+  tr.querySelector('.inp-spec-t').value = it.spec + ' / T' + it.t;
+  tr.querySelector('.inp-pl').value = it.p + ' × ' + it.l;
+  // Simpan raw dim di dataset
+  tr.dataset.t = it.t; tr.dataset.p = it.p; tr.dataset.l = it.l;
+  tr.dataset.spec = it.spec; tr.dataset.uom = it.uom;
+  document.getElementById('sdl-' + rid).style.display = 'none';
+  updateRowSummary();
+
+  // Setelah item terpilih, kalau mode SHEET/WIP → enable auto-kg (kg disabled + re-calc kalau qty ada)
+  if (isAutoKgMode()) {
+    var qtyInp = tr.querySelector('.inp-qty');
+    var kgInp  = tr.querySelector('.inp-kg');
+    if (rowHasFullDim(tr)) {
+      kgInp.disabled = true;
+      kgInp.placeholder = '(auto)';
+      kgInp.style.background = '#f0fdf4';
+      var newKg = calcKgFromDim(qtyInp.value, tr.dataset.t, tr.dataset.p, tr.dataset.l);
+      if (newKg > 0) kgInp.value = newKg.toFixed(2);
+    } else {
+      kgInp.disabled = false;
+      kgInp.placeholder = 'Input KG (dim kosong)';
+      kgInp.style.background = '#fef3c7';
+    }
+  }
+
+  // Focus ke No_Coil field
+  tr.querySelector('.inp-nocoil').focus();
+}
+
+// ================================================================
+// SUBMIT
+// ================================================================
+function submitOpening() {
+  var tgl = document.getElementById('h-tgl').value;
+  if (!tgl) return alert('Tanggal Cutoff wajib diisi.');
+
+  var rows = document.querySelectorAll('#item-tbody tr[data-rid]');
+  if (rows.length === 0) return alert('Tambahkan minimal 1 baris.');
+
+  var items = [];
+  var errors = [];
+
+  rows.forEach(function(tr, i){
+    var code   = tr.querySelector('.inp-code').value.trim();
+    if (!code) return; // skip baris kosong
+    var nocoil = tr.querySelector('.inp-nocoil').value.trim();
+    var qty    = parseFloat(tr.querySelector('.inp-qty').value) || 0;
+    var kg     = parseFloat(tr.querySelector('.inp-kg').value)  || 0;
+    var owner  = tr.querySelector('.inp-owner').value;
+
+    if (!nocoil) errors.push('Baris ' + (i+1) + ': ' + (OPN.mode === 'COIL' ? 'No Coil' : 'Batch Lama') + ' wajib diisi.');
+    if (kg <= 0) errors.push('Baris ' + (i+1) + ': KG harus > 0.');
+    if (OPN.mode !== 'COIL' && qty <= 0) errors.push('Baris ' + (i+1) + ': Qty (lembar) harus > 0.');
+    if (!owner) errors.push('Baris ' + (i+1) + ': Owner wajib dipilih.');
+
+    // Untuk mode COIL, force qty = kg (di backend juga sudah di-handle, tapi kirim consistent)
+    if (OPN.mode === 'COIL') qty = kg;
+
+    items.push({
+      item_code: code,
+      description: tr.querySelector('.inp-desc').value,
+      spec: tr.dataset.spec || '',
+      t: parseFloat(tr.dataset.t) || 0,
+      p: parseFloat(tr.dataset.p) || 0,
+      l: parseFloat(tr.dataset.l) || 0,
+      no_coil: nocoil,
+      qty_in: qty,
+      kg_in: kg,
+      owner: owner
+    });
+  });
+
+  if (items.length === 0) return alert('Tidak ada baris terisi. Isi Item Code minimal 1 baris.');
+  if (errors.length > 0) return alert('⚠️ Validasi Gagal:\n\n' + errors.join('\n'));
+
+  if (!confirm('Simpan ' + items.length + ' batch Opening Balance mode ' + OPN.mode + '?')) return;
+
+  opnOv(true, 'Menyimpan & Menyiapkan Print...');
+  google.script.run
+    .withSuccessHandler(function(jsonStr) {
+      var res = JSON.parse(jsonStr);
+      if (res.error) { opnOv(false); return alert('Sistem Error: ' + res.error); }
+      showView('view-dashboard');
+      opnSync(function(){
+        setTimeout(function(){ printLabels(res.labels); }, 500);
+      });
+    })
+    .withFailureHandler(function(e) { opnOv(false); alert('Gagal: ' + e.message); })
+    .saveOpeningBalance({
+      header: { mode: OPN.mode, tgl_masuk: tgl },
+      items: items
+    });
+}
+
+// ================================================================
+// DETAIL VIEW (Edit + Delete + Reprint)
+// ================================================================
+function openDetail(index) {
+  var r = OPN.dash.data[index];
+  OPN.currentDetail = r;
+
+  document.getElementById('v-batch').value  = r.batch_id;
+  document.getElementById('v-mode').value   = r.mode;
+  document.getElementById('v-tgl').value    = r.tgl_str;
+  document.getElementById('v-loc').value    = r.target_loc;
+  document.getElementById('v-item').value   = r.item_code;
+  document.getElementById('v-desc').value   = r.description;
+  document.getElementById('v-spec').value   = r.spec || '-';
+  var dim = [r.t, r.p, r.l].filter(function(x){ return x > 0; }).join(' × ');
+  document.getElementById('v-dim').value    = dim ? (dim + ' mm') : '-';
+
+  document.getElementById('v-qty').value    = r.qty;
+  document.getElementById('v-kg').value     = r.kg;
+  document.getElementById('v-nocoil').value = r.no_coil;
+  document.getElementById('v-owner').value  = r.owner || 'FC';
+
+  // Label toggle
+  document.getElementById('v-lbl-coil').textContent = (r.mode === 'COIL') ? 'No Coil' : 'Batch Lama';
+  document.getElementById('vd-wrap-qty').style.display = (r.mode === 'COIL') ? 'none' : 'flex';
+
+  // Reset edit mode
+  document.querySelectorAll('.editable').forEach(function(el){
+    el.disabled = true; el.style.borderColor = 'transparent'; el.style.background = '#f8fafc';
+  });
+  document.getElementById('btn-mode-edit').style.display = 'inline-flex';
+  document.getElementById('btn-save-edit').style.display = 'none';
+  document.getElementById('vd-sub').textContent = 'Mode Read-Only';
+
+  showView('view-detail');
+}
+
+function enableEditMode() {
+  document.querySelectorAll('.editable').forEach(function(el){
+    el.disabled = false; el.style.borderColor = ''; el.style.background = '#fff';
+  });
+  var r = OPN.currentDetail;
+  if (!r) return;
+
+  // Mode COIL: qty di-disable (mirror kg)
+  if (r.mode === 'COIL') {
+    document.getElementById('v-qty').disabled = true;
+  }
+  // Mode SHEET/WIP: kg auto-calc kalau dim lengkap → disable kg
+  else {
+    var hasDim = (r.t > 0 && r.p > 0 && r.l > 0);
+    var kgEl = document.getElementById('v-kg');
+    if (hasDim) {
+      kgEl.disabled = true;
+      kgEl.style.background = '#f0fdf4';
+      kgEl.title = 'Auto-calc dari dimensi';
+    } else {
+      kgEl.title = 'Dimensi kosong di master — input manual';
+    }
+  }
+
+  document.getElementById('btn-mode-edit').style.display = 'none';
+  document.getElementById('btn-save-edit').style.display = 'inline-flex';
+  document.getElementById('vd-sub').innerHTML = '<span style="color:var(--warning-orange); font-weight:700;">✏️ Mode Edit Aktif</span>';
+}
+
+// Auto-recalc KG saat qty diubah di view detail (mode SHEET/WIP saja)
+function autoCalcKgDetail() {
+  var r = OPN.currentDetail; if (!r) return;
+  if (r.mode === 'COIL') return;
+  var hasDim = (r.t > 0 && r.p > 0 && r.l > 0);
+  if (!hasDim) return;
+  var qty = parseFloat(document.getElementById('v-qty').value) || 0;
+  var newKg = calcKgFromDim(qty, r.t, r.p, r.l);
+  document.getElementById('v-kg').value = newKg > 0 ? newKg.toFixed(2) : '';
+}
+
+function submitEdit() {
+  var r = OPN.currentDetail; if (!r) return;
+  var nQty    = document.getElementById('v-qty').value;
+  var nKg     = document.getElementById('v-kg').value;
+  var nCoil   = document.getElementById('v-nocoil').value.trim();
+  var nOwner  = document.getElementById('v-owner').value;
+
+  if (!nKg || parseFloat(nKg) <= 0) return alert('KG tidak boleh kosong/0.');
+  if (r.mode !== 'COIL' && (!nQty || parseFloat(nQty) <= 0)) return alert('Qty tidak boleh kosong/0.');
+  if (!nCoil) return alert('No Coil / Batch Lama tidak boleh kosong.');
+
+  opnOv(true, 'Menyimpan Perubahan...');
+  google.script.run
+    .withSuccessHandler(function(jsonStr){
+      opnOv(false);
+      var res = JSON.parse(jsonStr);
+      if (res.error) return alert('Gagal Edit: ' + res.error);
+      alert('✅ Berhasil disimpan: ' + res.updates.join(', '));
+      showView('view-dashboard');
+      opnSync();
+    })
+    .withFailureHandler(function(e){ opnOv(false); alert('Error Server: ' + e.message); })
+    .updateSingleOpening({
+      batch_id: r.batch_id,
+      qty: r.mode !== 'COIL' ? nQty : null,
+      kg: nKg,
+      no_coil: nCoil,
+      owner: nOwner
+    });
+}
+
+function deleteBatch() {
+  var r = OPN.currentDetail; if (!r) return;
+  if (!confirm('⚠️ Hapus batch ' + r.batch_id + ' permanen?\n\nBatch hanya bisa dihapus kalau BELUM dipakai di SPK.')) return;
+
+  opnOv(true, 'Menghapus Batch...');
+  google.script.run
+    .withSuccessHandler(function(jsonStr){
+      opnOv(false);
+      var res = JSON.parse(jsonStr);
+      if (res.error) return alert('Gagal Hapus: ' + res.error);
+      alert('✅ Batch ' + r.batch_id + ' berhasil dihapus.');
+      showView('view-dashboard');
+      opnSync();
+    })
+    .withFailureHandler(function(e){ opnOv(false); alert('Error Server: ' + e.message); })
+    .deleteOpeningBatch(r.batch_id);
+}
+
+// ================================================================
+// PRINT LABEL
+// ================================================================
+function printSingleLabel() {
+  var r = OPN.currentDetail; if (!r) return;
+  opnOv(true, 'Menyiapkan Label...');
+  google.script.run
+    .withSuccessHandler(function(jsonStr){
+      opnOv(false);
+      var res = JSON.parse(jsonStr);
+      if (res.error) return alert('Gagal Label: ' + res.error);
+      printLabels([res.label]);
+    })
+    .withFailureHandler(function(e){ opnOv(false); alert('Error Server: ' + e.message); })
+    .getOpeningLabelData(r.batch_id);
+}
+
+function printLabels(labelsData) {
+  var iframe = document.createElement('iframe');
+  iframe.style.display = 'none';
+  document.body.appendChild(iframe);
+  var doc = iframe.contentWindow.document;
+
+  var html = '<html><head><style>'
+    + '@page{size:80mm 50mm;margin:0;} '
+    + 'body{margin:0;padding:0;font-family:Arial,sans-serif;color:#000;} '
+    + '.label-box{width:80mm;height:50mm;padding:2mm;box-sizing:border-box;page-break-after:always;display:flex;flex-direction:column;} '
+    + 'table{width:100%;height:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;} '
+    + 'td{border:1px solid #000;padding:2px 4px;overflow:hidden;vertical-align:middle;} '
+    + '.logo-box{display:inline-block;border:2px solid #0265dc;color:#0265dc;font-weight:900;font-size:18px;padding:1px 4px;letter-spacing:1px;} '
+    + '.comp{font-weight:900;font-size:11px;text-align:center;font-style:italic;line-height:1.1;} '
+    + '.title{font-weight:900;font-size:13px;text-align:center;} '
+    + '.lbl{font-size:10px;} '
+    + '.val{font-size:12px;font-weight:bold;} '
+    + '.opening-tag{background:#fef3c7;color:#92400e;font-weight:900;text-align:center;font-size:10px;padding:1px;}'
+    + '</style></head><body>';
+
+  labelsData.forEach(function(lbl){
+    html += '<div class="label-box">'
+      + '<table>'
+      + '<tr>'
+        + '<td width="18%" style="text-align:center;"><div class="logo-box">F/C</div></td>'
+        + '<td width="42%" class="comp">FLAMBINDO<br>CORTAMA</td>'
+        + '<td width="40%" class="title" colspan="2">OPENING ' + lbl.jenis + '</td>'
+      + '</tr>'
+      + '<tr>'
+        + '<td class="lbl">ITEM CODE</td>'
+        + '<td class="val" colspan="3">: ' + lbl.item_code + '</td>'
+      + '</tr>'
+      + '<tr>'
+        + '<td class="lbl">DESC</td>'
+        + '<td class="val" colspan="3" style="font-size:10px;">: ' + (lbl.description || '-') + '</td>'
+      + '</tr>'
+      + '<tr>'
+        + '<td class="lbl">SPEC</td>'
+        + '<td class="val">: ' + lbl.spec + '</td>'
+        + '<td class="lbl" width="12%">OWNER</td>'
+        + '<td class="val" width="18%">: ' + lbl.owner + '</td>'
+      + '</tr>'
+      + '<tr>'
+        + '<td class="lbl">SIZE (T×P×L)</td>'
+        + '<td class="val" colspan="3">: ' + lbl.dim + '</td>'
+      + '</tr>'
+      + '<tr>'
+        + '<td class="lbl">QTY / KG</td>'
+        + '<td class="val" colspan="3">: ' + lbl.qty_kg + '</td>'
+      + '</tr>'
+      + '<tr>'
+        + '<td class="lbl">TGL OPN</td>'
+        + '<td class="val">: ' + lbl.tgl_gr + '</td>'
+        + '<td class="lbl">NO COIL</td>'
+        + '<td class="val" style="font-size:9px;">: ' + (lbl.no_coil || '-') + '</td>'
+      + '</tr>'
+      + '<tr>'
+        + '<td colspan="4" class="opening-tag">' + lbl.no_gr + '</td>'
+      + '</tr>'
+      + '</table></div>';
+  });
+
+  html += '</body></html>';
+  doc.open(); doc.write(html); doc.close();
+  setTimeout(function(){
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+    setTimeout(function(){ document.body.removeChild(iframe); }, 2000);
+  }, 500);
+}
+</script>

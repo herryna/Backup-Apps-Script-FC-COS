@@ -52,6 +52,52 @@ td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle
 .td-link { color: var(--primary-blue); font-weight: 700; text-decoration: none; }
 .td-link:hover { text-decoration: underline; }
 
+/* ==== FILTER BAR ==== */
+.filter-bar {
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+  background: #fff; border: 1px solid var(--border-color); border-radius: 4px;
+  flex-shrink: 0;
+}
+.filter-pills { display: flex; gap: 6px; }
+.filter-pill {
+  padding: 5px 14px; border-radius: 20px; font-size: 11px; font-weight: 700;
+  border: 1px solid var(--border-color); background: #fff; color: var(--text-muted);
+  cursor: pointer; transition: 0.15s; text-transform: uppercase;
+}
+.filter-pill:hover { background: #f1f5f9; }
+.filter-pill.active { background: var(--primary-blue); color: #fff; border-color: var(--primary-blue); }
+.filter-pill.active.overdue { background: var(--danger-red); border-color: var(--danger-red); }
+.filter-pill.active.open { background: var(--warning-orange); border-color: var(--warning-orange); }
+.filter-pill.active.over { background: #b91c1c; border-color: #b91c1c; }
+.filter-pill.active.closed { background: var(--success-green); border-color: var(--success-green); }
+.filter-search-wrap { flex: 1; max-width: 400px; margin-left: auto; position: relative; }
+.filter-search-wrap input { padding-left: 32px; height: 30px; border-radius: 4px; }
+.filter-search-wrap::before {
+  content: "🔍"; position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  font-size: 12px; pointer-events: none; opacity: 0.5;
+}
+
+/* ==== EXPANDABLE LIST TABLE ==== */
+.so-main-row { cursor: pointer; transition: background 0.1s; }
+.so-main-row:hover { background: #f8fafc; }
+.so-main-row.expanded { background: #eff6ff; }
+.expand-icon { display: inline-block; font-size: 10px; color: var(--text-muted); transition: transform 0.15s; width: 12px; }
+.so-main-row.expanded .expand-icon { transform: rotate(0deg); color: var(--primary-blue); }
+.so-detail-row td { padding: 0; border-bottom: 2px solid var(--border-color); }
+.so-detail-block { padding: 8px 20px 12px 40px; background: #f8fafc; }
+.so-detail-block table { border: 1px solid var(--border-color); background: #fff; table-layout: auto; }
+.so-detail-block th { background: #e2e8f0; padding: 6px 10px; font-size: 10px; position: static; }
+.so-detail-block td { padding: 6px 10px; font-size: 11px; }
+.qty-line { font-weight: 700; font-size: 12px; }
+.kg-line { color: var(--text-muted); font-size: 10px; }
+.kg-line-bold { color: var(--primary-blue); font-size: 11px; font-weight: 700; }
+.kg-billing-tag { display: inline-block; font-size: 9px; font-weight: 700; color: var(--primary-blue); background: #dbeafe; padding: 1px 5px; border-radius: 3px; margin-left: 4px; letter-spacing: .3px; }
+
+/* Status badge clickable style */
+.st-badge.clickable { cursor: pointer; }
+.st-badge.clickable:hover { transform: scale(1.05); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.st-overdue { background: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; }
+
 .dash-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px; flex-shrink: 0;}
 .dash-title { font-size: 20px; font-weight: 800; color: #0f172a; margin: 0;}
 .pagination { display: flex; align-items: center; gap: 12px; padding: 12px; background: #fff; border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 4px 4px; justify-content: center; flex-shrink: 0;}
@@ -86,36 +132,55 @@ td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle
   <div class="dash-header">
     <div>
       <h1 class="dash-title">Sales Order (SO)</h1>
-      <span style="color:var(--text-muted); font-size:12px;">Daftar item pesanan pelanggan. (Klik baris untuk melihat detail / edit / close)</span>
+      <span style="color:var(--text-muted); font-size:12px;">Daftar order pelanggan. Klik baris untuk expand detail per-item. Klik <b>badge status</b> untuk edit.</span>
     </div>
     <div style="display:flex; gap:8px;">
       <button class="btn btn-outline" onclick="loadDashboard(1)">🔄 Refresh</button>
       <button class="btn btn-primary" onclick="openCreateMulti()">➕ Input SO Baru</button>
     </div>
   </div>
-  
-  <div class="table-wrap" style="border-radius: 4px 4px 0 0; min-height: unset;">
-    <table>
-      <thead>
-        <tr>
-          <th width="8%">Tgl SO</th>
-          <th width="8%">Periode</th>
-          <th width="11%">No. SO</th>
-          <th width="10%">Customer</th>
-          <th width="10%">Item Code</th>
-          <th width="20%">Deskripsi</th>
-          <th width="11%">Qty / KG</th>
-          <th width="8%">Target</th>
-          <th width="8%">Status</th>
-        </tr>
-      </thead>
-      <tbody id="dash-tbody"></tbody>
-    </table>
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <div class="filter-pills">
+      <button class="filter-pill active" data-status="ALL" onclick="setStatusFilter('ALL')">Semua</button>
+      <button class="filter-pill" data-status="OPEN" onclick="setStatusFilter('OPEN')">🟡 Open</button>
+      <button class="filter-pill" data-status="OVERDUE" onclick="setStatusFilter('OVERDUE')">🔴 Overdue</button>
+      <button class="filter-pill" data-status="OVER" onclick="setStatusFilter('OVER')">⚠️ Over</button>
+      <button class="filter-pill" data-status="CLOSED" onclick="setStatusFilter('CLOSED')">🔒 Closed</button>
+    </div>
+    <div class="filter-search-wrap">
+      <input type="text" class="f-inp" id="so-search-input" placeholder="Cari No. SO / Customer / Item Code / Deskripsi..." oninput="onSearchInput(this.value)">
+    </div>
   </div>
-  <div class="pagination">
-    <button class="btn btn-outline" id="pg-prev" onclick="loadDashboard(SO_DASH.page - 1)">◀ Prev</button>
-    <span id="pg-info" style="font-weight:700;">Halaman 1 / 1</span>
-    <button class="btn btn-outline" id="pg-next" onclick="loadDashboard(SO_DASH.page + 1)">Next ▶</button>
+
+  <!-- LIST SO -->
+  <div class="panel" style="flex: 1; min-height: 200px;">
+    <div class="panel-head">📋 Daftar Sales Order</div>
+    <div class="table-wrap" style="border:none; border-radius:0;">
+      <table>
+        <thead>
+          <tr>
+            <th width="3%"></th>
+            <th width="9%">Tgl SO</th>
+            <th width="8%">Periode</th>
+            <th width="12%">No. SO</th>
+            <th width="15%">Customer</th>
+            <th width="10%">Target Kirim</th>
+            <th width="8%" style="text-align:center;">Item</th>
+            <th width="12%">Total Qty / KG</th>
+            <th width="11%">Status</th>
+            <th width="8%">Owner</th>
+          </tr>
+        </thead>
+        <tbody id="dash-tbody"></tbody>
+      </table>
+    </div>
+    <div style="display:flex; justify-content:center; align-items:center; gap:12px; background:#f8fafc; padding:6px; border-top:1px solid var(--border-color);">
+      <button class="btn btn-outline" id="pg-prev" onclick="changeSOPage(-1)">◀ Prev</button>
+      <span style="font-weight:700;" id="pg-info">Halaman 1 / 1</span>
+      <button class="btn btn-outline" id="pg-next" onclick="changeSOPage(1)">Next ▶</button>
+    </div>
   </div>
 </div>
 
@@ -163,7 +228,7 @@ td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle
             <th width="8%">Qty Order *</th>
             <th width="9%">Est. KG</th>
             <th width="8%">Wg/Pce FC</th>
-            <th width="8%">Wg/Pce Cust</th>
+            <th width="8%">Wg/Pce Cust <span style="color:#0265dc; font-size:9px; font-weight:600;">(Auto)</span></th>
             <th width="14%">Catatan Khusus</th>
             <th width="4%" style="text-align:center;">Del</th>
           </tr>
@@ -269,6 +334,94 @@ td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle
   </div>
 </div>
 
+<!-- EDIT SO MODAL (Sprint B) -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal-box" style="width:900px; max-width:95vw; max-height:90vh; display:flex; flex-direction:column;">
+    <div class="modal-head" style="background:#eff6ff; border-bottom-color:#bfdbfe;">
+      <h3 class="modal-title" style="color:#1e40af; justify-content:space-between; width:100%;">
+        <span>📝 Edit SO — <span id="em-so-no" style="font-family:ui-monospace,monospace;"></span></span>
+        <span id="em-status-badge"></span>
+      </h3>
+    </div>
+    <div class="modal-body" style="overflow-y:auto; flex:1;">
+      
+      <!-- INFO HEADER (Sprint B: read-only, Sprint C tambah edit) -->
+      <div style="background:#f8fafc; padding:10px 12px; border:1px solid var(--border-color); border-radius:4px; margin-bottom:14px;">
+        <div class="row" style="margin-bottom:0;">
+          <div class="col"><label>Customer</label><input class="f-inp" id="em-cust" disabled></div>
+          <div class="col"><label>Periode</label><input class="f-inp" id="em-period" disabled></div>
+          <div class="col"><label>Tgl SO</label><input class="f-inp" id="em-date" disabled></div>
+          <div class="col"><label>Target Kirim</label><input class="f-inp" id="em-schedule" disabled></div>
+        </div>
+        <span style="font-size:10px; color:var(--text-muted); display:block; margin-top:6px;">💡 Edit header (Periode + Target Kirim) akan tersedia di Sprint C.</span>
+      </div>
+      
+      <!-- CLOSED SO WARNING -->
+      <div id="em-closed-warning" class="modal-warn" style="display:none; background:#f1f5f9; border-color:#cbd5e1; color:#475569;">
+        🔒 <b>SO ini sudah CLOSED.</b> Semua field di-lock. Reopen dulu (via view-detail lama) kalau perlu edit.
+      </div>
+      
+      <!-- LIST ITEMS -->
+      <div style="margin-bottom:14px;">
+        <h4 style="margin:0 0 8px; font-size:12px; font-weight:700; color:#0f172a;">📦 Daftar Item</h4>
+        <div style="border:1px solid var(--border-color); border-radius:4px; overflow:hidden;">
+          <table style="table-layout:auto; margin:0;">
+            <thead>
+              <tr>
+                <th style="width:14%; position:static;">Item Code</th>
+                <th style="width:26%; position:static;">Deskripsi</th>
+                <th style="width:11%; position:static;">Qty Order</th>
+                <th style="width:9%; position:static; text-align:center;">Terkirim</th>
+                <th style="width:26%; position:static;">Note</th>
+                <th style="width:14%; position:static; text-align:center;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="em-items-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      
+      <!-- ADD ITEM BARU -->
+      <div id="em-add-section" style="border-top:2px dashed var(--border-color); padding-top:14px;">
+        <h4 style="margin:0 0 8px; font-size:12px; font-weight:700; color:#0f172a;">➕ Tambah Item Baru</h4>
+        <div class="row" style="align-items:flex-end;">
+          <div class="col-2">
+            <label>Item Code *</label>
+            <div class="sd-wrap">
+              <input class="f-inp" id="em-add-item-input" placeholder="Ketik nama/kode item..." oninput="filterModalItemList()" onfocus="filterModalItemList()" autocomplete="off">
+              <div class="sd-list" id="em-add-item-list"></div>
+              <input type="hidden" id="em-add-item-code">
+              <input type="hidden" id="em-add-item-desc">
+              <input type="hidden" id="em-add-item-spec">
+              <input type="hidden" id="em-add-item-t">
+              <input type="hidden" id="em-add-item-p">
+              <input type="hidden" id="em-add-item-l">
+              <input type="hidden" id="em-add-item-uom">
+              <input type="hidden" id="em-add-item-wgfc">
+              <input type="hidden" id="em-add-item-wgcust">
+            </div>
+          </div>
+          <div class="col">
+            <label>Qty Order *</label>
+            <input type="number" class="f-inp" id="em-add-qty" min="1" placeholder="0">
+          </div>
+          <div class="col-2">
+            <label>Note</label>
+            <input class="f-inp" id="em-add-note" placeholder="Optional">
+          </div>
+          <div class="col" style="flex:0 0 auto;">
+            <button class="btn btn-success" onclick="submitAddNewItem()" style="height:28px;">➕ Tambah</button>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeEditModal()">Tutup</button>
+    </div>
+  </div>
+</div>
+
 <!-- REOPEN SO MODAL -->
 <div class="modal-overlay" id="reopen-modal">
   <div class="modal-box">
@@ -302,8 +455,9 @@ td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle
 // GLOBAL STATE & INITIALIZATION
 // ==========================================
 var SO_FORM_DATA = { items: [], customers: [] };
-var SO_DASH = { data: [], page: 1, total: 1 };
+var SO_DASH = { data: [], page: 1, total: 1, totalItems: 0, filter: { status: 'ALL', search: '' } };
 var SO_EDIT_ROW = null;
+var SO_SEARCH_DEBOUNCE = null;
 
 function soOv(on, msg) {
   document.getElementById('so-ov').classList.toggle('on', on);
@@ -323,9 +477,11 @@ function showView(viewId) {
       var res = JSON.parse(jsonStr);
       if (res.error) return alert("Init Error: " + res.error);
       SO_FORM_DATA = res.form;
-      SO_DASH = res.dash;
+      // Jangan overwrite SO_DASH full — filter perlu preserved dari init default
+      SO_DASH.data = res.dash.data || [];
       SO_DASH.page = res.dash.currentPage;
       SO_DASH.total = res.dash.totalPages;
+      SO_DASH.totalItems = res.dash.totalItems || 0;
       renderDashboard();
     } catch (e) { alert("Parse error: " + e.message); }
   }).withFailureHandler(function(e) { soOv(false); alert("Server Error: " + e.message); })
@@ -333,7 +489,7 @@ function showView(viewId) {
 })();
 
 // ==========================================
-// DASHBOARD TABLE
+// DASHBOARD TABLE — SKEMA BARU (Grouped by SO_No + Filter + Search)
 // ==========================================
 function loadDashboard(page) {
   if (page < 1 || page > SO_DASH.total) return;
@@ -345,51 +501,512 @@ function loadDashboard(page) {
     SO_DASH.data = res.data;
     SO_DASH.page = res.currentPage;
     SO_DASH.total = res.totalPages;
+    SO_DASH.totalItems = res.totalItems || 0;
     renderDashboard();
   }).withFailureHandler(function(e){ soOv(false); alert("Server Error: " + e.message); })
-  .getSODashboardPage(page);
+  .getSODashboardPage(page, SO_DASH.filter);
+}
+
+function setStatusFilter(status) {
+  SO_DASH.filter.status = status;
+  document.querySelectorAll('.filter-pill').forEach(function(el){
+    el.classList.remove('active','overdue','open','over','closed');
+    if (el.getAttribute('data-status') === status) {
+      el.classList.add('active');
+      if (status === 'OVERDUE') el.classList.add('overdue');
+      else if (status === 'OPEN') el.classList.add('open');
+      else if (status === 'OVER') el.classList.add('over');
+      else if (status === 'CLOSED') el.classList.add('closed');
+    }
+  });
+  loadDashboard(1);
+}
+
+function onSearchInput(v) {
+  clearTimeout(SO_SEARCH_DEBOUNCE);
+  SO_SEARCH_DEBOUNCE = setTimeout(function(){
+    SO_DASH.filter.search = v.trim();
+    loadDashboard(1);
+  }, 400);
+}
+
+function changeSOPage(dir) {
+  var t = SO_DASH.page + dir;
+  if (t >= 1 && t <= SO_DASH.total) loadDashboard(t);
 }
 
 function renderDashboard() {
   var tbody = document.getElementById('dash-tbody');
-  document.getElementById('pg-info').textContent = 'Halaman ' + SO_DASH.page + ' / ' + SO_DASH.total;
+  document.getElementById('pg-info').textContent = 
+    'Halaman ' + SO_DASH.page + ' / ' + SO_DASH.total + ' (' + SO_DASH.totalItems + ' SO)';
   document.getElementById('pg-prev').disabled = (SO_DASH.page === 1);
   document.getElementById('pg-next').disabled = (SO_DASH.page === SO_DASH.total);
 
   if(SO_DASH.data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:30px; color:#94a3b8; font-style:italic;">Belum ada riwayat pesanan (SO).</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:30px; color:#94a3b8; font-style:italic;">Tidak ada SO yang cocok dengan filter/pencarian.</td></tr>';
     return;
   }
 
-  tbody.innerHTML = SO_DASH.data.map(function(r, i) {
-    return `<tr class="dash-row" onclick="openDetail(${i})" title="Klik untuk detail / edit / close">
-      <td>${r.so_date}</td>
-      <td style="font-family:ui-monospace,monospace; color:#475569; font-weight:600;">${r.so_period || '-'}</td>
-      <td class="td-link">${r.so_no}</td>
-      <td style="color:var(--primary-blue); font-weight:700;">${r.cust}</td>
-      <td>${r.item_code}</td>
-      <td style="color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:250px;" title="${r.desc}">${r.desc}</td>
-      <td><b>${r.qty}</b> <span style="font-weight:normal; color:#94a3b8;">/ ${r.kg} KG</span></td>
-      <td style="color:var(--warning-orange); font-weight:700;">${r.schedule}</td>
-      <td>${renderStatusBadge(r.status)}</td>
-    </tr>`;
-  }).join('');
+  var html = '';
+  SO_DASH.data.forEach(function(g, idx) {
+    var statusBadge = renderStatusBadge(g.overall_status, true);  // clickable
+    var totalKgStr  = g.total_kg.toLocaleString('id-ID', {maximumFractionDigits:0});
+    var totalQStr   = g.total_q.toLocaleString('id-ID');
+    var ownerBadge  = g.owner_used ? '<span class="st-badge st-empty">' + g.owner_used + '</span>' : '-';
+
+    html +=
+      '<tr class="so-main-row" data-so-main="' + idx + '" onclick="toggleSOExpand(' + idx + ')">' +
+        '<td style="text-align:center;"><span class="expand-icon">▶</span></td>' +
+        '<td>' + g.so_date + '</td>' +
+        '<td style="font-family:ui-monospace,monospace; color:#475569; font-weight:600;">' + (g.so_period || '-') + '</td>' +
+        '<td style="font-weight:700; color:var(--primary-blue);">' + g.so_no + '</td>' +
+        '<td>' + g.cust + '</td>' +
+        '<td style="color:var(--warning-orange); font-weight:700;">' + g.schedule + '</td>' +
+        '<td style="text-align:center;">' + g.total_items + ' item</td>' +
+        '<td><b>' + totalQStr + '</b><br><span class="kg-line">' + totalKgStr + ' Kg</span></td>' +
+        '<td onclick="event.stopPropagation(); openEditModal(' + idx + ')" title="Klik untuk edit SO">' + statusBadge + '</td>' +
+        '<td>' + ownerBadge + '</td>' +
+      '</tr>' +
+      '<tr class="so-detail-row" data-so-detail="' + idx + '" style="display:none;">' +
+        '<td colspan="10">' + renderSODetailBlock(g.items) + '</td>' +
+      '</tr>';
+  });
+  tbody.innerHTML = html;
+
+  // Auto-expand semua saat search aktif
+  if (SO_DASH.filter.search) {
+    SO_DASH.data.forEach(function(_, idx){ expandSO(idx); });
+  }
 }
 
-function renderStatusBadge(status) {
+// ==========================================
+// HELPER: Qty label per TYPE + KG-billing detection
+// ==========================================
+function getSOQtyLabel(type, uom) {
+  var t = String(type || '').toUpperCase();
+  if (t === 'SHEET') return 'Lbr';
+  if (t === 'PART')  return 'Pcs';
+  if (t === 'COIL')  return 'Kg';
+  return uom || 'Pcs'; // fallback ke UoM asli kalau TYPE kosong
+}
+
+function isSOKGBilling(type, uom) {
+  var t = String(type || '').toUpperCase();
+  var u = String(uom || '').toUpperCase();
+  return (t === 'SHEET' && u === 'KG');
+}
+
+function renderStatusBadge(status, clickable) {
   var s = (status || '').toUpperCase();
   var cls = 'st-empty', txt = s || '—';
-  if (s === 'OPEN')   cls = 'st-open';
-  if (s === 'DONE')   cls = 'st-done';
-  if (s === 'CLOSED') cls = 'st-closed';
-  if (s === 'OVER')   cls = 'st-over';
-  return '<span class="st-badge ' + cls + '">' + txt + '</span>';
+  if (s === 'OPEN')    cls = 'st-open';
+  if (s === 'OVERDUE') cls = 'st-overdue';
+  if (s === 'CLOSED' || s === 'DONE') { cls = 'st-closed'; txt = 'CLOSED'; }
+  if (s === 'OVER')    cls = 'st-over';
+  var extra = clickable ? ' clickable' : '';
+  return '<span class="st-badge ' + cls + extra + '">' + txt + '</span>';
+}
+
+function renderSODetailBlock(items) {
+  var rowsHtml = items.map(function(it) {
+    var qtyLabel = getSOQtyLabel(it.type, it.uom);
+    var isKgBill = isSOKGBilling(it.type, it.uom);
+    var kgCls = isKgBill ? 'kg-line-bold' : 'kg-line';
+    var dims = [it.t, it.p, it.l].filter(function(v){ return v !== '' && v !== 0; }).join(' × ');
+    var kgBillTag = isKgBill ? '<span class="kg-billing-tag" title="Customer billing pakai KG">💰 KG</span>' : '';
+    
+    var soCell = '<span class="qty-line">' + Number(it.so_q).toLocaleString('id-ID') + ' ' + qtyLabel + '</span>' +
+                 '<br><span class="' + kgCls + '">' + Number(it.so_kg).toLocaleString('id-ID', {maximumFractionDigits:0}) + ' Kg</span>';
+    var delvCell = '<span class="qty-line" style="color:var(--success-green);">' + Number(it.delv_q).toLocaleString('id-ID') + ' ' + qtyLabel + '</span>' +
+                   '<br><span class="' + kgCls + '">' + Number(it.delv_kg).toLocaleString('id-ID', {maximumFractionDigits:0}) + ' Kg</span>';
+    var blCell = '<span class="qty-line" style="color:' + (it.bl_q>0?'var(--danger-red)':'var(--text-muted)') + ';">' + Number(it.bl_q).toLocaleString('id-ID') + ' ' + qtyLabel + '</span>' +
+                 '<br><span class="' + kgCls + '">' + Number(it.bl_kg).toLocaleString('id-ID', {maximumFractionDigits:0}) + ' Kg</span>';
+    var itmBadge = renderStatusBadge(it.status, false);
+    return '<tr>' +
+             '<td><code style="font-weight:700;">' + it.item_code + '</code>' + kgBillTag + '</td>' +
+             '<td>' + it.description + '</td>' +
+             '<td>' + (it.spec || '-') + '<br><span class="kg-line">' + (dims || '-') + '</span></td>' +
+             '<td>' + soCell + '</td>' +
+             '<td>' + delvCell + '</td>' +
+             '<td>' + blCell + '</td>' +
+             '<td><span class="kg-line">' + (it.ref_spk || '-') + '</span></td>' +
+             '<td style="text-align:center;">' + itmBadge + '</td>' +
+           '</tr>';
+  }).join('');
+
+  return '<div class="so-detail-block">' +
+           '<table>' +
+             '<thead><tr>' +
+               '<th style="width:12%;">Item Code</th>' +
+               '<th style="width:20%;">Deskripsi</th>' +
+               '<th style="width:12%;">Spec / T×P×L</th>' +
+               '<th style="width:12%;">Order (Q/KG)</th>' +
+               '<th style="width:12%;">Terkirim (Q/KG)</th>' +
+               '<th style="width:12%;">Sisa (Q/KG)</th>' +
+               '<th style="width:10%;">Ref SPK</th>' +
+               '<th style="width:10%; text-align:center;">Status</th>' +
+             '</tr></thead>' +
+             '<tbody>' + rowsHtml + '</tbody>' +
+           '</table>' +
+         '</div>';
+}
+
+function toggleSOExpand(idx) {
+  var main = document.querySelector('[data-so-main="' + idx + '"]');
+  var detail = document.querySelector('[data-so-detail="' + idx + '"]');
+  if (!main || !detail) return;
+  if (detail.style.display === 'none' || !detail.style.display) {
+    detail.style.display = 'table-row';
+    main.classList.add('expanded');
+    main.querySelector('.expand-icon').textContent = '▼';
+  } else {
+    detail.style.display = 'none';
+    main.classList.remove('expanded');
+    main.querySelector('.expand-icon').textContent = '▶';
+  }
+}
+
+function expandSO(idx) {
+  var main = document.querySelector('[data-so-main="' + idx + '"]');
+  var detail = document.querySelector('[data-so-detail="' + idx + '"]');
+  if (!main || !detail) return;
+  detail.style.display = 'table-row';
+  main.classList.add('expanded');
+  main.querySelector('.expand-icon').textContent = '▼';
+}
+
+// ==========================================
+// SPRINT B: EDIT SO MODAL — Multi-item edit, add item, save inline
+// ==========================================
+var EM_CURRENT = null;  // SO group data yang sedang di-edit
+
+function openEditModal(idx) {
+  var g = SO_DASH.data[idx];
+  if (!g) return;
+  EM_CURRENT = g;
+  
+  // Populate header info
+  document.getElementById('em-so-no').textContent = g.so_no;
+  document.getElementById('em-status-badge').innerHTML = renderStatusBadge(g.overall_status, false);
+  document.getElementById('em-cust').value = g.cust;
+  document.getElementById('em-period').value = g.so_period || '';
+  document.getElementById('em-date').value = g.so_date;
+  document.getElementById('em-schedule').value = g.schedule;
+  
+  // Show/hide CLOSED warning + add section
+  var isClosed = (g.overall_status === 'CLOSED');
+  document.getElementById('em-closed-warning').style.display = isClosed ? '' : 'none';
+  document.getElementById('em-add-section').style.display = isClosed ? 'none' : '';
+  
+  renderEditModalItems();
+  
+  // Reset add form
+  document.getElementById('em-add-item-input').value = '';
+  document.getElementById('em-add-item-code').value = '';
+  document.getElementById('em-add-item-desc').value = '';
+  document.getElementById('em-add-item-spec').value = '';
+  document.getElementById('em-add-item-t').value = '';
+  document.getElementById('em-add-item-p').value = '';
+  document.getElementById('em-add-item-l').value = '';
+  document.getElementById('em-add-item-uom').value = '';
+  document.getElementById('em-add-item-wgfc').value = '';
+  document.getElementById('em-add-item-wgcust').value = '';
+  document.getElementById('em-add-qty').value = '';
+  document.getElementById('em-add-note').value = '';
+  document.getElementById('em-add-item-list').style.display = 'none';
+  
+  document.getElementById('edit-modal').classList.add('on');
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').classList.remove('on');
+  EM_CURRENT = null;
+}
+
+function escapeHtmlSO(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function renderEditModalItems() {
+  if (!EM_CURRENT) return;
+  var isClosed = (EM_CURRENT.overall_status === 'CLOSED');
+  var tbody = document.getElementById('em-items-tbody');
+  var html = '';
+  
+  EM_CURRENT.items.forEach(function(it) {
+    var qtyLabel = getSOQtyLabel(it.type, it.uom);
+    var isKgBill = isSOKGBilling(it.type, it.uom);
+    var kgCls = isKgBill ? 'kg-line-bold' : 'kg-line';
+    var kgBillTag = isKgBill ? '<span class="kg-billing-tag" title="Customer billing pakai KG">💰 KG</span>' : '';
+    
+    var delvBadge = it.delv_q > 0 
+      ? '<span style="color:var(--success-green); font-weight:700;">' + it.delv_q + ' ' + qtyLabel + '</span>'
+      : '<span style="color:var(--text-muted);">0 ' + qtyLabel + '</span>';
+    var locked = (it.delv_q > 0);
+    var minQty = it.delv_q;
+    var itmCodeEsc = escapeHtmlSO(it.item_code);
+    var noteEsc = escapeHtmlSO(it.note || '');
+    
+    var qtyInput, noteInput, actionCell;
+    
+    if (isClosed) {
+      qtyInput = '<div style="display:flex; align-items:center; gap:4px;"><input class="f-inp" value="' + it.so_q + '" disabled style="text-align:right;"><span style="color:var(--text-muted); font-size:10px; font-weight:600;">' + qtyLabel + '</span></div>' +
+                 '<div class="' + kgCls + '" style="margin-top:2px;">' + Number(it.so_kg).toLocaleString('id-ID', {maximumFractionDigits:0}) + ' Kg</div>';
+      noteInput = '<input class="f-inp" value="' + noteEsc + '" disabled>';
+      actionCell = '<span style="color:var(--text-muted); font-size:10px;">🔒 Locked</span>';
+    } else {
+      qtyInput = '<div style="display:flex; align-items:center; gap:4px;"><input type="number" class="f-inp em-qty-inp" value="' + it.so_q + '" min="' + Math.max(1, minQty) + '" data-original="' + it.so_q + '" data-min="' + minQty + '" style="text-align:right;"><span style="color:var(--text-muted); font-size:10px; font-weight:600;">' + qtyLabel + '</span></div>' +
+                 '<div class="' + kgCls + '" style="margin-top:2px;">' + Number(it.so_kg).toLocaleString('id-ID', {maximumFractionDigits:0}) + ' Kg</div>';
+      noteInput = '<input class="f-inp em-note-inp" value="' + noteEsc + '" data-original="' + noteEsc + '">';
+      actionCell = '<button class="btn btn-primary" style="height:24px; padding:0 10px; font-size:10px;" onclick="saveEditItemRow(this, \'' + itmCodeEsc + '\')">💾 Save</button>';
+    }
+    
+    var lockedIndicator = locked ? ' <span style="font-size:9px; color:var(--danger-red); font-weight:700;" title="Sudah dikirim ' + it.delv_q + ' ' + qtyLabel + ' \u2014 qty min = ' + it.delv_q + '">🔒</span>' : '';
+    
+    html += '<tr>' +
+             '<td><code style="font-weight:700;">' + itmCodeEsc + '</code>' + lockedIndicator + kgBillTag + '</td>' +
+             '<td style="font-size:11px;">' + escapeHtmlSO(it.description) + '</td>' +
+             '<td>' + qtyInput + '</td>' +
+             '<td style="text-align:center;">' + delvBadge + '</td>' +
+             '<td>' + noteInput + '</td>' +
+             '<td style="text-align:center;">' + actionCell + '</td>' +
+           '</tr>';
+  });
+  
+  if (html === '') html = '<tr><td colspan="6" style="text-align:center; padding:20px; color:#94a3b8; font-style:italic;">Belum ada item.</td></tr>';
+  tbody.innerHTML = html;
+}
+
+// Save qty + note untuk 1 row
+function saveEditItemRow(btn, itemCode) {
+  if (!EM_CURRENT) return;
+  var tr = btn.closest('tr');
+  var qtyInp = tr.querySelector('.em-qty-inp');
+  var noteInp = tr.querySelector('.em-note-inp');
+  
+  var newQty = parseInt(qtyInp.value) || 0;
+  var origQty = parseInt(qtyInp.dataset.original) || 0;
+  var minQty = parseInt(qtyInp.dataset.min) || 0;
+  var newNote = noteInp.value.trim();
+  var origNote = (noteInp.dataset.original || '').trim();
+  
+  if (newQty <= 0) return alert("Qty harus > 0.");
+  if (newQty < minQty) return alert("Qty baru (" + newQty + ") tidak boleh < Qty yang sudah dikirim (" + minQty + ").");
+  
+  var qtyChanged = (newQty !== origQty);
+  var noteChanged = (newNote !== origNote);
+  
+  if (!qtyChanged && !noteChanged) return alert("Tidak ada perubahan untuk disimpan.");
+  
+  soOv(true, "Menyimpan perubahan untuk item " + itemCode + "...");
+  
+  var afterQty = function() {
+    if (noteChanged) {
+      google.script.run
+        .withSuccessHandler(function(jsonStr) {
+          soOv(false);
+          var res = JSON.parse(jsonStr);
+          if (res.error) return alert("Gagal update note: " + res.error);
+          refreshModalData();
+        })
+        .withFailureHandler(function(e){ soOv(false); alert("Gagal koneksi: " + e.message); })
+        .updateSOItemNote({ so_no: EM_CURRENT.so_no, item_code: itemCode, new_note: newNote });
+    } else {
+      soOv(false);
+      refreshModalData();
+    }
+  };
+  
+  if (qtyChanged) {
+    google.script.run
+      .withSuccessHandler(function(jsonStr) {
+        var res = JSON.parse(jsonStr);
+        if (res.error) { soOv(false); return alert("Gagal update qty: " + res.error); }
+        afterQty();
+      })
+      .withFailureHandler(function(e){ soOv(false); alert("Gagal koneksi: " + e.message); })
+      .updateSOItemQty({ so_no: EM_CURRENT.so_no, item_code: itemCode, new_qty: newQty });
+  } else {
+    afterQty();
+  }
+}
+
+// Refresh dashboard + re-render modal dengan data terbaru
+function refreshModalData() {
+  if (!EM_CURRENT) return;
+  var currentSoNo = EM_CURRENT.so_no;
+  
+  google.script.run.withSuccessHandler(function(jsonStr) {
+    var res = JSON.parse(jsonStr);
+    if (res.error) return alert("Refresh error: " + res.error);
+    SO_DASH.data = res.data;
+    SO_DASH.page = res.currentPage;
+    SO_DASH.total = res.totalPages;
+    SO_DASH.totalItems = res.totalItems || 0;
+    renderDashboard();
+    
+    var found = null;
+    for (var i = 0; i < SO_DASH.data.length; i++) {
+      if (SO_DASH.data[i].so_no === currentSoNo) { found = SO_DASH.data[i]; break; }
+    }
+    if (found) {
+      EM_CURRENT = found;
+      renderEditModalItems();
+      document.getElementById('em-status-badge').innerHTML = renderStatusBadge(found.overall_status, false);
+    } else {
+      // SO tidak ada di page ini (mungkin karena filter/pagination), tutup modal
+      closeEditModal();
+    }
+  }).withFailureHandler(function(e){ alert("Refresh error: " + e.message); })
+  .getSODashboardPage(SO_DASH.page, SO_DASH.filter);
+}
+
+// ==========================================
+// SPRINT B: AUTOCOMPLETE ITEM DI EDIT MODAL
+// ==========================================
+function filterModalItemList() {
+  var input = document.getElementById('em-add-item-input');
+  var list = document.getElementById('em-add-item-list');
+  var q = input.value.trim().toLowerCase();
+  var items = SO_FORM_DATA.items || [];
+  
+  var filtered = items.filter(function(it) {
+    if (!q) return true;
+    return (it.item_code || '').toLowerCase().indexOf(q) !== -1 || 
+           (it.description || '').toLowerCase().indexOf(q) !== -1;
+  }).slice(0, 20);
+  
+  if (filtered.length === 0) {
+    list.style.display = 'none';
+    return;
+  }
+  
+  list.innerHTML = filtered.map(function(it) {
+    var dataStr = encodeURIComponent(JSON.stringify(it));
+    return '<div class="sd-item" onclick="selectModalItem(\'' + dataStr + '\')">' +
+             '<div class="title">' + escapeHtmlSO(it.item_code) + '</div>' +
+             '<div class="desc">' + escapeHtmlSO(it.description) + '</div>' +
+           '</div>';
+  }).join('');
+  list.style.display = 'block';
+}
+
+function selectModalItem(dataStr) {
+  var it = JSON.parse(decodeURIComponent(dataStr));
+  document.getElementById('em-add-item-input').value = it.item_code + ' — ' + it.description;
+  document.getElementById('em-add-item-code').value = it.item_code;
+  document.getElementById('em-add-item-desc').value = it.description;
+  document.getElementById('em-add-item-spec').value = it.spec || '';
+  document.getElementById('em-add-item-t').value = it.t || '';
+  document.getElementById('em-add-item-p').value = it.p || '';
+  document.getElementById('em-add-item-l').value = it.l || '';
+  document.getElementById('em-add-item-uom').value = it.uom || 'Pcs';
+  document.getElementById('em-add-item-wgfc').value = it.wg_fc || 0;
+  document.getElementById('em-add-item-wgcust').value = it.wg_cust || 0;
+  document.getElementById('em-add-item-list').style.display = 'none';
+  
+  if (!(parseFloat(it.wg_cust) > 0)) {
+    alert("⚠️ Item [" + it.item_code + "] belum ada 'Wg/Pce Cust' di M_ITEM.\n\nLengkapi Master Data dulu sebelum bisa tambah ke SO.");
+  }
+  
+  document.getElementById('em-add-qty').focus();
+}
+
+function submitAddNewItem() {
+  if (!EM_CURRENT) return;
+  var itemCode = document.getElementById('em-add-item-code').value.trim();
+  var qty = parseInt(document.getElementById('em-add-qty').value) || 0;
+  var wgCust = parseFloat(document.getElementById('em-add-item-wgcust').value) || 0;
+  
+  if (!itemCode) return alert("Pilih item dari dropdown autocomplete dulu.");
+  if (qty <= 0) return alert("Qty harus > 0.");
+  if (wgCust <= 0) return alert("Item [" + itemCode + "] belum ada 'Wg/Pce Cust' di M_ITEM. Lengkapi Master Data dulu.");
+  
+  // Warning kalau item sudah ada di SO ini
+  var dup = null;
+  for (var i = 0; i < EM_CURRENT.items.length; i++) {
+    if (EM_CURRENT.items[i].item_code === itemCode) { dup = EM_CURRENT.items[i]; break; }
+  }
+  if (dup) {
+    if (!confirm("Item [" + itemCode + "] sudah ada di SO ini (qty " + dup.so_q + ").\n\nTambahkan sebagai baris baru?\n(Rekomendasi: batal, lalu edit qty item existing saja.)")) return;
+  }
+  
+  var payload = {
+    so_no: EM_CURRENT.so_no,
+    item: {
+      item_code: itemCode,
+      description: document.getElementById('em-add-item-desc').value,
+      spec: document.getElementById('em-add-item-spec').value,
+      t: document.getElementById('em-add-item-t').value,
+      p: document.getElementById('em-add-item-p').value,
+      l: document.getElementById('em-add-item-l').value,
+      uom: document.getElementById('em-add-item-uom').value,
+      wg_fc: document.getElementById('em-add-item-wgfc').value,
+      wg_cust: wgCust,
+      so_q: qty,
+      note: document.getElementById('em-add-note').value
+    }
+  };
+  
+  soOv(true, "Menambah item baru ke SO...");
+  google.script.run.withSuccessHandler(function(jsonStr) {
+    soOv(false);
+    var res = JSON.parse(jsonStr);
+    if (res.error) return alert("Gagal tambah item: " + res.error);
+    // Reset add form
+    document.getElementById('em-add-item-input').value = '';
+    document.getElementById('em-add-item-code').value = '';
+    document.getElementById('em-add-qty').value = '';
+    document.getElementById('em-add-note').value = '';
+    refreshModalData();
+  }).withFailureHandler(function(e){ soOv(false); alert("Gagal koneksi: " + e.message); })
+  .addItemToExistingSO(payload);
+}
+
+// Helper: populate view-detail form (dipisah biar reusable)
+function populateDetailView(r) {
+  document.getElementById('v-so').value = r.so_no;
+  document.getElementById('v-period').value = r.so_period || '';
+  document.getElementById('v-sodate').value = r.so_date_raw;
+  document.getElementById('v-sodlv').value = r.schedule_raw;
+  document.getElementById('v-cust').value = r.cust; 
+  document.getElementById('v-item').value = r.item_code;
+  document.getElementById('v-desc').value = r.desc; 
+  document.getElementById('v-qty').value = r.qty;
+  document.getElementById('v-kg').value = r.kg + ' KG (Auto-Calc)';
+  document.getElementById('v-note').value = r.note;
+  document.getElementById('v-status-badge').innerHTML = renderStatusBadge(r.status, false);
+
+  if (r.status === 'CLOSED' || r.close_flag) {
+    document.getElementById('panel-close-info').style.display = '';
+    document.getElementById('v-close-date').value = r.close_date || '';
+    document.getElementById('v-close-reason').value = r.close_reason || '';
+  } else {
+    document.getElementById('panel-close-info').style.display = 'none';
+  }
+
+  var btnClose = document.getElementById('btn-close-so');
+  var btnReopen = document.getElementById('btn-reopen-so');
+  var btnEdit = document.getElementById('btn-mode-edit');
+  if (r.status === 'CLOSED' || r.close_flag) {
+    btnClose.style.display = 'none';
+    btnReopen.style.display = '';
+    btnEdit.style.display = 'none';
+  } else {
+    btnClose.style.display = '';
+    btnReopen.style.display = 'none';
+    btnEdit.style.display = '';
+  }
 }
 
 // ==========================================
 // VIEW & EDIT SINGLE ITEM
 // ==========================================
 function openDetail(index) {
+  // DEPRECATED — fungsi lama masih dipertahankan untuk backward compat.
+  // Flow baru pakai openEditModal(idx) yang sudah convert group → flat row.
   var r = SO_DASH.data[index];
   SO_EDIT_ROW = r;
   
@@ -612,7 +1229,7 @@ function addSORow() {
     <td><input type="number" class="f-inp it-qty" min="1" oninput="calcRowKg(this)"></td>
     <td><input class="f-inp it-kg" disabled style="background:#f8fafc; font-weight:700;"></td>
     <td><input type="number" step="0.001" class="f-inp it-wgfc-display" disabled style="background:#f8fafc;"></td>
-    <td><input type="number" step="0.001" class="f-inp it-wgcust"></td>
+    <td><input type="number" step="0.001" class="f-inp it-wgcust" disabled style="background:#f8fafc; font-weight:600; color:#64748b;" title="Auto dari M_ITEM (read-only)"></td>
     <td><input class="f-inp it-note" placeholder="Catatan..."></td>
     <td style="text-align:center;"><button class="btn-del" onclick="this.closest('tr').remove(); renumberRows();">×</button></td>
   `;
@@ -659,6 +1276,25 @@ function selectItem(el, dataStr) {
   wrap.querySelector('.it-wgfc').value = it.wg_fc;
   tr.querySelector('.it-desc-display').value = it.description;
   tr.querySelector('.it-wgfc-display').value = it.wg_fc;
+  
+  // Auto-fill Wg/Pce Cust dari M_ITEM (read-only). Kalau kosong → warning + block.
+  var wgCust = parseFloat(it.wg_cust) || 0;
+  var wgCustInput = tr.querySelector('.it-wgcust');
+  if (wgCust > 0) {
+    wgCustInput.value = wgCust;
+    wgCustInput.style.border = '';
+    wgCustInput.style.background = '#f8fafc';
+    wgCustInput.title = "Auto dari M_ITEM (read-only)";
+    delete tr.dataset.wgcustInvalid;
+  } else {
+    wgCustInput.value = '';
+    wgCustInput.style.border = '2px solid var(--danger-red)';
+    wgCustInput.style.background = '#fef2f2';
+    wgCustInput.title = "Wg/Pce Cust belum diisi di M_ITEM — lengkapi Master Data dulu";
+    tr.dataset.wgcustInvalid = '1';
+    alert("⚠️ Item [" + it.item_code + "] belum punya 'Wg/Pce Cust' di M_ITEM.\n\nLengkapi Master Data dulu sebelum bisa disimpan.");
+  }
+  
   wrap.querySelector('.sd-list').style.display = 'none';
   calcRowKg(tr.querySelector('.it-qty'));
 }
@@ -666,8 +1302,9 @@ function selectItem(el, dataStr) {
 function calcRowKg(qtyInput) {
   var tr = qtyInput.closest('tr');
   var qty = parseFloat(qtyInput.value) || 0;
-  var wgfc = parseFloat(tr.querySelector('.it-wgfc').value) || 0;
-  tr.querySelector('.it-kg').value = (qty * wgfc).toFixed(2) + ' KG';
+  // Pakai Wg/Pce Cust (bukan FC) — biar konsisten sama formula sheet SO_KG = N × O
+  var wgcust = parseFloat(tr.querySelector('.it-wgcust').value) || 0;
+  tr.querySelector('.it-kg').value = (qty * wgcust).toFixed(2) + ' KG';
 }
 
 function submitSalesOrder() {
@@ -696,6 +1333,16 @@ function submitSalesOrder() {
     var qty = tr.querySelector('.it-qty').value;
     if (!code) return alert("Item pada baris " + (i+1) + " belum dipilih!");
     if (!qty || qty <= 0) return alert("Qty pada baris " + (i+1) + " harus > 0!");
+    
+    // Guard: block save kalau Wg/Pce Cust invalid (auto-fetched dari M_ITEM)
+    if (tr.dataset.wgcustInvalid === '1') {
+      return alert("Baris " + (i+1) + " — Item [" + code + "] belum ada 'Wg/Pce Cust' di M_ITEM.\nLengkapi Master Data dulu sebelum simpan SO.");
+    }
+    var wgCustVal = parseFloat(tr.querySelector('.it-wgcust').value) || 0;
+    if (wgCustVal <= 0) {
+      return alert("Baris " + (i+1) + " — Item [" + code + "] tidak punya 'Wg/Pce Cust' yang valid. Cek M_ITEM.");
+    }
+    
     items.push({
       item_code: code,
       description: tr.querySelector('.it-desc').value,
@@ -703,7 +1350,7 @@ function submitSalesOrder() {
       t: tr.querySelector('.it-t').value, p: tr.querySelector('.it-p').value, l: tr.querySelector('.it-l').value,
       uom: tr.querySelector('.it-uom').value,
       wg_fc: tr.querySelector('.it-wgfc').value,
-      wg_cust: tr.querySelector('.it-wgcust').value || tr.querySelector('.it-wgfc').value,
+      wg_cust: wgCustVal,
       so_q: qty,
       note: tr.querySelector('.it-note').value
     });

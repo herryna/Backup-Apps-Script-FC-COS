@@ -81,13 +81,54 @@ td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle
 .so-ov.on { display: flex; }
 .spinner { width: 40px; height: 40px; border: 4px solid var(--border-color); border-top-color: var(--primary-blue); border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ==== FILTER BAR (NEW) ==== */
+.filter-bar {
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+  background: #fff; border: 1px solid var(--border-color); border-radius: 4px;
+  flex-shrink: 0;
+}
+.filter-pills { display: flex; gap: 6px; }
+.filter-pill {
+  padding: 5px 14px; border-radius: 20px; font-size: 11px; font-weight: 700;
+  border: 1px solid var(--border-color); background: #fff; color: var(--text-muted);
+  cursor: pointer; transition: 0.15s; text-transform: uppercase;
+}
+.filter-pill:hover { background: #f1f5f9; }
+.filter-pill.active { background: var(--primary-blue); color: #fff; border-color: var(--primary-blue); }
+.filter-pill.active.overdue { background: var(--danger-red); border-color: var(--danger-red); }
+.filter-pill.active.open { background: var(--warning-orange); border-color: var(--warning-orange); }
+.filter-pill.active.closed { background: var(--success-green); border-color: var(--success-green); }
+.filter-search-wrap { flex: 1; max-width: 400px; margin-left: auto; position: relative; }
+.filter-search-wrap input {
+  padding-left: 32px; height: 30px; border-radius: 4px;
+}
+.filter-search-wrap::before {
+  content: "🔍"; position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  font-size: 12px; pointer-events: none; opacity: 0.5;
+}
+
+/* ==== EXPANDABLE LIST TABLE ==== */
+.po-main-row { cursor: pointer; transition: background 0.1s; }
+.po-main-row:hover { background: #f8fafc; }
+.po-main-row.expanded { background: #eff6ff; }
+.expand-icon { display: inline-block; font-size: 10px; color: var(--text-muted); transition: transform 0.15s; width: 12px; }
+.po-main-row.expanded .expand-icon { transform: rotate(0deg); color: var(--primary-blue); }
+
+.po-detail-row td { padding: 0; border-bottom: 2px solid var(--border-color); }
+.po-detail-block { padding: 8px 20px 12px 40px; background: #f8fafc; }
+.po-detail-block table { border: 1px solid var(--border-color); background: #fff; table-layout: auto; }
+.po-detail-block th { background: #e2e8f0; padding: 6px 10px; font-size: 10px; position: static; }
+.po-detail-block td { padding: 6px 10px; font-size: 11px; }
+.qty-line { font-weight: 700; font-size: 12px; }
+.kg-line { color: var(--text-muted); font-size: 10px; }
 </style>
 
 <div id="view-po-dashboard" class="view-container active">
   <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-shrink:0;">
     <div>
       <h1 style="font-size:20px; font-weight:800; color:#0f172a; margin:0;">PO / Order Control Board</h1>
-      <span style="color:var(--text-muted); font-size:12px;">Pantau realisasi pengiriman bahan baku dari Supplier dan status sisa saldo pesanan.</span>
+      <span style="color:var(--text-muted); font-size:12px;">Daftar dan status realisasi PO material dari Supplier.</span>
     </div>
     <div style="display:flex; gap:8px;">
       <button class="btn btn-outline" onclick="loadPOData()">🔄 Refresh</button>
@@ -95,45 +136,38 @@ td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle
     </div>
   </div>
 
-  <div class="panel" style="flex: 1; min-height: 220px; margin-bottom: 4px;">
-    <div class="panel-head">⚠️ Papan Pengawasan Kedatangan Open PO (Traffic Light)</div>
-    <div class="table-wrap" style="border:none; border-radius:0;">
-      <table>
-        <thead>
-          <tr>
-            <th width="12%">No. PO</th>
-            <th width="15%">Supplier / Vendor</th>
-            <th width="10%">Estimasi Tiba</th>
-            <th width="11%">Urgensi</th>
-            <th width="12%">Item Code</th>
-            <th width="10%">Order KG</th>
-            <th width="10%">GR Kirim KG</th>
-            <th width="10%">Sisa KG (BL)</th>
-            <th width="10%">Owner</th>
-          </tr>
-        </thead>
-        <tbody id="po-pool-tbody"></tbody>
-      </table>
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <div class="filter-pills">
+      <button class="filter-pill active" data-status="ALL" onclick="setStatusFilter('ALL')">Semua</button>
+      <button class="filter-pill" data-status="OPEN" onclick="setStatusFilter('OPEN')">🟡 Open</button>
+      <button class="filter-pill" data-status="OVERDUE" onclick="setStatusFilter('OVERDUE')">🔴 Overdue</button>
+      <button class="filter-pill" data-status="CLOSED" onclick="setStatusFilter('CLOSED')">✅ Closed</button>
+    </div>
+    <div class="filter-search-wrap">
+      <input type="text" class="f-inp" id="po-search-input" placeholder="Cari PO / Item Code / Deskripsi / Vendor..." oninput="onSearchInput(this.value)">
     </div>
   </div>
 
+  <!-- LIST PO -->
   <div class="panel" style="flex: 1; min-height: 200px;">
-    <div class="panel-head">📋 Histori Log Seluruh Transaksi PO</div>
+    <div class="panel-head">📋 Daftar Purchase Order</div>
     <div class="table-wrap" style="border:none; border-radius:0;">
       <table>
         <thead>
           <tr>
+            <th width="3%"></th>
             <th width="10%">Tgl PO</th>
             <th width="15%">No. PO</th>
             <th width="20%">Supplier / Vendor</th>
-            <th width="12%">Target Tiba</th>
-            <th width="15%">Item Code</th>
-            <th width="10%">Total KG</th>
-            <th width="10%">Status</th>
+            <th width="10%">Est. Tiba</th>
+            <th width="10%" style="text-align:center;">Total Item</th>
+            <th width="12%">Total KG</th>
+            <th width="12%">Status</th>
             <th width="8%">Owner</th>
           </tr>
         </thead>
-        <tbody id="po-log-tbody"></tbody>
+        <tbody id="po-list-tbody"></tbody>
       </table>
     </div>
     <div style="display:flex; justify-content:center; align-items:center; gap:12px; background:#f8fafc; padding:6px; border-top:1px solid var(--border-color);">
@@ -187,9 +221,9 @@ td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle
             <th width="20%">Item Code *</th>
             <th width="30%">Deskripsi (Auto)</th>
             <th width="10%">UoM</th>
-            <th width="10%">Wg/Pce</th>
+            <th width="10%">Wg/Pce (Auto)</th>
             <th width="9%">Qty Order *</th>
-            <th width="11%">KG Order *</th>
+            <th width="11%">KG Order (Auto)</th>
             <th width="12%" style="text-align:center;">Target Gudang *</th>
             <th width="5%" style="text-align:center;">Hapus</th>
           </tr>
@@ -210,10 +244,16 @@ td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle
 // ==========================================
 // GLOBAL STATE & CORE FUNCTIONS
 // ==========================================
-var PO_POOL_DATA = [];
-var PO_LOG_STATE = { data: [], page: 1, total: 1 };
+var PO_LIST_STATE = {
+  data: [],
+  page: 1,
+  total: 1,
+  totalItems: 0,
+  filter: { status: 'ALL', search: '' }
+};
 var MASTER_VENDORS = [];
 var MASTER_ITEMS = [];
+var SEARCH_DEBOUNCE = null;
 
 function showView(id) {
   document.querySelectorAll('.view-container').forEach(function(el) { el.classList.remove('active'); });
@@ -232,99 +272,192 @@ function poOv(show, msg) {
 })();
 
 function loadPOData() {
-  poOv(true, "Sinkronisasi Master Data & Papan Kontrol PO...");
+  poOv(true, "Sinkronisasi Master Data & Daftar PO...");
   google.script.run.withSuccessHandler(function(jsonStr) {
     poOv(false);
     var res = JSON.parse(jsonStr);
     if(res.error) return alert("Error Basis Data: " + res.error);
     
-    PO_POOL_DATA = res.pool || [];
-    PO_LOG_STATE.data = res.dash.data || [];
-    PO_LOG_STATE.page = res.dash.currentPage || 1;
-    PO_LOG_STATE.total = res.dash.totalPages || 1;
+    PO_LIST_STATE.data = res.dash.data || [];
+    PO_LIST_STATE.page = res.dash.currentPage || 1;
+    PO_LIST_STATE.total = res.dash.totalPages || 1;
+    PO_LIST_STATE.totalItems = res.dash.totalItems || 0;
     MASTER_VENDORS = res.vendors || [];
     MASTER_ITEMS = res.items || [];
     
-    renderPO_PoolTable();
-    renderPO_LogTable();
+    renderPO_ListTable();
   }).withFailureHandler(function(e){ poOv(false); alert("Gagal menghubungi server: "+e.message); }).getPOInitData();
 }
 
 // ==========================================
-// RENDER TABLES
+// FILTER + SEARCH + PAGINATION
 // ==========================================
-function renderPO_PoolTable() {
-  var tbody = document.getElementById('po-pool-tbody');
-  if(!PO_POOL_DATA.length) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#94a3b8; font-style:italic; padding:25px;">👍 Bersih! Semua Supplier tepat waktu / tidak ada sisa utang PO terbuka.</td></tr>';
-    return;
-  }
-  tbody.innerHTML = PO_POOL_DATA.map(function(r) {
-    var bLabel = 'ON TRACK'; var bClass = 'badge-green';
-    if(r.urgency === 'RED') { bLabel = '🔴 OVERDUE'; bClass = 'badge-red'; }
-    else if(r.urgency === 'YELLOW') { bLabel = '🟡 DUE SOON'; bClass = 'badge-yellow'; }
-    
-    return `
-      <tr style="background:${r.urgency==='RED'?'#fff5f5':''}">
-        <td style="font-weight:700; color:var(--primary-blue);">${r.po_no}</td>
-        <td style="font-weight:700;">${r.vendor}</td>
-        <td>${r.schedule_str}</td>
-        <td><span class="badge ${bClass}">${bLabel}</span></td>
-        <td><code>${r.item_code}</code></td>
-        <td>${r.po_kg.toLocaleString('id-ID')} KG</td>
-        <td style="color:var(--success-green); font-weight:600;">${r.gr_kg.toLocaleString('id-ID')} KG</td>
-        <td style="color:var(--danger-red); font-weight:700; background:rgba(211,47,47,0.05);">${r.bl_kg.toLocaleString('id-ID')} KG</td>
-        <td><span class="badge badge-muted">${r.owner}</span></td>
-      </tr>
-    `;
-  }).join('');
+function setStatusFilter(status) {
+  PO_LIST_STATE.filter.status = status;
+  document.querySelectorAll('.filter-pill').forEach(function(el){
+    el.classList.remove('active','overdue','open','closed');
+    if (el.getAttribute('data-status') === status) {
+      el.classList.add('active');
+      if (status === 'OVERDUE') el.classList.add('overdue');
+      else if (status === 'OPEN') el.classList.add('open');
+      else if (status === 'CLOSED') el.classList.add('closed');
+    }
+  });
+  loadPODashboardPage(1);
+}
+
+function onSearchInput(v) {
+  clearTimeout(SEARCH_DEBOUNCE);
+  SEARCH_DEBOUNCE = setTimeout(function(){
+    PO_LIST_STATE.filter.search = v.trim();
+    loadPODashboardPage(1);
+  }, 400);
 }
 
 function loadPODashboardPage(page) {
-  poOv(true, "Memuat halaman histori...");
+  poOv(true, "Memuat daftar PO...");
   google.script.run.withSuccessHandler(function(jsonStr) {
     poOv(false);
     var res = JSON.parse(jsonStr);
-    PO_LOG_STATE.data = res.data; PO_LOG_STATE.page = res.currentPage; PO_LOG_STATE.total = res.totalPages;
-    renderPO_LogTable();
-  }).getPODashboardPage(page);
+    if(res.error) return alert("Error: " + res.error);
+    PO_LIST_STATE.data = res.data;
+    PO_LIST_STATE.page = res.currentPage;
+    PO_LIST_STATE.total = res.totalPages;
+    PO_LIST_STATE.totalItems = res.totalItems || 0;
+    renderPO_ListTable();
+  }).withFailureHandler(function(e){ poOv(false); alert("Gagal koneksi: "+e.message); })
+  .getPODashboardPage(page, PO_LIST_STATE.filter);
 }
 
 function changePOPage(dir) {
-  var t = PO_LOG_STATE.page + dir;
-  if(t >= 1 && t <= PO_LOG_STATE.total) loadPODashboardPage(t);
+  var t = PO_LIST_STATE.page + dir;
+  if(t >= 1 && t <= PO_LIST_STATE.total) loadPODashboardPage(t);
 }
 
-function renderPO_LogTable() {
-  var tbody = document.getElementById('po-log-tbody');
-  document.getElementById('po-pg-info').textContent = 'Halaman ' + PO_LOG_STATE.page + ' / ' + PO_LOG_STATE.total;
-  document.getElementById('po-pg-prev').disabled = (PO_LOG_STATE.page === 1);
-  document.getElementById('po-pg-next').disabled = (PO_LOG_STATE.page === PO_LOG_STATE.total);
+// ==========================================
+// RENDER LIST TABLE
+// ==========================================
+function renderPO_ListTable() {
+  var tbody = document.getElementById('po-list-tbody');
+  var data = PO_LIST_STATE.data;
+  
+  document.getElementById('po-pg-info').textContent = 
+    'Halaman ' + PO_LIST_STATE.page + ' / ' + PO_LIST_STATE.total + ' (' + PO_LIST_STATE.totalItems + ' PO)';
+  document.getElementById('po-pg-prev').disabled = (PO_LIST_STATE.page === 1);
+  document.getElementById('po-pg-next').disabled = (PO_LIST_STATE.page === PO_LIST_STATE.total);
 
-  if(!PO_LOG_STATE.data.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#94a3b8; font-style:italic; padding:20px;">Belum ada arsip transaksi PO terpantau.</td></tr>';
+  if(!data.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#94a3b8; font-style:italic; padding:25px;">Tidak ada PO yang cocok dengan filter/pencarian.</td></tr>';
     return;
   }
-  tbody.innerHTML = PO_LOG_STATE.data.map(function(r) {
-    return `
-      <tr>
-        <td>${r.po_date}</td>
-        <td style="font-weight:700;">${r.po_no}</td>
-        <td>${r.vendor}</td>
-        <td>${r.schedule}</td>
-        <td>${r.item_code}</td>
-        <td><b>${r.po_kg.toLocaleString('id-ID')}</b> KG</td>
-        <td><span class="badge ${r.status==='OPEN'?'badge-yellow':'badge-muted'}">${r.status}</span></td>
-        <td><b>${r.owner}</b></td>
-      </tr>
-    `;
+
+  var html = '';
+  data.forEach(function(p, idx) {
+    var statusBadge = renderStatusBadge(p.overall_status);
+    var totalKgStr = p.total_kg.toLocaleString('id-ID', {maximumFractionDigits:0});
+    var totalQStr = p.total_q.toLocaleString('id-ID');
+
+    html += 
+      '<tr class="po-main-row" data-po-main="' + idx + '" onclick="togglePOExpand(' + idx + ')">' +
+        '<td style="text-align:center;"><span class="expand-icon">▶</span></td>' +
+        '<td>' + p.po_date + '</td>' +
+        '<td style="font-weight:700; color:var(--primary-blue);">' + p.po_no + '</td>' +
+        '<td>' + p.vendor + '</td>' +
+        '<td>' + p.schedule + '</td>' +
+        '<td style="text-align:center;">' + p.total_items + ' item</td>' +
+        '<td><b>' + totalQStr + ' Pcs</b><br><span class="kg-line">' + totalKgStr + ' Kg</span></td>' +
+        '<td>' + statusBadge + '</td>' +
+        '<td><span class="badge badge-muted">' + p.owner + '</span></td>' +
+      '</tr>' +
+      '<tr class="po-detail-row" data-po-detail="' + idx + '" style="display:none;">' +
+        '<td colspan="9">' + renderDetailBlock(p.items) + '</td>' +
+      '</tr>';
+  });
+  tbody.innerHTML = html;
+
+  // Auto-expand all rows saat search aktif
+  if (PO_LIST_STATE.filter.search) {
+    data.forEach(function(_, idx){ expandPO(idx); });
+  }
+}
+
+function renderStatusBadge(status) {
+  var m = {
+    'OVERDUE': ['🔴 OVERDUE', 'badge-red'],
+    'OPEN':    ['🟡 OPEN',    'badge-yellow'],
+    'CLOSED':  ['✅ CLOSED',  'badge-green']
+  };
+  var s = m[status] || ['?', 'badge-muted'];
+  return '<span class="badge ' + s[1] + '">' + s[0] + '</span>';
+}
+
+function renderDetailBlock(items) {
+  var rowsHtml = items.map(function(it) {
+    var uom = it.uom || 'Pcs';
+    var poCell = '<span class="qty-line">' + it.po_q.toLocaleString('id-ID') + ' ' + uom + '</span>' +
+                 '<br><span class="kg-line">' + it.po_kg.toLocaleString('id-ID', {maximumFractionDigits:0}) + ' Kg</span>';
+    var grCell = '<span class="qty-line" style="color:var(--success-green);">' + it.gr_q.toLocaleString('id-ID') + ' ' + uom + '</span>' +
+                 '<br><span class="kg-line">' + it.gr_kg.toLocaleString('id-ID', {maximumFractionDigits:0}) + ' Kg</span>';
+    var blCell = '<span class="qty-line" style="color:' + (it.bl_q>0?'var(--danger-red)':'var(--text-muted)') + ';">' + it.bl_q.toLocaleString('id-ID') + ' ' + uom + '</span>' +
+                 '<br><span class="kg-line">' + it.bl_kg.toLocaleString('id-ID', {maximumFractionDigits:0}) + ' Kg</span>';
+    var itmBadge = renderStatusBadge(it.status);
+    return '<tr>' +
+             '<td><code style="font-weight:700;">' + it.item_code + '</code></td>' +
+             '<td>' + it.description + '</td>' +
+             '<td style="text-align:center;">' + (it.target_loc || '-') + '</td>' +
+             '<td>' + poCell + '</td>' +
+             '<td>' + grCell + '</td>' +
+             '<td>' + blCell + '</td>' +
+             '<td style="text-align:center;">' + itmBadge + '</td>' +
+           '</tr>';
   }).join('');
+
+  return '<div class="po-detail-block">' +
+           '<table>' +
+             '<thead><tr>' +
+               '<th style="width:15%;">Item Code</th>' +
+               '<th style="width:28%;">Deskripsi</th>' +
+               '<th style="width:10%; text-align:center;">Target</th>' +
+               '<th style="width:14%;">Order (Qty / KG)</th>' +
+               '<th style="width:14%;">GR Terima (Qty / KG)</th>' +
+               '<th style="width:14%;">Sisa (Qty / KG)</th>' +
+               '<th style="width:5%; text-align:center;">Status</th>' +
+             '</tr></thead>' +
+             '<tbody>' + rowsHtml + '</tbody>' +
+           '</table>' +
+         '</div>';
 }
 
 // ==========================================
-// FITUR: AUTOCOMPLETE & TOMBOL POKAYOKE
+// EXPAND / COLLAPSE ROW
 // ==========================================
+function togglePOExpand(idx) {
+  var main = document.querySelector('[data-po-main="' + idx + '"]');
+  var detail = document.querySelector('[data-po-detail="' + idx + '"]');
+  if (!main || !detail) return;
+  if (detail.style.display === 'none' || !detail.style.display) {
+    detail.style.display = 'table-row';
+    main.classList.add('expanded');
+    main.querySelector('.expand-icon').textContent = '▼';
+  } else {
+    detail.style.display = 'none';
+    main.classList.remove('expanded');
+    main.querySelector('.expand-icon').textContent = '▶';
+  }
+}
 
+function expandPO(idx) {
+  var main = document.querySelector('[data-po-main="' + idx + '"]');
+  var detail = document.querySelector('[data-po-detail="' + idx + '"]');
+  if (!main || !detail) return;
+  detail.style.display = 'table-row';
+  main.classList.add('expanded');
+  main.querySelector('.expand-icon').textContent = '▼';
+}
+
+// ==========================================
+// FITUR: AUTOCOMPLETE & TOMBOL POKAYOKE (FORM)
+// ==========================================
 function toggleOwnerButton(btn) {
   if (btn.textContent === "-- Pilih Owner --") {
     btn.textContent = "FC";
@@ -438,9 +571,12 @@ function selectItem(clickedEl, code) {
     row.querySelector('.f-desc').value = itemData.desc;
     row.querySelector('.f-uom').value = itemData.uom;
     row.querySelector('.f-wg').value = itemData.wg;
+    calculateRowKG_PO(row.querySelector('.f-wg')); // hitung ulang bila qty sudah terisi
   }
   row.querySelector('.item-results').style.display = 'none';
-  row.querySelector('.f-qty').focus(); 
+  var qtyEl = row.querySelector('.f-qty');
+  qtyEl.focus();
+  qtyEl.select(); // langsung highlight angka 0
 }
 
 // ==========================================
@@ -469,9 +605,9 @@ function addPORow() {
     </td>
     <td><input type="text" class="f-inp f-desc" disabled></td>
     <td><input type="text" class="f-inp f-uom" disabled></td>
-    <td><input type="number" class="f-inp f-wg" style="width:70px;" step="0.001" value="0" oninput="calculateRowKG_PO(this)"></td>
-    <td><input type="number" class="f-inp f-qty" style="width:70px;" value="0" oninput="calculateRowKG_PO(this)"></td>
-    <td><input type="number" class="f-inp f-kg" style="font-weight:bold;" value="0" step="0.01"></td>
+    <td><input type="number" class="f-inp f-wg" style="width:70px;" step="0.001" value="0" disabled></td>
+    <td><input type="number" class="f-inp f-qty" style="width:70px;" value="0" oninput="calculateRowKG_PO(this)" onfocus="this.select()"></td>
+    <td><input type="number" class="f-inp f-kg" style="font-weight:bold;" value="0" step="0.01" disabled></td>
     <td><button class="btn-type f-target" onclick="toggleTargetLoc(this)">-- Pilih --</button></td>
     <td style="text-align:center;"><button class="btn btn-danger" style="height:24px; padding:0 6px;" onclick="this.closest('tr').remove()">✕</button></td>
   `;

@@ -197,7 +197,7 @@ function loadDashboard(page) {
     grOv(false); var res = JSON.parse(jsonStr);
     DASH.data = res.data; DASH.page = res.currentPage; DASH.total = res.totalPages;
     renderDashboardTable();
-  }).getDashboardPage(page);
+  }).getGRDashboardPage(page);
 }
 
 function changePage(dir) {

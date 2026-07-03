@@ -1,0 +1,884 @@
+<style>
+/* ================================================================
+   TOTAL DEMAND — Panduan Planning SPK
+   Prefix: dm- (untuk hindari clash dengan shared_css)
+   ================================================================ */
+
+.dm-wrap {
+  padding: 18px 22px; max-width: 100%; background: #f8fafc;
+  min-height: 100vh; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+/* === HEADER === */
+.dm-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #e2e8f0;
+}
+.dm-title {
+  font-size: 20px; font-weight: 600; color: #1a3a6e;
+  display: flex; align-items: center; gap: 8px;
+}
+.dm-meta { display: flex; align-items: center; gap: 14px; font-size: 12px; color: #64748b; }
+.dm-btn-refresh {
+  background: #1a3a6e; color: #fff; border: none;
+  padding: 6px 14px; border-radius: 4px; font-size: 12px; font-weight: 500;
+  cursor: pointer; display: flex; align-items: center; gap: 4px;
+}
+.dm-btn-refresh:hover { background: #145236; }
+.dm-btn-refresh:disabled { background: #94a3b8; cursor: not-allowed; }
+
+/* === SUMMARY CARDS === */
+.dm-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+.dm-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px 16px; position: relative; }
+.dm-card-head { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; color: #475569; margin-bottom: 8px; }
+.dm-card-icon { font-size: 14px; }
+.dm-card-num { font-size: 24px; font-weight: 700; color: #0f172a; line-height: 1; }
+.dm-card-lbl { font-size: 11px; color: #94a3b8; margin-left: 4px; font-weight: 400; }
+.dm-card-kg { font-size: 12px; color: #1b6b45; font-weight: 600; margin-top: 4px; }
+
+/* === TABS === */
+.dm-tabs { display: flex; gap: 2px; margin-bottom: 12px; border-bottom: 1px solid #e2e8f0; }
+.dm-tab {
+  padding: 8px 16px; font-size: 12px; font-weight: 600; color: #64748b;
+  cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  display: flex; align-items: center; gap: 6px; transition: all 0.15s;
+}
+.dm-tab.active { color: #1a3a6e; border-bottom-color: #1a3a6e; }
+.dm-tab:hover { color: #1a3a6e; background: #f1f5f9; }
+
+/* === FILTER BAR === */
+.dm-filter-bar { background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; }
+.dm-filter-row { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; }
+.dm-filter-group { display: flex; flex-direction: column; gap: 3px; min-width: 120px; }
+.dm-filter-group.dm-filter-search { flex: 1; min-width: 220px; }
+.dm-filter-group label { font-size: 10px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+.dm-filter-group select, .dm-filter-group input {
+  padding: 6px 8px; border-radius: 4px; border: 1px solid #cbd5e1;
+  font-size: 12px; background: #fff; color: #0f172a;
+}
+.dm-filter-group select:focus, .dm-filter-group input:focus { outline: none; border-color: #1a3a6e; }
+.dm-filter-toggle {
+  display: flex; align-items: center; gap: 6px; font-size: 12px;
+  color: #475569; cursor: pointer; padding: 6px 10px; border-radius: 4px;
+  background: #f1f5f9; border: 1px solid #e2e8f0; user-select: none;
+}
+.dm-filter-toggle input { margin: 0; }
+
+/* === TABLE (Detail Tab) === */
+.dm-table-wrap { background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; overflow: auto; max-height: calc(100vh - 320px); }
+.dm-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.dm-table thead th {
+  text-align: left; padding: 10px 12px; font-size: 10px; font-weight: 600;
+  color: #475569; background: #f8fafc; border-bottom: 1px solid #e2e8f0;
+  text-transform: uppercase; letter-spacing: 0.3px; position: sticky; top: 0; z-index: 5;
+  white-space: nowrap;
+}
+.dm-table td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+.dm-table tbody tr:hover { background: #f8fafc; }
+.dm-table tbody tr:last-child td { border-bottom: none; }
+
+.dm-cell-primary { font-weight: 600; color: #0f172a; }
+.dm-cell-secondary { font-size: 11px; color: #64748b; margin-top: 2px; }
+.dm-cell-mono { font-family: 'SF Mono', 'Monaco', 'Courier New', monospace; font-size: 11px; }
+.dm-cell-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dm-cell-tight { line-height: 1.4; }
+
+/* === BADGES === */
+.dm-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; letter-spacing: 0.3px; white-space: nowrap; }
+.dm-badge-so   { background: #E6F1FB; color: #0C447C; }
+.dm-badge-stp  { background: #F3E8FF; color: #5B21B6; }
+.dm-badge-fc   { background: #FEF3C7; color: #78350F; }
+.dm-badge-drc  { background: #DBEAFE; color: #1E40AF; }
+.dm-badge-open { background: #E0F2FE; color: #075985; }
+.dm-badge-over { background: #F3E8FF; color: #6B21A8; }
+
+/* === ACTION BADGES === */
+.dm-act { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 10px; font-weight: 600; white-space: nowrap; }
+.dm-act-cover        { background: #DCFCE7; color: #166534; }
+.dm-act-partial      { background: #FEF3C7; color: #92400E; }
+.dm-act-alokasi_fg   { background: #DBEAFE; color: #1E40AF; }
+.dm-act-alokasi_sheet{ background: #E0E7FF; color: #3730A3; }
+.dm-act-perlu_shr    { background: #FCE7F3; color: #9F1239; }
+.dm-act-perlu_ctl    { background: #FEE2E2; color: #991B1B; }
+.dm-act-over         { background: #F3E8FF; color: #7C3AED; }
+
+/* === SPK PILL === */
+.dm-spk-cell { min-width: 140px; }
+.dm-spk-pill {
+  display: inline-block; padding: 2px 7px; border-radius: 4px;
+  font-size: 10px; font-family: 'SF Mono', 'Monaco', monospace;
+  background: #F1F5F9; color: #334155; margin: 1px 3px 1px 0;
+  cursor: pointer; border: 1px solid #E2E8F0; transition: all 0.15s;
+}
+.dm-spk-pill:hover { background: #E0F2FE; border-color: #0284C7; color: #0369A1; }
+.dm-spk-pill.done    { background: #DCFCE7; border-color: #86EFAC; color: #166534; }
+.dm-spk-pill.running { background: #FEF3C7; border-color: #FCD34D; color: #92400E; }
+.dm-spk-pill.antrian { background: #E0E7FF; border-color: #A5B4FC; color: #3730A3; }
+.dm-spk-empty { color: #94A3B8; font-size: 11px; font-style: italic; }
+
+/* === CTL GROUPS === */
+.dm-groups-wrap { max-height: calc(100vh - 320px); overflow-y: auto; padding-right: 4px; }
+.dm-group { background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 10px; overflow: hidden; }
+.dm-group-head {
+  padding: 12px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0;
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; user-select: none;
+}
+.dm-group-head:hover { background: #f1f5f9; }
+.dm-group-title { display: flex; align-items: center; gap: 12px; }
+.dm-group-material { font-size: 14px; font-weight: 700; color: #0f172a; font-family: 'SF Mono', monospace; }
+.dm-group-t { font-size: 12px; color: #64748b; }
+.dm-group-stats { display: flex; gap: 14px; font-size: 11px; color: #475569; align-items: center; }
+.dm-group-stat-num { font-weight: 700; color: #0f172a; }
+.dm-group-kg { font-size: 14px; font-weight: 700; color: #1b6b45; }
+.dm-group-body { padding: 0; }
+.dm-group-body table { width: 100%; border-collapse: collapse; }
+.dm-group-body th {
+  text-align: left; padding: 8px 16px; font-size: 10px; font-weight: 600;
+  color: #64748b; background: #fff; border-bottom: 1px solid #f1f5f9;
+  text-transform: uppercase; letter-spacing: 0.3px;
+}
+.dm-group-body td { padding: 8px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; vertical-align: top; }
+.dm-group-body tr:last-child td { border-bottom: none; }
+.dm-group-body tr:hover { background: #fafbfc; }
+.dm-group-chevron { transition: transform 0.15s; }
+.dm-group.collapsed .dm-group-chevron { transform: rotate(-90deg); }
+.dm-group.collapsed .dm-group-body { display: none; }
+
+.dm-empty { padding: 60px 20px; text-align: center; color: #94a3b8; font-size: 13px; }
+.dm-empty-icon { font-size: 32px; margin-bottom: 8px; }
+.dm-loading { padding: 40px; text-align: center; color: #94a3b8; font-size: 13px; }
+
+/* === MODAL === */
+.dm-modal-overlay {
+  display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 23, 42, 0.6); z-index: 10000;
+  justify-content: center; align-items: flex-start; padding: 60px 20px;
+}
+.dm-modal-overlay.is-open { display: flex; }
+.dm-modal {
+  background: #fff; border-radius: 8px; width: 100%; max-width: 1000px;
+  max-height: 85vh; overflow: hidden; display: flex; flex-direction: column;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.2);
+}
+.dm-modal-header {
+  padding: 14px 18px; border-bottom: 1px solid #e2e8f0;
+  display: flex; justify-content: space-between; align-items: center;
+  background: #f8fafc;
+}
+.dm-modal-title { display: flex; flex-direction: column; gap: 2px; }
+.dm-modal-title-main { font-size: 15px; font-weight: 600; color: #0f172a; }
+.dm-modal-title-sub { font-size: 11px; color: #64748b; }
+.dm-modal-close {
+  width: 28px; height: 28px; border-radius: 4px; background: transparent;
+  border: none; cursor: pointer; color: #64748b; font-size: 18px;
+}
+.dm-modal-close:hover { background: #e2e8f0; color: #0f172a; }
+.dm-modal-body { padding: 16px 18px; overflow-y: auto; flex: 1; }
+.dm-modal-info { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; padding: 10px 12px; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0; }
+.dm-modal-info-label { font-size: 10px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 2px; }
+.dm-modal-info-value { font-size: 12px; color: #0f172a; font-weight: 500; }
+.dm-modal-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.dm-modal-table th { text-align: left; padding: 8px 10px; font-size: 10px; font-weight: 600; color: #475569; background: #f8fafc; border-bottom: 1px solid #e2e8f0; text-transform: uppercase; letter-spacing: 0.3px; }
+.dm-modal-table td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; }
+.dm-modal-table tr:last-child td { border-bottom: none; }
+</style>
+
+
+<div class="dm-wrap">
+
+  <!-- HEADER -->
+  <div class="dm-header">
+    <div class="dm-title">
+      📊 <span>Total Demand</span>
+      <span style="font-size:12px;color:#94a3b8;font-weight:400;">Panduan Planning SPK</span>
+    </div>
+    <div class="dm-meta">
+      <span id="dm-meta-info">Belum dimuat</span>
+      <button id="dm-btn-refresh" class="dm-btn-refresh" onclick="dm_load()">🔄 Refresh</button>
+    </div>
+  </div>
+
+  <!-- SUMMARY CARDS -->
+  <div class="dm-strip" id="dm-strip">
+    <div class="dm-card">
+      <div class="dm-card-head"><span class="dm-card-icon">📋</span> OPEN DEMAND (SO+STP)</div>
+      <div><span class="dm-card-num" id="dm-sum-open-count">-</span><span class="dm-card-lbl">baris</span></div>
+      <div class="dm-card-kg" id="dm-sum-open-kg">-</div>
+    </div>
+    <div class="dm-card">
+      <div class="dm-card-head"><span class="dm-card-icon">⚙️</span> PERLU BUAT SPK</div>
+      <div><span class="dm-card-num" id="dm-sum-need-count">-</span><span class="dm-card-lbl">baris</span></div>
+      <div class="dm-card-kg" id="dm-sum-need-kg">-</div>
+    </div>
+    <div class="dm-card">
+      <div class="dm-card-head"><span class="dm-card-icon">🎯</span> OPPORTUNITY GROUP CTL</div>
+      <div><span class="dm-card-num" id="dm-sum-ctl-count">-</span><span class="dm-card-lbl">grup</span></div>
+      <div class="dm-card-kg" id="dm-sum-ctl-kg">-</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="dm-tabs">
+    <div class="dm-tab active" id="dm-tab-detail-btn" onclick="dm_switchTab('detail')">
+      <span>📋</span> Detail Demand
+    </div>
+    <div class="dm-tab" id="dm-tab-ctl-btn" onclick="dm_switchTab('ctl')">
+      <span>🎯</span> Grouping CTL (Equivalent+T)
+    </div>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div class="dm-filter-bar">
+    <div class="dm-filter-row">
+      <div class="dm-filter-group dm-filter-search">
+        <label>Search</label>
+        <input type="text" id="dm-f-search" placeholder="Ref_No / Item / Description / Cust ..." oninput="dm_onSearchInput()">
+      </div>
+      <div class="dm-filter-group">
+        <label>Tipe</label>
+        <select id="dm-f-tipe" onchange="dm_applyFilter()">
+          <option value="all">Semua</option>
+          <option value="SO">SO saja</option>
+          <option value="STP">STP saja</option>
+        </select>
+      </div>
+      <div class="dm-filter-group">
+        <label>Customer</label>
+        <select id="dm-f-cust" onchange="dm_applyFilter()">
+          <option value="all">Semua</option>
+        </select>
+      </div>
+      <div class="dm-filter-group">
+        <label>Owner Used</label>
+        <select id="dm-f-owner" onchange="dm_applyFilter()">
+          <option value="all">Semua</option>
+          <option value="FC">FC</option>
+          <option value="DRC">DRC</option>
+        </select>
+      </div>
+      <div class="dm-filter-group">
+        <label>Action</label>
+        <select id="dm-f-action" onchange="dm_applyFilter()">
+          <option value="all">Semua</option>
+          <option value="PERLU_CTL">🔄 Perlu CTL</option>
+          <option value="PERLU_SHR">✂️ Perlu SHR</option>
+          <option value="ALOKASI_FG">📦 Alokasi FG</option>
+          <option value="ALOKASI_SHEET">📦 Alokasi Sheet</option>
+          <option value="PARTIAL">⚠️ Partial</option>
+          <option value="COVER">✅ Cover</option>
+          <option value="OVER">🔺 Over</option>
+        </select>
+      </div>
+      <label class="dm-filter-toggle">
+        <input type="checkbox" id="dm-f-only-net" checked onchange="dm_applyFilter()">
+        <span>Hanya Net_Req &gt; 0</span>
+      </label>
+    </div>
+  </div>
+
+  <!-- TAB CONTENT: DETAIL -->
+  <div id="dm-tab-detail">
+    <div class="dm-table-wrap">
+      <table class="dm-table">
+        <thead>
+          <tr>
+            <th>Tipe</th>
+            <th>Ref_No</th>
+            <th>Cust</th>
+            <th>Item + Description</th>
+            <th>Spec / T / P×L</th>
+            <th>Tgl Needed</th>
+            <th class="dm-cell-num">Qty Demand</th>
+            <th>SPK Ref</th>
+            <th class="dm-cell-num">Net_Req</th>
+            <th>Stok Info</th>
+            <th>Action</th>
+            <th>Owner</th>
+          </tr>
+        </thead>
+        <tbody id="dm-tbody">
+          <tr><td colspan="12" class="dm-loading">⏳ Memuat data demand...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB CONTENT: CTL GROUPING -->
+  <div id="dm-tab-ctl" style="display:none;">
+    <div class="dm-groups-wrap" id="dm-groups-wrap">
+      <div class="dm-loading">⏳ Memuat grouping...</div>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- MODAL SPK DETAIL -->
+<div id="dm-modal-overlay" class="dm-modal-overlay" onclick="dm_modalClickOutside(event)">
+  <div class="dm-modal" onclick="event.stopPropagation()">
+    <div class="dm-modal-header">
+      <div class="dm-modal-title">
+        <div class="dm-modal-title-main" id="dm-modal-title-main">SPK Detail</div>
+        <div class="dm-modal-title-sub" id="dm-modal-title-sub"></div>
+      </div>
+      <button class="dm-modal-close" onclick="dm_closeModal()">✕</button>
+    </div>
+    <div class="dm-modal-body" id="dm-modal-body">
+      <!-- diisi via JS -->
+    </div>
+  </div>
+</div>
+
+
+<script>
+(function() {
+  'use strict';
+
+  // ================================================================
+  // STATE
+  // ================================================================
+  var DM_DATA = null;
+  var DM_LOADING = false;
+  var DM_TAB = 'detail'; // 'detail' | 'ctl'
+  var DM_FILTER = {
+    search:  '',
+    tipe:    'all',
+    cust:    'all',
+    owner:   'all',
+    action:  'all',
+    onlyNet: true
+  };
+  var DM_SEARCH_TIMER = null;
+
+  // ================================================================
+  // EXPOSE — biar onclick handler bisa akses
+  // ================================================================
+  window.dm_load          = dm_load;
+  window.dm_switchTab     = dm_switchTab;
+  window.dm_applyFilter   = dm_applyFilter;
+  window.dm_onSearchInput = dm_onSearchInput;
+  window.dm_openSpkModal  = dm_openSpkModal;
+  window.dm_closeModal    = dm_closeModal;
+  window.dm_modalClickOutside = dm_modalClickOutside;
+  window.dm_toggleGroup   = dm_toggleGroup;
+
+  // ================================================================
+  // LOAD DATA
+  // ================================================================
+  function dm_load() {
+    if (DM_LOADING) return;
+    DM_LOADING = true;
+
+    var btn = document.getElementById('dm-btn-refresh');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Loading...'; }
+    document.getElementById('dm-meta-info').textContent = 'Memuat data...';
+    document.getElementById('dm-tbody').innerHTML =
+      '<tr><td colspan="12" class="dm-loading">⏳ Memuat data demand...</td></tr>';
+    document.getElementById('dm-groups-wrap').innerHTML =
+      '<div class="dm-loading">⏳ Memuat grouping...</div>';
+
+    google.script.run
+      .withSuccessHandler(dm_onLoad)
+      .withFailureHandler(dm_onError)
+      .getDemandData();
+  }
+
+  function dm_onLoad(res) {
+    DM_LOADING = false;
+    var btn = document.getElementById('dm-btn-refresh');
+    if (btn) { btn.disabled = false; btn.innerHTML = '🔄 Refresh'; }
+
+    if (!res || !res.demands) {
+      dm_showError('Response kosong / invalid');
+      return;
+    }
+
+    DM_DATA = res;
+    dm_renderSummary();
+    dm_buildCustOptions();
+    dm_applyFilter();
+
+    var ts = res.generated_at ? new Date(res.generated_at) : new Date();
+    document.getElementById('dm-meta-info').textContent =
+      'Update: ' + dm_formatDateTime(ts) +
+      ' · Total ' + res.demands.length + ' baris demand';
+  }
+
+  function dm_onError(e) {
+    DM_LOADING = false;
+    var btn = document.getElementById('dm-btn-refresh');
+    if (btn) { btn.disabled = false; btn.innerHTML = '🔄 Refresh'; }
+    dm_showError(e && e.message ? e.message : String(e));
+  }
+
+  function dm_showError(msg) {
+    document.getElementById('dm-meta-info').textContent = '❌ Error';
+    document.getElementById('dm-tbody').innerHTML =
+      '<tr><td colspan="12" class="dm-loading" style="color:#c62828;">❌ ' + dm_esc(msg) + '</td></tr>';
+    document.getElementById('dm-groups-wrap').innerHTML =
+      '<div class="dm-loading" style="color:#c62828;">❌ ' + dm_esc(msg) + '</div>';
+  }
+
+  // ================================================================
+  // RENDER — SUMMARY CARDS
+  // ================================================================
+  function dm_renderSummary() {
+    var s = DM_DATA.summary || {};
+    document.getElementById('dm-sum-open-count').textContent = dm_fmtNum(s.total_open_count || 0);
+    document.getElementById('dm-sum-open-kg').textContent    = dm_fmtNum(s.total_open_kg || 0) + ' Kg';
+    document.getElementById('dm-sum-need-count').textContent = dm_fmtNum(s.need_spk_count || 0);
+    document.getElementById('dm-sum-need-kg').textContent    = dm_fmtNum(s.need_spk_kg || 0) + ' Kg';
+    document.getElementById('dm-sum-ctl-count').textContent  = dm_fmtNum(s.ctl_group_count || 0);
+    document.getElementById('dm-sum-ctl-kg').textContent     = dm_fmtNum(s.ctl_group_kg || 0) + ' Kg';
+  }
+
+  // ================================================================
+  // BUILD DYNAMIC FILTER OPTIONS
+  // ================================================================
+  function dm_buildCustOptions() {
+    var sel = document.getElementById('dm-f-cust');
+    var current = sel.value || 'all';
+    // Ambil unique cust dari demands
+    var seen = {};
+    var custList = [];
+    DM_DATA.demands.forEach(function(d) {
+      if (d.cust && !seen[d.cust]) { seen[d.cust] = true; custList.push(d.cust); }
+    });
+    custList.sort();
+
+    sel.innerHTML = '<option value="all">Semua</option>';
+    custList.forEach(function(c) {
+      var opt = document.createElement('option');
+      opt.value = c;
+      opt.textContent = c;
+      sel.appendChild(opt);
+    });
+    // Restore selection kalau masih exist
+    if (current && (current === 'all' || seen[current])) sel.value = current;
+  }
+
+  // ================================================================
+  // TAB SWITCH
+  // ================================================================
+  function dm_switchTab(tab) {
+    DM_TAB = tab;
+    document.getElementById('dm-tab-detail-btn').classList.toggle('active', tab === 'detail');
+    document.getElementById('dm-tab-ctl-btn').classList.toggle('active', tab === 'ctl');
+    document.getElementById('dm-tab-detail').style.display = (tab === 'detail') ? '' : 'none';
+    document.getElementById('dm-tab-ctl').style.display    = (tab === 'ctl')    ? '' : 'none';
+  }
+
+  // ================================================================
+  // FILTER
+  // ================================================================
+  function dm_onSearchInput() {
+    if (DM_SEARCH_TIMER) clearTimeout(DM_SEARCH_TIMER);
+    DM_SEARCH_TIMER = setTimeout(dm_applyFilter, 220);
+  }
+
+  function dm_applyFilter() {
+    if (!DM_DATA) return;
+    DM_FILTER.search  = (document.getElementById('dm-f-search').value || '').trim().toLowerCase();
+    DM_FILTER.tipe    = document.getElementById('dm-f-tipe').value;
+    DM_FILTER.cust    = document.getElementById('dm-f-cust').value;
+    DM_FILTER.owner   = document.getElementById('dm-f-owner').value;
+    DM_FILTER.action  = document.getElementById('dm-f-action').value;
+    DM_FILTER.onlyNet = document.getElementById('dm-f-only-net').checked;
+
+    var filtered = DM_DATA.demands.filter(dm_matchRow);
+    dm_renderTable(filtered);
+    dm_renderGroups(filtered);
+  }
+
+  function dm_matchRow(d) {
+    if (DM_FILTER.onlyNet && d.net_req <= 0) return false;
+    if (DM_FILTER.tipe   !== 'all' && d.tipe       !== DM_FILTER.tipe)   return false;
+    if (DM_FILTER.cust   !== 'all' && d.cust       !== DM_FILTER.cust)   return false;
+    if (DM_FILTER.owner  !== 'all' && d.owner_used !== DM_FILTER.owner)  return false;
+    if (DM_FILTER.action !== 'all' && d.action     !== DM_FILTER.action) return false;
+
+    if (DM_FILTER.search) {
+      var s = DM_FILTER.search;
+      var hay = (
+        (d.ref_no || '') + ' ' +
+        (d.item_code || '') + ' ' +
+        (d.description || '') + ' ' +
+        (d.cust || '') + ' ' +
+        (d.spec || '') + ' ' +
+        (d.equivalent || '')
+      ).toLowerCase();
+      if (hay.indexOf(s) === -1) return false;
+    }
+    return true;
+  }
+
+  // ================================================================
+  // RENDER — TABLE (Detail Tab)
+  // ================================================================
+  function dm_renderTable(rows) {
+    var tbody = document.getElementById('dm-tbody');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="12" class="dm-empty">' +
+        '<div class="dm-empty-icon">🔍</div>' +
+        '<div>Tidak ada demand yang cocok dengan filter</div></td></tr>';
+      return;
+    }
+
+    var html = '';
+    rows.forEach(function(d) {
+      html += dm_buildRow(d);
+    });
+    tbody.innerHTML = html;
+  }
+
+  function dm_buildRow(d) {
+    var tipeBadge = (d.tipe === 'STP')
+      ? '<span class="dm-badge dm-badge-stp">STP</span>'
+      : '<span class="dm-badge dm-badge-so">SO</span>';
+
+    var ownerBadge = (d.owner_used === 'DRC')
+      ? '<span class="dm-badge dm-badge-drc">DRC</span>'
+      : '<span class="dm-badge dm-badge-fc">FC</span>';
+
+    var statusBadge = (d.status === 'OVER')
+      ? ' <span class="dm-badge dm-badge-over" style="margin-left:4px;">OVER</span>'
+      : '';
+
+    var itemCell =
+      '<div class="dm-cell-primary dm-cell-mono">' + dm_esc(d.item_code) + '</div>' +
+      '<div class="dm-cell-secondary">' + dm_esc(d.description || '-') + '</div>';
+
+    var dim = [];
+    if (d.p) dim.push(dm_fmtNum(d.p));
+    if (d.l) dim.push(dm_fmtNum(d.l));
+    var pxl = dim.length ? dim.join(' × ') : '-';
+    var specCell =
+      '<div class="dm-cell-mono">' + dm_esc(d.spec || '-') + '</div>' +
+      '<div class="dm-cell-secondary">T ' + dm_fmtNum(d.t) + ' · ' + pxl + '</div>';
+
+    var qtyCell =
+      '<div class="dm-cell-primary">' + dm_fmtNum(d.qty_demand) + ' ' + dm_esc(d.uom || '') + '</div>' +
+      '<div class="dm-cell-secondary">' + dm_fmtNum(Math.round(d.kg_demand)) + ' Kg</div>';
+
+    var spkCell = dm_buildSpkPills(d);
+
+    var netColor = (d.net_req > 0) ? '#991B1B' : '#166534';
+    var netCell =
+      '<div class="dm-cell-primary" style="color:' + netColor + ';">' + dm_fmtNum(d.net_req) + '</div>';
+
+    var stokBits = [];
+    if (d.stok_fg_qty > 0)      stokBits.push('FG: ' + dm_fmtNum(d.stok_fg_qty));
+    if (d.stok_sheet_exact > 0) stokBits.push('Sht exact: ' + dm_fmtNum(d.stok_sheet_exact));
+    if (d.stok_sheet_std > 0 && d.stok_sheet_std !== d.stok_sheet_exact)
+      stokBits.push('Sht std: ' + dm_fmtNum(d.stok_sheet_std));
+    var stokCell = stokBits.length
+      ? stokBits.map(function(b){ return '<div class="dm-cell-secondary">' + dm_esc(b) + '</div>'; }).join('')
+      : '<span class="dm-spk-empty">-</span>';
+
+    var actLabel = dm_actionLabel(d.action);
+    var actCell = '<span class="dm-act dm-act-' + d.action.toLowerCase() + '">' + actLabel + '</span>';
+
+    return '<tr>' +
+      '<td>' + tipeBadge + statusBadge + '</td>' +
+      '<td class="dm-cell-mono dm-cell-primary">' + dm_esc(d.ref_no) + '</td>' +
+      '<td>' + dm_esc(d.cust || '-') + '</td>' +
+      '<td class="dm-cell-tight">' + itemCell + '</td>' +
+      '<td class="dm-cell-tight">' + specCell + '</td>' +
+      '<td>' + dm_esc(d.tgl_needed || '-') + '</td>' +
+      '<td class="dm-cell-num">' + qtyCell + '</td>' +
+      '<td class="dm-spk-cell">' + spkCell + '</td>' +
+      '<td class="dm-cell-num">' + netCell + '</td>' +
+      '<td>' + stokCell + '</td>' +
+      '<td>' + actCell + '</td>' +
+      '<td>' + ownerBadge + '</td>' +
+      '</tr>';
+  }
+
+  function dm_buildSpkPills(d) {
+    var list = d.spk_list || [];
+    if (!list.length) return '<span class="dm-spk-empty">Belum ada SPK</span>';
+
+    var pills = list.map(function(spk, idx) {
+      var st = String(spk.status || '').toLowerCase();
+      var cls = 'dm-spk-pill';
+      if (st === 'done')     cls += ' done';
+      else if (st === 'running') cls += ' running';
+      else if (st === 'antrian') cls += ' antrian';
+
+      // dm-spk-pill data-idx composite: ref_no + item_code + idx untuk cari data di state
+      return '<span class="' + cls + '" ' +
+             'onclick="dm_openSpkModal(\'' + dm_esc(d.ref_no) + '\',\'' + dm_esc(d.item_code) + '\')" ' +
+             'title="' + dm_esc(spk.spk_type + ' · ' + spk.status) + '">' +
+             dm_esc(spk.spk_no) + '</span>';
+    }).join('');
+    return pills;
+  }
+
+  // ================================================================
+  // RENDER — CTL GROUPS (Tab CTL)
+  // ================================================================
+  function dm_renderGroups(filteredDemands) {
+    var wrap = document.getElementById('dm-groups-wrap');
+    var raw = (DM_DATA && DM_DATA.ctl_groups) ? DM_DATA.ctl_groups : [];
+
+    // Set ref_no||item_code dari demands yang lolos filter → filter grup nya juga
+    var allowed = {};
+    filteredDemands.forEach(function(d) {
+      allowed[d.ref_no + '||' + d.item_code] = d;
+    });
+
+    // Rebuild group dari filtered demands (biar total kg juga refleksi filter)
+    var groups = {};
+    filteredDemands.forEach(function(d) {
+      if (d.net_req <= 0) return;
+      if (d.action !== 'PERLU_CTL' && d.action !== 'PERLU_SHR' && d.action !== 'PARTIAL') return;
+      if (!d.material_key) return;
+
+      if (!groups[d.material_key]) {
+        groups[d.material_key] = {
+          material_key: d.material_key,
+          equivalent:   d.equivalent,
+          t:            d.t,
+          total_kg:     0,
+          total_qty:    0,
+          count_so:     0,
+          count_stp:    0,
+          demands:      []
+        };
+      }
+      var g = groups[d.material_key];
+      var kgPortion = 0;
+      if (d.qty_demand > 0) kgPortion = (d.kg_demand || 0) * (d.net_req / d.qty_demand);
+      g.total_kg  += kgPortion;
+      g.total_qty += d.net_req;
+      if (d.tipe === 'SO')  g.count_so++;
+      if (d.tipe === 'STP') g.count_stp++;
+      g.demands.push(d);
+    });
+
+    var arr = Object.keys(groups).map(function(k){ return groups[k]; });
+    arr.sort(function(a, b){ return b.total_kg - a.total_kg; });
+
+    if (!arr.length) {
+      wrap.innerHTML = '<div class="dm-empty">' +
+        '<div class="dm-empty-icon">🎯</div>' +
+        '<div>Tidak ada grouping opportunity yang cocok dengan filter</div>' +
+        '<div style="font-size:11px;margin-top:4px;color:#94a3b8;">(Hanya row dengan Action PERLU_CTL / PERLU_SHR / PARTIAL yang di-group)</div>' +
+        '</div>';
+      return;
+    }
+
+    var html = '';
+    arr.forEach(function(g, gi) {
+      html += dm_buildGroupCard(g, gi);
+    });
+    wrap.innerHTML = html;
+  }
+
+  function dm_buildGroupCard(g, gi) {
+    var subRows = g.demands.map(function(d) {
+      var tipeBadge = (d.tipe === 'STP')
+        ? '<span class="dm-badge dm-badge-stp">STP</span>'
+        : '<span class="dm-badge dm-badge-so">SO</span>';
+      var ownerBadge = (d.owner_used === 'DRC')
+        ? '<span class="dm-badge dm-badge-drc">DRC</span>'
+        : '<span class="dm-badge dm-badge-fc">FC</span>';
+
+      var dim = [];
+      if (d.p) dim.push(dm_fmtNum(d.p));
+      if (d.l) dim.push(dm_fmtNum(d.l));
+      var pxl = dim.length ? dim.join(' × ') : '-';
+
+      var actLabel = dm_actionLabel(d.action);
+      var actCell = '<span class="dm-act dm-act-' + d.action.toLowerCase() + '">' + actLabel + '</span>';
+
+      return '<tr>' +
+        '<td>' + tipeBadge + '</td>' +
+        '<td class="dm-cell-mono">' + dm_esc(d.ref_no) + '</td>' +
+        '<td>' + dm_esc(d.cust || '-') + '</td>' +
+        '<td class="dm-cell-mono">' + dm_esc(d.item_code) + '</td>' +
+        '<td>' + dm_esc(d.description || '-') + '</td>' +
+        '<td>' + pxl + '</td>' +
+        '<td>' + dm_esc(d.tgl_needed || '-') + '</td>' +
+        '<td class="dm-cell-num">' + dm_fmtNum(d.net_req) + ' ' + dm_esc(d.uom || '') + '</td>' +
+        '<td class="dm-cell-num">' + dm_fmtNum(Math.round((d.kg_demand || 0) * (d.qty_demand > 0 ? d.net_req / d.qty_demand : 0))) + ' Kg</td>' +
+        '<td>' + actCell + '</td>' +
+        '<td>' + ownerBadge + '</td>' +
+        '</tr>';
+    }).join('');
+
+    var totalKg = Math.round(g.total_kg);
+    var subtitle = '';
+    if (g.count_so && g.count_stp) subtitle = g.count_so + ' SO + ' + g.count_stp + ' STP';
+    else if (g.count_so) subtitle = g.count_so + ' SO';
+    else if (g.count_stp) subtitle = g.count_stp + ' STP';
+
+    return '<div class="dm-group" id="dm-group-' + gi + '">' +
+      '<div class="dm-group-head" onclick="dm_toggleGroup(' + gi + ')">' +
+        '<div class="dm-group-title">' +
+          '<span class="dm-group-chevron">▼</span> ' +
+          '<span class="dm-group-material">' + dm_esc(g.equivalent) + '</span>' +
+          '<span class="dm-group-t">T = ' + dm_fmtNum(g.t) + ' mm</span>' +
+        '</div>' +
+        '<div class="dm-group-stats">' +
+          '<span>' + subtitle + '</span>' +
+          '<span class="dm-group-kg">' + dm_fmtNum(totalKg) + ' Kg</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="dm-group-body">' +
+        '<table>' +
+          '<thead><tr>' +
+            '<th>Tipe</th><th>Ref_No</th><th>Cust</th><th>Item</th>' +
+            '<th>Description</th><th>P×L</th><th>Tgl Needed</th>' +
+            '<th class="dm-cell-num">Net_Req</th><th class="dm-cell-num">KG</th>' +
+            '<th>Action</th><th>Owner</th>' +
+          '</tr></thead>' +
+          '<tbody>' + subRows + '</tbody>' +
+        '</table>' +
+      '</div>' +
+      '</div>';
+  }
+
+  function dm_toggleGroup(gi) {
+    var el = document.getElementById('dm-group-' + gi);
+    if (el) el.classList.toggle('collapsed');
+  }
+
+  // ================================================================
+  // MODAL — SPK DETAIL
+  // ================================================================
+  function dm_openSpkModal(refNo, itemCode) {
+    if (!DM_DATA) return;
+    var d = DM_DATA.demands.find(function(x){
+      return x.ref_no === refNo && x.item_code === itemCode;
+    });
+    if (!d) return;
+
+    document.getElementById('dm-modal-title-main').textContent =
+      'SPK List — ' + d.ref_no + ' · ' + d.item_code;
+    document.getElementById('dm-modal-title-sub').textContent =
+      (d.description || '') + '  ·  ' + (d.spec || '') + ' T' + dm_fmtNum(d.t);
+
+    var infoHtml =
+      '<div class="dm-modal-info">' +
+        dm_infoBlock('Customer',   d.cust) +
+        dm_infoBlock('Tgl Needed', d.tgl_needed) +
+        dm_infoBlock('Qty Demand', dm_fmtNum(d.qty_demand) + ' ' + (d.uom || '') + ' / ' + dm_fmtNum(Math.round(d.kg_demand)) + ' Kg') +
+        dm_infoBlock('Net_Req',    dm_fmtNum(d.net_req)) +
+      '</div>';
+
+    var list = d.spk_list || [];
+    var tableHtml;
+    if (!list.length) {
+      tableHtml = '<div class="dm-empty"><div class="dm-empty-icon">📭</div><div>Belum ada SPK untuk demand ini</div></div>';
+    } else {
+      var rows = list.map(function(s) {
+        var st = String(s.status || '').toLowerCase();
+        var stCls = 'dm-spk-pill';
+        if (st === 'done')     stCls += ' done';
+        else if (st === 'running') stCls += ' running';
+        else if (st === 'antrian') stCls += ' antrian';
+
+        return '<tr>' +
+          '<td><span class="' + stCls + '">' + dm_esc(s.spk_no) + '</span></td>' +
+          '<td>' + dm_esc(s.spk_type) + '</td>' +
+          '<td>' + dm_esc(s.status) + '</td>' +
+          '<td>' + dm_esc(s.mc_no || '-') + '</td>' +
+          '<td class="dm-cell-num">' + dm_fmtNum(s.qty_target) + '</td>' +
+          '<td class="dm-cell-num">' + dm_fmtNum(Math.round(s.kg_target)) + '</td>' +
+          '<td class="dm-cell-num">' + dm_fmtNum(s.qty_actual) + '</td>' +
+          '<td class="dm-cell-num">' + dm_fmtNum(Math.round(s.kg_actual)) + '</td>' +
+          '<td>' + dm_esc(s.priority || '-') + '</td>' +
+          '<td>' + dm_esc(s.estimasi_mulai || '-') + '</td>' +
+          '<td>' + dm_esc(s.estimasi_selesai || '-') + '</td>' +
+          '<td>' + dm_esc(s.owner_used || s.owner || '-') + '</td>' +
+          '</tr>';
+      }).join('');
+
+      tableHtml =
+        '<table class="dm-modal-table">' +
+          '<thead><tr>' +
+            '<th>SPK No</th><th>Type</th><th>Status</th><th>MC</th>' +
+            '<th class="dm-cell-num">Qty Target</th><th class="dm-cell-num">KG Target</th>' +
+            '<th class="dm-cell-num">Qty Actual</th><th class="dm-cell-num">KG Actual</th>' +
+            '<th>Prio</th><th>Est. Mulai</th><th>Est. Selesai</th><th>Owner Used</th>' +
+          '</tr></thead>' +
+          '<tbody>' + rows + '</tbody>' +
+        '</table>';
+    }
+
+    document.getElementById('dm-modal-body').innerHTML = infoHtml + tableHtml;
+    document.getElementById('dm-modal-overlay').classList.add('is-open');
+  }
+
+  function dm_infoBlock(label, value) {
+    return '<div>' +
+      '<div class="dm-modal-info-label">' + dm_esc(label) + '</div>' +
+      '<div class="dm-modal-info-value">' + dm_esc(value || '-') + '</div>' +
+    '</div>';
+  }
+
+  function dm_closeModal() {
+    document.getElementById('dm-modal-overlay').classList.remove('is-open');
+  }
+
+  function dm_modalClickOutside(e) {
+    if (e.target && e.target.id === 'dm-modal-overlay') dm_closeModal();
+  }
+
+  // ================================================================
+  // HELPERS
+  // ================================================================
+  function dm_actionLabel(a) {
+    switch (a) {
+      case 'COVER':          return '✅ Cover';
+      case 'PARTIAL':        return '⚠️ Partial';
+      case 'ALOKASI_FG':     return '📦 Alokasi FG';
+      case 'ALOKASI_SHEET':  return '📦 Alokasi Sheet';
+      case 'PERLU_SHR':      return '✂️ Perlu SHR';
+      case 'PERLU_CTL':      return '🔄 Perlu CTL';
+      case 'OVER':           return '🔺 Over';
+      default:               return a;
+    }
+  }
+
+  function dm_esc(s) {
+    if (s === null || s === undefined) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function dm_fmtNum(n) {
+    if (n === null || n === undefined || n === '') return '0';
+    var num = Number(n);
+    if (isNaN(num)) return String(n);
+    if (num === Math.floor(num)) return num.toLocaleString('id-ID');
+    return num.toLocaleString('id-ID', { maximumFractionDigits: 2 });
+  }
+
+  function dm_formatDateTime(d) {
+    if (!(d instanceof Date) || isNaN(d.getTime())) return '-';
+    var pad = function(n){ return n < 10 ? '0' + n : String(n); };
+    return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear() +
+           ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  // ================================================================
+  // KEYBOARD — ESC untuk close modal
+  // ================================================================
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') dm_closeModal();
+  });
+
+  // ================================================================
+  // INIT — Immediate (bukan DOMContentLoaded, karena page ini di-inject)
+  // ================================================================
+  dm_load();
+
+})();
+</script>
