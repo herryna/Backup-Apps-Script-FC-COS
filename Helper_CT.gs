@@ -344,3 +344,193 @@ function kalkulasiEstimasiWaktu() {
   }
   // ── TIDAK ADA finally lock.releaseLock() ──
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// SECTION: SLT (Slitting) Support — v1
+// Ditambahkan untuk modul SPK SLT.
+// Tidak mengganggu fungsi CTL/SHR yang sudah ada.
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Reader generic untuk config mesin dari sheet M_MC.
+ * Dipakai oleh SLT dulu. Nanti kalau CTL/SHR mau migrate ke M_MC,
+ * function ini bisa langsung dipakai tanpa perubahan.
+ *
+ * @param {string} mcNo - Nomor mesin (contoh: "SLT-01", "CTL-01")
+ * @return {object} Config mesin. Field found=false kalau row tidak ketemu.
+ *
+ * Contoh hasil untuk SLT-01:
+ * {
+ *   mcNo: "SLT-01", mcName: "Slitting 1", type: "SLT",
+ *   maxLebar: 1300, maxOutCount: 100,
+ *   setupFixed: 60, setupVariable: 3, speed: 25, extraPerCut: 15,
+ *   speedUnit: "M", found: true
+ * }
+ */
+function getMachineConfig(mcNo) {
+  var hasil = {
+    mcNo         : mcNo,
+    mcName       : '',
+    type         : '',
+    maxLebar     : 0,
+    maxOutCount  : 0,
+    setupFixed   : 0,
+    setupVariable: 0,
+    speed        : 0,
+    extraPerCut  : 0,
+    speedUnit    : '',
+    found        : false
+  };
+
+  try {
+    if (!mcNo) return hasil;
+    var target = String(mcNo).trim();
+    if (!target) return hasil;
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = ss.getSheetByName('M_MC');
+    if (!sh) {
+      Logger.log('getMachineConfig: sheet M_MC tidak ditemukan');
+      return hasil;
+    }
+
+    var data = sh.getDataRange().getValues();
+    if (data.length < 2) return hasil;
+
+    var hdr = data[0].map(function(h) { return String(h).trim(); });
+    var iMc        = hdr.indexOf('MC_No');
+    var iName      = hdr.indexOf('MC_Name');
+    var iType      = hdr.indexOf('Type');
+    var iMaxL      = hdr.indexOf('Max_Lebar');
+    var iMaxOut    = hdr.indexOf('Max_OUT_Count');
+    var iSetupFix  = hdr.indexOf('Setup_Fixed_Menit');
+    var iSetupVar  = hdr.indexOf('Setup_Variable_Menit');
+    var iSpeed     = hdr.indexOf('Speed_MPM');
+    var iExtra     = hdr.indexOf('Extra_Per_Cut_Menit');
+    var iSpeedUnit = hdr.indexOf('Speed_Unit');
+
+    if (iMc === -1) {
+      Logger.log('getMachineConfig: kolom MC_No tidak ditemukan di M_MC');
+      return hasil;
+    }
+
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][iMc] || '').trim() === target) {
+        hasil.mcNo          = target;
+        hasil.mcName        = iName      !== -1 ? String(data[i][iName]  || '')  : '';
+        hasil.type          = iType      !== -1 ? String(data[i][iType]  || '')  : '';
+        hasil.maxLebar      = iMaxL      !== -1 ? (Number(data[i][iMaxL])     || 0) : 0;
+        hasil.maxOutCount   = iMaxOut    !== -1 ? (Number(data[i][iMaxOut])   || 0) : 0;
+        hasil.setupFixed    = iSetupFix  !== -1 ? (Number(data[i][iSetupFix]) || 0) : 0;
+        hasil.setupVariable = iSetupVar  !== -1 ? (Number(data[i][iSetupVar]) || 0) : 0;
+        hasil.speed         = iSpeed     !== -1 ? (Number(data[i][iSpeed])    || 0) : 0;
+        hasil.extraPerCut   = iExtra     !== -1 ? (Number(data[i][iExtra])    || 0) : 0;
+        hasil.speedUnit     = iSpeedUnit !== -1 ? String(data[i][iSpeedUnit] || '').toUpperCase().trim() : '';
+        hasil.found         = true;
+        break;
+      }
+    }
+
+    return hasil;
+
+  } catch (e) {
+    Logger.log('Error getMachineConfig(' + mcNo + '): ' + e.toString());
+    return hasil;
+  }
+}
+
+/**
+ * Kalkulasi durasi SPK SLT (Slitting).
+ * Formula:
+ *   Plan_Setup   = Setup_Fixed + (Total_Jalur × Setup_Variable)
+ *   Plan_Run     = ceil(Total_Length_m / Speed_MPM) + ((Total_Cut - 1) × Extra_Per_Cut)
+ *   Total_Durasi = Plan_Setup + Plan_Run
+ *
+ * @param {string} mcNo         - Nomor mesin (contoh: "SLT-01")
+ * @param {number} totalJalur   - Total jalur seluruh setting (contoh: 14)
+ * @param {number} totalLengthM - Total panjang cut plan dalam meter (contoh: 340)
+ * @param {number} totalCut     - Jumlah cut (contoh: 3)
+ * @return {object} {planSetup, planRun, totalDurasi} dalam menit (integer)
+ *
+ * Contoh case Herryna:
+ *   kalkulasiEstimasiWaktu_SLT('SLT-01', 14, 340, 3)
+ *   → Setup = 60 + (14 × 3) = 102 menit
+ *   → Run   = ceil(340/25) + (3-1)×15 = 14 + 30 = 44 menit
+ *   → Total = 146 menit
+ */
+function kalkulasiEstimasiWaktu_SLT(mcNo, totalJalur, totalLengthM, totalCut) {
+  // Default fallback (kalau M_MC tidak ada / mesin belum di-setup)
+  var hasil = {
+    planSetup  : 60,
+    planRun    : 0,
+    totalDurasi: 60
+  };
+
+  try {
+    var cfg = getMachineConfig(mcNo);
+    if (!cfg.found) {
+      Logger.log('kalkulasiEstimasiWaktu_SLT: config mesin ' + mcNo + ' tidak ditemukan, pakai default');
+      return hasil;
+    }
+
+    // Sanitasi input
+    var jalur  = Math.max(0, Number(totalJalur)   || 0);
+    var length = Math.max(0, Number(totalLengthM) || 0);
+    var cut    = Math.max(1, Number(totalCut)     || 1);
+
+    // Setup: Fixed + Variable × Jalur
+    var setup = cfg.setupFixed + (jalur * cfg.setupVariable);
+
+    // Run: (Length / Speed) + jeda ikat antar cut
+    var run = 0;
+    if (cfg.speed > 0 && length > 0) {
+      run += length / cfg.speed;
+    }
+    if (cut > 1 && cfg.extraPerCut > 0) {
+      run += (cut - 1) * cfg.extraPerCut;
+    }
+
+    hasil.planSetup   = Math.ceil(setup);
+    hasil.planRun     = Math.ceil(run);
+    hasil.totalDurasi = hasil.planSetup + hasil.planRun;
+
+    return hasil;
+
+  } catch (e) {
+    Logger.log('Error kalkulasiEstimasiWaktu_SLT: ' + e.toString());
+    return hasil;
+  }
+}
+
+/**
+ * Utility: Hitung panjang coil (meter) dari berat, thickness, dan lebar.
+ * Formula: Length_m = KG × 1,000,000 / (T × Lebar × Density)
+ *
+ * Density baja standar = 7.85 g/cm³ (hardcode, konstanta fisika).
+ *
+ * @param {number} kgCoil    - Berat coil dalam kilogram
+ * @param {number} t         - Thickness dalam milimeter (mm)
+ * @param {number} lebarCoil - Lebar coil dalam milimeter (mm)
+ * @return {number} Panjang coil dalam meter (dibulatkan 2 desimal), 0 kalau input invalid
+ *
+ * Contoh case Herryna:
+ *   hitungLengthCoil(9755, 2.90, 1219) → 351.5 m
+ */
+function hitungLengthCoil(kgCoil, t, lebarCoil) {
+  try {
+    var kg = Number(kgCoil)    || 0;
+    var thk = Number(t)         || 0;
+    var lbr = Number(lebarCoil) || 0;
+
+    if (kg <= 0 || thk <= 0 || lbr <= 0) return 0;
+
+    // Density baja standar 7.85 g/cm³
+    // Formula: Length_m = KG × 1000 / (T_mm × Lebar_mm × 7.85)
+    var lengthM = (kg * 1000) / (thk * lbr * 7.85);
+    return Math.round(lengthM * 100) / 100; // 2 desimal
+
+  } catch (e) {
+    Logger.log('Error hitungLengthCoil: ' + e.toString());
+    return 0;
+  }
+}
