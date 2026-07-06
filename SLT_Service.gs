@@ -1943,44 +1943,257 @@ function sltGetFormData() {
       }
     }
 
-    // ═══ 3. SO OPEN ═══
-    var shSO = ss.getSheetByName('SO');
-    if (shSO) {
-      var data = shSO.getDataRange().getValues();
-      if (data.length >= 2) {
-        var hdr = data[0].map(function(h){ return String(h).trim(); });
-        var iSoNo   = hdr.indexOf('SO_No');
-        var iCust   = hdr.indexOf('Cust');
-        var iItem   = hdr.indexOf('Item_Code');
-        var iDesc   = hdr.indexOf('Description');
-        var iBlQ    = hdr.indexOf('BL_Q');
-        var iStatus = hdr.indexOf('STATUS');
-        var iSched  = hdr.indexOf('SCHEDULE_DATE');
-
-        for (var i = 1; i < data.length; i++) {
-          var soNo = String(data[i][iSoNo] || '').trim();
-          if (!soNo) continue;
-          var status = String(data[i][iStatus] || '').trim().toUpperCase();
-          if (status !== 'OPEN') continue;
-          var blQ = Number(data[i][iBlQ]) || 0;
-          if (blQ <= 0) continue;
+    // ═══ 3. DEMAND OPEN (SO + STP_REQ) — reuse getDemandData ═══
+    // Panggil Demand_Service supaya konsisten dengan modul Total Demand.
+    // Field mapping: so_no ← ref_no, bl_q ← net_req, +tipe (SO/STP)
+    try {
+      if (typeof getDemandData === 'function') {
+        var demandData = getDemandData();
+        (demandData.demands || []).forEach(function(d) {
+          // Filter yang butuh SPK: net_req > 0
+          if ((Number(d.net_req) || 0) <= 0) return;
+          // Skip status non-actionable
+          var st = String(d.status || '').toUpperCase();
+          if (st === 'CLOSED' || st === 'CANCELLED' || st === 'DONE' || st === 'FULFILLED') return;
 
           result.so_open.push({
-            so_no         : soNo,
-            cust          : String(data[i][iCust] || ''),
-            item_code     : String(data[i][iItem] || ''),
-            description   : String(data[i][iDesc] || ''),
-            bl_q          : blQ,
-            schedule_date : _slt_serializeDate(data[i][iSched])
+            so_no         : String(d.ref_no || ''),
+            cust          : String(d.cust || ''),
+            item_code     : String(d.item_code || ''),
+            description   : String(d.description || ''),
+            bl_q          : Number(d.net_req) || 0,
+            schedule_date : String(d.tgl_needed || ''),
+            tipe          : String(d.tipe || 'SO'),
+            equivalent    : String(d.equivalent || ''),
+            t             : Number(d.t) || 0
           });
+        });
+      } else {
+        // Fallback: direct read SO sheet kalau Demand_Service belum ready
+        Logger.log('WARN: getDemandData tidak tersedia, fallback ke SO sheet');
+        var shSO = ss.getSheetByName('SO');
+        if (shSO) {
+          var data = shSO.getDataRange().getValues();
+          if (data.length >= 2) {
+            var hdr = data[0].map(function(h){ return String(h).trim(); });
+            var iSoNo   = hdr.indexOf('SO_No');
+            var iCust   = hdr.indexOf('Cust');
+            var iItem   = hdr.indexOf('Item_Code');
+            var iDesc   = hdr.indexOf('Description');
+            var iBlQ    = hdr.indexOf('BL_Q');
+            var iStatus = hdr.indexOf('STATUS');
+            var iSched  = hdr.indexOf('SCHEDULE_DATE');
+            for (var i = 1; i < data.length; i++) {
+              var soNo = String(data[i][iSoNo] || '').trim();
+              if (!soNo) continue;
+              var status = String(data[i][iStatus] || '').trim().toUpperCase();
+              if (status === 'CLOSED' || status === 'CANCELLED') continue;
+              var blQ = Number(data[i][iBlQ]) || 0;
+              if (blQ <= 0) continue;
+              result.so_open.push({
+                so_no         : soNo,
+                cust          : String(data[i][iCust] || ''),
+                item_code     : String(data[i][iItem] || ''),
+                description   : String(data[i][iDesc] || ''),
+                bl_q          : blQ,
+                schedule_date : _slt_serializeDate(data[i][iSched]),
+                tipe          : 'SO'
+              });
+            }
+          }
         }
       }
+    } catch (eDem) {
+      Logger.log('Error load demand: ' + eDem.toString());
     }
 
     return result;
 
   } catch (e) {
     Logger.log('Error sltGetFormData: ' + e.toString());
+    result.error = e.toString();
+    return result;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PUBLIC: sltStartProcess — Operator klik "Mulai Proses" (ANTRIAN → RUNNING)
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * @param {object} payload { spk_no, operator, note }
+ * @return {object} { success, message, new_status }
+ */
+function sltStartProcess(payload) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+
+  try {
+    if (!payload || !payload.spk_no) return { success: false, message: 'spk_no kosong' };
+    var operator = String(payload.operator || '').trim();
+    if (!operator) return { success: false, message: 'Nama operator wajib diisi' };
+
+    var ctx = _slt_getSpkSheetContext();
+    var header = _slt_findHeader(ctx.data, ctx.I, payload.spk_no);
+    if (!header) return { success: false, message: 'SLT-HEADER ' + payload.spk_no + ' tidak ditemukan' };
+
+    var currentStatus = String(header.rowData[ctx.I.status] || '').trim();
+    if (currentStatus !== SLT_STATUS.ANTRIAN) {
+      return { success: false, message: 'SPK status ' + currentStatus + ' (harus ANTRIAN)' };
+    }
+
+    // Cek mesin idle (tidak ada SPK lain RUNNING di mesin yang sama)
+    var mcNo = String(header.rowData[ctx.headers.indexOf('MC_No')] || 'SLT-01').trim();
+    for (var i = 1; i < ctx.data.length; i++) {
+      if (String(ctx.data[i][ctx.I.type] || '').trim() !== 'SLT-HEADER') continue;
+      if (String(ctx.data[i][ctx.headers.indexOf('MC_No')] || '').trim() !== mcNo) continue;
+      var st = String(ctx.data[i][ctx.I.status] || '').trim();
+      if (st === SLT_STATUS.RUNNING) {
+        return {
+          success: false,
+          message: 'Mesin ' + mcNo + ' masih RUNNING SPK ' + String(ctx.data[i][ctx.I.spk]) +
+                   '. Selesaikan cut terakhir dulu baru bisa start SPK berikutnya.'
+        };
+      }
+    }
+
+    var timestamp = new Date();
+    ctx.sheet.getRange(header.rowIdx, ctx.I.status + 1).setValue(SLT_STATUS.RUNNING);
+    ctx.sheet.getRange(header.rowIdx, ctx.I.mulai + 1).setValue(timestamp);
+    if (ctx.I.op !== -1) ctx.sheet.getRange(header.rowIdx, ctx.I.op + 1).setValue(operator);
+
+    // Append note kalau ada
+    if (payload.note && String(payload.note).trim()) {
+      var oldNote = String(header.rowData[ctx.I.note] || '');
+      var newNote = oldNote + ' | Start: ' + operator + ' - ' + String(payload.note).trim();
+      ctx.sheet.getRange(header.rowIdx, ctx.I.note + 1).setValue(newNote);
+    }
+
+    SpreadsheetApp.flush();
+
+    if (typeof kalkulasiEstimasiWaktu === 'function') {
+      try { kalkulasiEstimasiWaktu(); } catch (e) { Logger.log('Warn: ' + e); }
+    }
+
+    return { success: true, message: 'SPK ' + payload.spk_no + ' mulai diproses oleh ' + operator, new_status: SLT_STATUS.RUNNING };
+
+  } catch (e) {
+    Logger.log('Error sltStartProcess: ' + e.toString());
+    return { success: false, message: 'Error: ' + e.toString() };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PUBLIC: sltGetBoardData — bundle data Board SLT (4 kolom status)
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Return semua data untuk Board Mesin SLT dalam 1 call.
+ * Filter: hanya SPK di mesin SLT-01 dengan status aktif.
+ *
+ * @return {object} {
+ *   machine_status, counters, antrian, running, menunggu_timbang, menunggu_approval, generated_at
+ * }
+ */
+function sltGetBoardData() {
+  var result = {
+    machine_status    : 'IDLE',
+    counters          : { antrian: 0, running: 0, menunggu_timbang: 0, menunggu_approval: 0 },
+    antrian           : [],
+    running           : [],
+    menunggu_timbang  : [],
+    menunggu_approval : [],
+    generated_at      : new Date().toISOString()
+  };
+
+  try {
+    var ctx = _slt_getSpkSheetContext();
+    var iMc       = ctx.headers.indexOf('MC_No');
+    var iPriority = ctx.headers.indexOf('Priority');
+    var iTglBuat  = ctx.headers.indexOf('Tgl_Buat');
+    var iCreated  = ctx.headers.indexOf('Created_By');
+
+    for (var i = 1; i < ctx.data.length; i++) {
+      if (String(ctx.data[i][ctx.I.type] || '').trim() !== 'SLT-HEADER') continue;
+      var mcNo = iMc !== -1 ? String(ctx.data[i][iMc] || '').trim() : '';
+      if (mcNo !== 'SLT-01') continue;
+
+      var status = String(ctx.data[i][ctx.I.status] || '').trim().toUpperCase();
+      if (['ANTRIAN','RUNNING','MESIN_SELESAI','MENUNGGU_APPROVAL'].indexOf(status) === -1) continue;
+
+      var spkNo = String(ctx.data[i][ctx.I.spk] || '');
+      var noteStr = String(ctx.data[i][ctx.I.note] || '');
+      var totalCut = _slt_extractTotalCut(noteStr);
+      var progressArr = _slt_parseCutProgress(String(ctx.data[i][ctx.I.cutProg] || ''));
+      var cutPlan = _slt_parseCutPlan(noteStr);
+      var trimInfo = _slt_parseTrimInfo(noteStr);
+
+      // Count OUT rows & weighted
+      var outCount = 0, weightedCount = 0, jalurCount = 0;
+      for (var j = 1; j < ctx.data.length; j++) {
+        if (String(ctx.data[j][ctx.I.parent] || '').trim() !== spkNo) continue;
+        if (String(ctx.data[j][ctx.I.type] || '').trim() !== 'SLT-OUT') continue;
+        outCount++;
+        var kgAct = Number(ctx.data[j][ctx.I.kgAct]) || 0;
+        var kgNg  = Number(ctx.data[j][ctx.I.kgNg])  || 0;
+        if (kgAct > 0 || kgNg > 0) weightedCount++;
+      }
+      jalurCount = totalCut > 0 ? Math.round(outCount / totalCut) : outCount;
+
+      var item = {
+        spk_no       : spkNo,
+        status       : status,
+        batch_id     : String(ctx.data[i][ctx.I.batchId] || ''),
+        item_code    : String(ctx.data[i][ctx.I.item] || ''),
+        input_spec   : String(ctx.data[i][ctx.I.inputSpec] || ''),
+        kg_target    : Number(ctx.data[i][ctx.I.kgTgt]) || 0,
+        kg_actual    : Number(ctx.data[i][ctx.I.kgAct]) || 0,
+        priority     : iPriority !== -1 ? String(ctx.data[i][iPriority] || 'Normal') : 'Normal',
+        owner        : String(ctx.data[i][ctx.I.owner] || ''),
+        cust         : String(ctx.data[i][ctx.I.cust] || ''),
+        cut_plan     : cutPlan,
+        total_cut    : totalCut,
+        cuts_done    : progressArr.length,
+        cut_progress : String(ctx.data[i][ctx.I.cutProg] || ''),
+        trim_info    : trimInfo,
+        jalur_count  : jalurCount,
+        rolls_total  : outCount,
+        rolls_weighted : weightedCount,
+        rolls_pending  : outCount - weightedCount,
+        operator     : ctx.I.op !== -1 ? String(ctx.data[i][ctx.I.op] || '') : '',
+        tgl_buat     : iTglBuat !== -1 ? _slt_serializeDate(ctx.data[i][iTglBuat]) : '',
+        mulai_dt     : _slt_serializeDate(ctx.data[i][ctx.I.mulai]),
+        selesai_dt   : _slt_serializeDate(ctx.data[i][ctx.I.selesai]),
+        created_by   : iCreated !== -1 ? String(ctx.data[i][iCreated] || '') : ''
+      };
+
+      if (status === 'ANTRIAN')                  { result.antrian.push(item);          result.counters.antrian++; }
+      else if (status === 'RUNNING')             { result.running.push(item);          result.counters.running++; }
+      else if (status === 'MESIN_SELESAI')       { result.menunggu_timbang.push(item); result.counters.menunggu_timbang++; }
+      else if (status === 'MENUNGGU_APPROVAL')   { result.menunggu_approval.push(item);result.counters.menunggu_approval++; }
+    }
+
+    // Determine machine status
+    if (result.counters.running > 0) result.machine_status = 'RUNNING';
+    else if (result.counters.menunggu_approval > 0) result.machine_status = 'WAITING_APPROVAL';
+    else if (result.counters.menunggu_timbang > 0) result.machine_status = 'MESIN_SELESAI';
+    else result.machine_status = 'IDLE';
+
+    // Sort ANTRIAN by priority DESC then tgl_buat ASC
+    result.antrian.sort(function(a, b) {
+      var priOrder = { 'Rush': 3, 'Urgent': 2, 'Normal': 1 };
+      var pa = priOrder[a.priority] || 1;
+      var pb = priOrder[b.priority] || 1;
+      if (pa !== pb) return pb - pa;
+      return String(a.tgl_buat).localeCompare(String(b.tgl_buat));
+    });
+
+    return result;
+
+  } catch (e) {
+    Logger.log('Error sltGetBoardData: ' + e.toString());
     result.error = e.toString();
     return result;
   }

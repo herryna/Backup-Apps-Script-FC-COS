@@ -1,9 +1,1153 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <base target="_top">
-  </head>
-  <body>
-    
-  </body>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Board SLT</title>
+<style>
+/* ===== DARK THEME PALETTE (mirror Board CTL + purple accent) ===== */
+:root {
+  --bg-base: #020617; --bg-card: #0f172a; --bg-card-alt: #1e293b;
+  --border: #334155; --border-soft: #475569;
+  --text-primary: #ffffff; --text-secondary: #e2e8f0; --text-muted: #cbd5e1;
+  --andon-running: #22c55e; --andon-setup: #f59e0b; --andon-idle: #22d3ee; --andon-down: #ef4444;
+  --andon-waiting: #f97316;
+  --accent-yellow: #fde047; --accent-orange: #f97316;
+
+  /* Theme SLT - Purple */
+  --accent-machine: #a855f7;
+  --accent-machine-glow: rgba(168, 85, 247, 0.4);
+  --accent-text: #ffffff;
+  --watermark-text: "SLT";
+  --watermark-color: rgba(168, 85, 247, 0.04);
+
+  /* Column colors */
+  --col-antrian: #eab308;
+  --col-running: #22c55e;
+  --col-menunggu-timbang: #a855f7;
+  --col-menunggu-approval: #f97316;
+}
+
+body { margin:0; padding:0; background:var(--bg-base); font-family:'Segoe UI',system-ui,sans-serif; }
+.board-shell, .board-shell *, .modal-overlay, .modal-overlay * { box-sizing:border-box; }
+.board-shell {
+  background: var(--bg-base); color: var(--text-primary);
+  min-height: 100vh; display: flex; flex-direction: column; gap: 10px; padding: 10px;
+}
+/* Watermark background */
+.board-shell::before {
+  content: var(--watermark-text);
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  font-size: 400px; font-weight: 900; color: var(--watermark-color);
+  z-index: 0; pointer-events: none; letter-spacing: -20px;
+}
+.board-shell > * { position: relative; z-index: 1; }
+
+/* ===== ZONE 1: STATUS BAR ===== */
+.zone-status {
+  display: flex; align-items: center;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 16px; gap: 16px;
+  flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.machine-status { display: flex; align-items: center; gap: 12px; flex: 1; }
+.led {
+  width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+  box-shadow: 0 0 10px currentColor;
+}
+.led-running { background: var(--andon-running); color: var(--andon-running); animation: pulse 1.5s ease-in-out infinite; }
+.led-idle    { background: var(--andon-idle);    color: var(--andon-idle); }
+.led-waiting { background: var(--andon-waiting); color: var(--andon-waiting); animation: pulse 2s ease-in-out infinite; }
+.led-mesin-selesai { background: var(--col-menunggu-timbang); color: var(--col-menunggu-timbang); }
+@keyframes pulse {
+  0%,100% { opacity:1; transform:scale(1); box-shadow:0 0 10px currentColor; }
+  50%     { opacity:0.7; transform:scale(1.15); box-shadow:0 0 20px currentColor; }
+}
+.machine-name { font-size: 18px; font-weight: 700; color: var(--accent-machine); text-shadow: 0 0 8px var(--accent-machine-glow); }
+.machine-info { font-size: 12px; color: var(--text-muted); }
+.machine-info b { color: var(--text-primary); }
+.counters-bar { display: flex; gap: 12px; }
+.counter-badge {
+  padding: 6px 14px; border-radius: 8px; text-align: center;
+  background: var(--bg-card-alt); border: 1px solid var(--border);
+  min-width: 90px;
+}
+.counter-badge .count { font-size: 22px; font-weight: 800; display: block; line-height: 1; }
+.counter-badge .label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+.counter-badge.antrian .count { color: var(--col-antrian); }
+.counter-badge.running .count { color: var(--col-running); }
+.counter-badge.timbang .count { color: var(--col-menunggu-timbang); }
+.counter-badge.approval .count { color: var(--col-menunggu-approval); }
+.btn-refresh {
+  background: var(--bg-card-alt); border: 1px solid var(--border);
+  color: var(--text-primary); padding: 8px 16px; border-radius: 6px;
+  cursor: pointer; font-weight: 600; font-size: 12px; display: inline-flex;
+  align-items: center; gap: 6px; transition: 0.15s;
+}
+.btn-refresh:hover { background: var(--accent-machine); color: var(--accent-text); }
+.last-refresh { font-size: 10px; color: var(--text-muted); margin-right: 10px; }
+
+/* ===== ZONE 2: KANBAN 3 KOLOM ===== */
+.zone-kanban {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  flex: 1; overflow: hidden;
+}
+.kanban-col {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 8px; display: flex; flex-direction: column; overflow: hidden;
+}
+.kanban-col-head {
+  padding: 10px 14px; font-weight: 700; font-size: 13px;
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 2px solid;
+}
+.kanban-col-head.antrian  { color: var(--col-antrian); border-color: var(--col-antrian); background: rgba(234,179,8,0.08); }
+.kanban-col-head.running  { color: var(--col-running); border-color: var(--col-running); background: rgba(34,197,94,0.08); }
+.kanban-col-head.timbang  { color: var(--col-menunggu-timbang); border-color: var(--col-menunggu-timbang); background: rgba(168,85,247,0.08); }
+.kanban-col-count-badge {
+  background: rgba(255,255,255,0.15); padding: 3px 10px; border-radius: 12px;
+  font-size: 11px; font-weight: 700;
+}
+.kanban-col-body { flex: 1; overflow-y: auto; padding: 8px; }
+
+/* ===== CARD ===== */
+.spk-card {
+  background: var(--bg-card-alt); border: 1px solid var(--border);
+  border-left: 4px solid; border-radius: 6px; padding: 12px;
+  margin-bottom: 8px; transition: 0.15s;
+}
+.spk-card:hover { border-color: var(--accent-machine); }
+.spk-card.antrian  { border-left-color: var(--col-antrian); }
+.spk-card.running  { border-left-color: var(--col-running); }
+.spk-card.timbang  { border-left-color: var(--col-menunggu-timbang); }
+.spk-card.priority-Rush   { animation: cardPulse 2s ease-in-out infinite; }
+.spk-card.priority-Urgent { border-left-color: var(--accent-orange); }
+@keyframes cardPulse {
+  0%,100% { box-shadow: 0 0 0 rgba(239,68,68,0); }
+  50%     { box-shadow: 0 0 12px rgba(239,68,68,0.5); }
+}
+.card-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-bottom: 6px; border-bottom: 1px dashed var(--border-soft); margin-bottom: 8px;
+}
+.card-spk-no { font-size: 14px; font-weight: 700; color: var(--text-primary); font-family: monospace; }
+.card-priority { font-size: 10px; padding: 2px 8px; border-radius: 12px; font-weight: 700; }
+.card-priority.Normal { background: var(--bg-card); color: var(--text-muted); }
+.card-priority.Urgent { background: var(--accent-orange); color: #fff; }
+.card-priority.Rush   { background: var(--andon-down); color: #fff; }
+.card-body { font-size: 11px; color: var(--text-secondary); line-height: 1.5; }
+.card-body b { color: var(--text-primary); }
+.card-row { margin-bottom: 4px; display: flex; justify-content: space-between; gap: 8px; }
+.card-row .lbl { color: var(--text-muted); }
+.card-cut-plan {
+  background: var(--bg-card); padding: 6px 8px; border-radius: 4px;
+  margin: 8px 0; font-family: monospace; font-size: 11px;
+}
+.card-progress {
+  margin: 8px 0; padding: 6px 8px; background: var(--bg-card);
+  border-radius: 4px; font-size: 11px;
+}
+.card-progress-bar {
+  height: 6px; background: var(--border); border-radius: 3px; margin-top: 4px; overflow: hidden;
+}
+.card-progress-fill { height: 100%; transition: width 0.3s; }
+.card-progress-fill.running  { background: var(--col-running); }
+.card-progress-fill.timbang  { background: var(--col-menunggu-timbang); }
+.card-timer {
+  font-size: 11px; color: var(--accent-yellow); font-weight: 700;
+  padding: 4px 8px; background: rgba(253,224,71,0.1); border-radius: 4px;
+  display: inline-block; margin: 6px 0;
+}
+.card-actions { display: flex; gap: 6px; margin-top: 10px; }
+.btn-card {
+  flex: 1; padding: 8px; border-radius: 4px; border: none;
+  font-weight: 700; font-size: 11px; cursor: pointer; transition: 0.15s;
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+}
+.btn-start   { background: var(--col-running); color: #fff; }
+.btn-start:hover { background: #16a34a; }
+.btn-cut     { background: var(--accent-machine); color: #fff; }
+.btn-cut:hover { background: #9333ea; }
+.btn-timbang { background: var(--col-menunggu-timbang); color: #fff; }
+.btn-timbang:hover { background: #9333ea; }
+.btn-approve { background: var(--col-menunggu-approval); color: #fff; }
+.btn-approve:hover { background: #ea580c; }
+
+.card-empty {
+  text-align: center; padding: 40px 20px; color: var(--text-muted);
+  font-style: italic; font-size: 11px;
+}
+
+/* ===== APPROVAL PANEL BOTTOM ===== */
+.approval-panel {
+  background: var(--bg-card); border: 1px solid var(--col-menunggu-approval);
+  border-radius: 8px; overflow: hidden; flex-shrink: 0;
+}
+.approval-panel-head {
+  padding: 10px 16px; background: rgba(249,115,22,0.1);
+  cursor: pointer; display: flex; justify-content: space-between;
+  align-items: center; border-bottom: 1px solid var(--border);
+}
+.approval-panel-head:hover { background: rgba(249,115,22,0.15); }
+.approval-panel-title { color: var(--col-menunggu-approval); font-weight: 700; font-size: 13px; }
+.approval-panel-body {
+  padding: 10px; display: none; max-height: 200px; overflow-y: auto;
+  background: var(--bg-card-alt);
+}
+.approval-panel.expanded .approval-panel-body { display: block; }
+.approval-panel.expanded .toggle-icon { transform: rotate(180deg); }
+.toggle-icon { transition: transform 0.2s; }
+.approval-item {
+  padding: 8px 12px; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 4px; margin-bottom: 6px; display: flex;
+  justify-content: space-between; align-items: center;
+}
+.approval-item:last-child { margin-bottom: 0; }
+
+/* ===== MODAL ===== */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  display: none; align-items: center; justify-content: center; z-index: 9999;
+}
+.modal-overlay.active { display: flex; }
+.modal-box {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+  width: 90%; max-width: 500px; padding: 0; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  max-height: 90vh; display: flex; flex-direction: column;
+}
+.modal-box.wide { max-width: 950px; }
+.modal-head {
+  padding: 14px 20px; background: var(--bg-card-alt); border-bottom: 1px solid var(--border);
+  border-radius: 8px 8px 0 0; font-weight: 700; font-size: 14px;
+  color: var(--accent-machine); display: flex; justify-content: space-between; align-items: center;
+  flex-shrink: 0;
+}
+.modal-close {
+  background: none; border: none; color: var(--text-muted); font-size: 20px;
+  cursor: pointer; padding: 0; width: 24px; height: 24px;
+}
+.modal-close:hover { color: var(--text-primary); }
+.modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+.modal-field { margin-bottom: 14px; }
+.modal-field.row { display: flex; gap: 10px; }
+.modal-field.row > div { flex: 1; }
+.modal-field label {
+  display: block; font-size: 11px; text-transform: uppercase;
+  color: var(--text-muted); font-weight: 600; margin-bottom: 4px;
+}
+.modal-field label.required::after { content: ' *'; color: var(--andon-down); }
+.modal-field input, .modal-field textarea, .modal-field select {
+  width: 100%; padding: 8px 10px; background: var(--bg-card-alt);
+  border: 1px solid var(--border); border-radius: 4px;
+  color: var(--text-primary); font-size: 13px; outline: none;
+}
+.modal-field input:focus, .modal-field textarea:focus, .modal-field select:focus {
+  border-color: var(--accent-machine);
+}
+.modal-info-box {
+  background: var(--bg-card-alt); padding: 10px 14px; border-radius: 4px;
+  margin-bottom: 14px; font-size: 12px; color: var(--text-secondary);
+}
+.modal-info-box b { color: var(--text-primary); }
+.modal-info-box.summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 20px; }
+.modal-info-box.summary .info-row { display: flex; justify-content: space-between; font-size: 12px; }
+.modal-info-box.summary .info-row .label { color: var(--text-muted); }
+.modal-info-box.summary .info-row .value { color: var(--text-primary); font-weight: 700; }
+.modal-warning-box {
+  background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.3);
+  padding: 10px 14px; border-radius: 4px; margin: 10px 0;
+  font-size: 11px; color: var(--accent-orange);
+}
+.modal-footer {
+  padding: 14px 20px; background: var(--bg-card-alt); border-top: 1px solid var(--border);
+  border-radius: 0 0 8px 8px; display: flex; gap: 8px; justify-content: flex-end;
+  flex-shrink: 0;
+}
+.btn-modal {
+  padding: 8px 20px; border-radius: 4px; border: none;
+  font-weight: 700; font-size: 12px; cursor: pointer;
+}
+.btn-modal-primary { background: var(--accent-machine); color: #fff; }
+.btn-modal-primary:hover { background: #9333ea; }
+.btn-modal-success { background: var(--andon-running); color: #fff; }
+.btn-modal-success:hover { background: #16a34a; }
+.btn-modal-danger  { background: var(--andon-down); color: #fff; }
+.btn-modal-danger:hover  { background: #dc2626; }
+.btn-modal-cancel { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+.btn-modal-cancel:hover { background: var(--bg-card-alt); }
+
+/* Timbang Table */
+.timbang-filter-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+.timbang-filter-tab {
+  padding: 6px 12px; background: var(--bg-card-alt); border: 1px solid var(--border);
+  border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600;
+  color: var(--text-muted); transition: 0.15s;
+}
+.timbang-filter-tab.active {
+  background: var(--accent-machine); color: #fff; border-color: var(--accent-machine);
+}
+.timbang-filter-tab:hover:not(.active) { background: var(--bg-card); color: var(--text-primary); }
+.timbang-table-wrap { max-height: 400px; overflow-y: auto; border: 1px solid var(--border); border-radius: 4px; }
+.timbang-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.timbang-table th {
+  background: var(--bg-card-alt); padding: 8px 10px; text-align: left;
+  color: var(--text-muted); font-size: 10px; text-transform: uppercase;
+  position: sticky; top: 0; z-index: 5; border-bottom: 1px solid var(--border);
+}
+.timbang-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+.timbang-table tr.weighted { background: rgba(34, 197, 94, 0.05); }
+.timbang-table tr.weighted td { color: var(--text-muted); }
+.timbang-table input { width: 100%; padding: 4px 6px; font-size: 11px; }
+.timbang-summary {
+  padding: 10px; background: var(--bg-card-alt); border-radius: 4px;
+  margin-top: 10px; font-size: 12px; display: flex; justify-content: space-between;
+  color: var(--text-secondary);
+}
+.timbang-summary b { color: var(--text-primary); }
+
+/* Setting Preview di Card (expandable) */
+.card-setting-toggle {
+  cursor: pointer; padding: 6px 8px; background: var(--bg-card);
+  border-radius: 4px; margin: 6px 0; font-size: 11px; font-weight: 600;
+  color: var(--accent-machine); user-select: none; transition: 0.15s;
+}
+.card-setting-toggle:hover { background: rgba(168, 85, 247, 0.1); }
+.card-setting-toggle .caret { display: inline-block; transition: transform 0.15s; margin-right: 4px; }
+.card-setting-toggle.expanded .caret { transform: rotate(90deg); }
+.card-setting-body { display: none; margin-top: 6px; }
+.card-setting-toggle.expanded + .card-setting-body { display: block; }
+.card-setting-section { margin-bottom: 8px; }
+.card-setting-section-title {
+  font-size: 10px; font-weight: 700; color: var(--accent-machine);
+  padding: 4px 6px; background: rgba(168, 85, 247, 0.08); border-radius: 3px;
+  margin-bottom: 4px;
+}
+.card-setting-table { width: 100%; font-size: 10px; border-collapse: collapse; }
+.card-setting-table th, .card-setting-table td {
+  padding: 3px 5px; border: 1px solid var(--border);
+  color: var(--text-secondary); text-align: left;
+}
+.card-setting-table th { background: var(--bg-card); color: var(--text-muted); }
+.card-setting-loading { padding: 8px; text-align: center; color: var(--text-muted); font-size: 10px; }
+
+/* Overlay loading */
+.ov-load {
+  position: fixed; inset: 0; background: rgba(2,6,23,0.85);
+  display: none; align-items: center; justify-content: center;
+  flex-direction: column; z-index: 99999;
+}
+.ov-load.active { display: flex; }
+.ov-spin {
+  width: 40px; height: 40px; border: 4px solid var(--border);
+  border-top-color: var(--accent-machine); border-radius: 50%;
+  animation: sltSpin 0.8s linear infinite;
+}
+@keyframes sltSpin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="ov-load" id="ov-load">
+  <div class="ov-spin"></div>
+  <div style="margin-top:12px;color:var(--text-secondary);" id="ov-msg">Memuat...</div>
+</div>
+
+<div class="board-shell">
+
+  <!-- ZONE 1: STATUS BAR -->
+  <div class="zone-status">
+    <div class="machine-status">
+      <div class="led led-idle" id="mesin-led"></div>
+      <div>
+        <div class="machine-name">SLT-01 · SLITTING</div>
+        <div class="machine-info">Status: <b id="mesin-status">IDLE</b> · Total aktif: <b id="mesin-total">0</b> SPK</div>
+      </div>
+    </div>
+    <div class="counters-bar">
+      <div class="counter-badge antrian"><span class="count" id="cnt-antrian">0</span><span class="label">Antrian</span></div>
+      <div class="counter-badge running"><span class="count" id="cnt-running">0</span><span class="label">Running</span></div>
+      <div class="counter-badge timbang"><span class="count" id="cnt-timbang">0</span><span class="label">Timbang</span></div>
+      <div class="counter-badge approval"><span class="count" id="cnt-approval">0</span><span class="label">Approval</span></div>
+    </div>
+    <span class="last-refresh" id="last-refresh">-</span>
+    <button class="btn-refresh" onclick="loadBoardSlt(true)">🔄 Refresh</button>
+  </div>
+
+  <!-- ZONE 2: KANBAN 3 KOLOM -->
+  <div class="zone-kanban">
+    <div class="kanban-col">
+      <div class="kanban-col-head antrian">
+        <span>🕐 ANTRIAN</span>
+        <span class="kanban-col-count-badge" id="col-antrian-count">0</span>
+      </div>
+      <div class="kanban-col-body" id="col-antrian"></div>
+    </div>
+    <div class="kanban-col">
+      <div class="kanban-col-head running">
+        <span>⚙️ RUNNING</span>
+        <span class="kanban-col-count-badge" id="col-running-count">0</span>
+      </div>
+      <div class="kanban-col-body" id="col-running"></div>
+    </div>
+    <div class="kanban-col">
+      <div class="kanban-col-head timbang">
+        <span>🏁 MENUNGGU TIMBANG</span>
+        <span class="kanban-col-count-badge" id="col-timbang-count">0</span>
+      </div>
+      <div class="kanban-col-body" id="col-timbang"></div>
+    </div>
+  </div>
+
+  <!-- APPROVAL PANEL -->
+  <div class="approval-panel" id="approval-panel">
+    <div class="approval-panel-head" onclick="toggleApprovalPanel()">
+      <span class="approval-panel-title">📦 MENUNGGU APPROVAL (<span id="cnt-approval-panel">0</span>)</span>
+      <span class="toggle-icon">▼</span>
+    </div>
+    <div class="approval-panel-body" id="approval-body"></div>
+  </div>
+
+</div>
+
+<!-- MODAL: MULAI PROSES -->
+<div class="modal-overlay" id="modal-mulai">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span>▶️ Mulai Proses SPK</span>
+      <button class="modal-close" onclick="closeModal('modal-mulai')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-info-box" id="modal-mulai-info">-</div>
+      <div class="modal-field">
+        <label>Nama Operator *</label>
+        <input type="text" id="modal-mulai-op" placeholder="Nama operator mesin">
+      </div>
+      <div class="modal-field">
+        <label>Catatan (opsional)</label>
+        <textarea id="modal-mulai-note" rows="2" placeholder="Contoh: coil dari lot A, kondisi ok"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-modal btn-modal-cancel" onclick="closeModal('modal-mulai')">Batal</button>
+      <button class="btn-modal btn-modal-primary" onclick="submitMulaiProses()">▶️ Mulai</button>
+    </div>
+  </div>
+</div>
+<!-- MODAL: CUT SELESAI -->
+<div class="modal-overlay" id="modal-cut">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span>✅ Cut Selesai</span>
+      <button class="modal-close" onclick="closeModal('modal-cut')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-info-box" id="modal-cut-info">-</div>
+      <div class="modal-field row">
+        <div>
+          <label class="required">Roll Actual</label>
+          <input type="number" id="modal-cut-roll" min="0" step="1">
+        </div>
+        <div>
+          <label>Roll NG dari Mesin</label>
+          <input type="number" id="modal-cut-ng" min="0" step="1" value="0" oninput="onCutNgChange()">
+        </div>
+      </div>
+      <div class="modal-field" id="modal-cut-reason-wrap" style="display:none;">
+        <label class="required">Reason NG (kenapa NG?)</label>
+        <input type="text" id="modal-cut-reason" placeholder="Contoh: crack ujung, miring, kotor">
+      </div>
+      <div class="modal-field">
+        <label class="required">Nama Operator</label>
+        <input type="text" id="modal-cut-op" placeholder="Nama operator">
+      </div>
+      <div class="modal-field">
+        <label>Note (opsional)</label>
+        <textarea id="modal-cut-note" rows="2" placeholder="Catatan tambahan"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-modal btn-modal-cancel" onclick="closeModal('modal-cut')">Batal</button>
+      <button class="btn-modal btn-modal-success" onclick="submitCutSelesai()">✅ Konfirmasi Cut Selesai</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: INPUT TIMBANG -->
+<div class="modal-overlay" id="modal-timbang">
+  <div class="modal-box wide">
+    <div class="modal-head">
+      <span>⚖️ Input Timbang</span>
+      <button class="modal-close" onclick="closeModal('modal-timbang')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-info-box" id="modal-timbang-info">-</div>
+      <div class="modal-field">
+        <label class="required">Nama Packing</label>
+        <input type="text" id="modal-timbang-packing" placeholder="Nama packing yang input">
+      </div>
+      <div class="timbang-filter-tabs">
+        <div class="timbang-filter-tab active" onclick="setTimbangFilter('pending', this)">🕐 Belum Ditimbang</div>
+        <div class="timbang-filter-tab" onclick="setTimbangFilter('all', this)">📋 Semua</div>
+      </div>
+      <div class="timbang-table-wrap">
+        <table class="timbang-table">
+          <thead><tr>
+            <th style="width:3%;">#</th>
+            <th style="width:16%;">Roll SPK</th>
+            <th style="width:11%;">Item</th>
+            <th style="width:6%;">Lebar</th>
+            <th style="width:7%;">Target</th>
+            <th style="width:9%;">Aktual (kg)</th>
+            <th style="width:8%;">NG (kg)</th>
+            <th style="width:16%;">Reason NG</th>
+            <th style="width:6%;">Status</th>
+          </tr></thead>
+          <tbody id="modal-timbang-tbody"></tbody>
+        </table>
+      </div>
+      <div class="timbang-summary">
+        <span>Roll: <b id="timbang-sum-total">0</b> total · <b id="timbang-sum-weighted">0</b> ditimbang · <b id="timbang-sum-pending">0</b> pending</span>
+        <span>Akan diinput: <b id="timbang-sum-input">0</b> roll</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-modal btn-modal-cancel" onclick="closeModal('modal-timbang')">Batal</button>
+      <button class="btn-modal btn-modal-primary" onclick="submitInputTimbang()">💾 Simpan Batch</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: APPROVAL CLOSE -->
+<div class="modal-overlay" id="modal-approval">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span>🔒 Tutup SPK — Final Approval PPIC</span>
+      <button class="modal-close" onclick="closeModal('modal-approval')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-info-box" id="modal-approval-info">-</div>
+      <div class="modal-info-box summary" id="modal-approval-summary"></div>
+      <div class="modal-warning-box">
+        ⚠️ Setelah close:<br>
+        • Batch turunan akan generate ke Trace_Log<br>
+        • Rekap_ICT auto-write kalau Owner ≠ Owner_Used<br>
+        • Status → DONE (tidak bisa di-undo)
+      </div>
+      <div class="modal-field">
+        <label class="required">Nama PPIC</label>
+        <input type="text" id="modal-approval-ppic" placeholder="Nama PPIC yang approve">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-modal btn-modal-cancel" onclick="closeModal('modal-approval')">Batal</button>
+      <button class="btn-modal btn-modal-danger" onclick="submitApprovalClose()">🔒 Confirm Close SPK</button>
+    </div>
+  </div>
+</div>
+<script>
+(function() {
+  'use strict';
+
+  var _boardData = null;
+  var _refreshTimer = null;
+  var _timerInterval = null;
+  var REFRESH_MS = 5 * 60 * 1000; // 5 menit
+  var _currentSpkNo = null;
+
+  function showLoad(msg) { document.getElementById('ov-msg').textContent = msg || 'Memuat...'; document.getElementById('ov-load').classList.add('active'); }
+  function hideLoad() { document.getElementById('ov-load').classList.remove('active'); }
+
+  function formatDate(d) {
+    if (!d) return '—';
+    try { var dt = new Date(d); return isNaN(dt.getTime()) ? '—' : dt.toLocaleDateString('id-ID',{day:'2-digit',month:'short'}); }
+    catch(e) { return '—'; }
+  }
+  function formatNum(n) { return Math.round(parseFloat(n)||0).toLocaleString('id-ID'); }
+  function formatDuration(startIso) {
+    if (!startIso) return '';
+    var start = new Date(startIso);
+    if (isNaN(start.getTime())) return '';
+    var mins = Math.floor((Date.now() - start.getTime()) / 60000);
+    if (mins < 0) mins = 0;
+    var h = Math.floor(mins / 60);
+    var m = mins % 60;
+    if (h === 0) return m + ' menit';
+    return h + 'j ' + m + 'm';
+  }
+  function escapeHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // ============= LOAD BOARD =============
+  window.loadBoardSlt = function(showOverlay) {
+    if (showOverlay) showLoad('Memuat board...');
+    google.script.run
+      .withSuccessHandler(function(data) {
+        hideLoad();
+        _boardData = data || {};
+        renderBoard();
+        updateLastRefresh();
+      })
+      .withFailureHandler(function(err) {
+        hideLoad();
+        alert('❌ Gagal load: ' + (err.message||err));
+      })
+      .sltGetBoardData();
+  };
+
+  function updateLastRefresh() {
+    var now = new Date();
+    document.getElementById('last-refresh').textContent = '⏱ Update: ' + now.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }
+
+  function renderBoard() {
+    if (!_boardData) return;
+    // Update counters
+    var c = _boardData.counters || {};
+    document.getElementById('cnt-antrian').textContent = c.antrian || 0;
+    document.getElementById('cnt-running').textContent = c.running || 0;
+    document.getElementById('cnt-timbang').textContent = c.menunggu_timbang || 0;
+    document.getElementById('cnt-approval').textContent = c.menunggu_approval || 0;
+    document.getElementById('col-antrian-count').textContent = c.antrian || 0;
+    document.getElementById('col-running-count').textContent = c.running || 0;
+    document.getElementById('col-timbang-count').textContent = c.menunggu_timbang || 0;
+    document.getElementById('cnt-approval-panel').textContent = c.menunggu_approval || 0;
+    document.getElementById('mesin-total').textContent = (c.antrian||0) + (c.running||0) + (c.menunggu_timbang||0) + (c.menunggu_approval||0);
+
+    // Machine LED
+    var ms = _boardData.machine_status || 'IDLE';
+    var led = document.getElementById('mesin-led');
+    led.className = 'led led-' + (ms === 'RUNNING' ? 'running' : ms === 'MESIN_SELESAI' ? 'mesin-selesai' : ms === 'WAITING_APPROVAL' ? 'waiting' : 'idle');
+    document.getElementById('mesin-status').textContent = ms.replace('_', ' ');
+
+    // Render columns
+    renderColumn('col-antrian', _boardData.antrian || [], 'antrian');
+    renderColumn('col-running', _boardData.running || [], 'running');
+    renderColumn('col-timbang', _boardData.menunggu_timbang || [], 'timbang');
+    renderApprovalPanel(_boardData.menunggu_approval || []);
+  }
+
+  function renderColumn(colId, items, colType) {
+    var body = document.getElementById(colId);
+    if (items.length === 0) {
+      body.innerHTML = '<div class="card-empty">Tidak ada SPK</div>';
+      return;
+    }
+    body.innerHTML = items.map(function(spk) { return renderCard(spk, colType); }).join('');
+  }
+
+  function renderCard(spk, colType) {
+    var cutPlanStr = (spk.cut_plan || []).map(function(c, i){ return 'C' + (i+1) + ': ' + c + 'm'; }).join(' · ');
+    var totalKg = formatNum(spk.kg_target);
+    var priorityBadge = '<span class="card-priority ' + spk.priority + '">' + spk.priority + '</span>';
+
+    var html = '<div class="spk-card ' + colType + ' priority-' + spk.priority + '" data-spk-no="' + spk.spk_no + '">';
+    html += '<div class="card-head"><span class="card-spk-no">' + spk.spk_no + '</span>' + priorityBadge + '</div>';
+    html += '<div class="card-body">';
+    html += '<div class="card-row"><span class="lbl">Batch:</span><b>' + escapeHtml(spk.batch_id) + '</b></div>';
+    html += '<div class="card-row"><span class="lbl">Item:</span><b>' + escapeHtml(spk.input_spec) + '</b></div>';
+    html += '<div class="card-row"><span class="lbl">KG Target:</span><b>' + totalKg + ' kg</b></div>';
+    html += '<div class="card-row"><span class="lbl">Jalur:</span><b>' + spk.jalur_count + ' · Split: ' + (spk.trim_info && spk.trim_info.is_split ? 'Ya' : 'Tidak') + '</b></div>';
+    html += '<div class="card-row"><span class="lbl">Owner / Cust:</span><b>' + spk.owner + ' / ' + (spk.cust || '-') + '</b></div>';
+
+    if (cutPlanStr) html += '<div class="card-cut-plan">Cut Plan: ' + cutPlanStr + '</div>';
+
+    // Setting preview toggle (expandable, lazy load)
+    html += '<div class="card-setting-toggle" onclick="toggleSettingPreview(this, \'' + spk.spk_no + '\')">';
+    html += '<span class="caret">▶</span>Lihat Setting Jalur';
+    html += '</div>';
+    html += '<div class="card-setting-body" id="setting-body-' + spk.spk_no.replace(/[^a-zA-Z0-9]/g, '_') + '">';
+    html += '<div class="card-setting-loading">Klik toggle untuk load setting</div>';
+    html += '</div>';
+
+    // Progress khusus RUNNING
+    if (colType === 'running') {
+      var pct = spk.total_cut > 0 ? Math.round(spk.cuts_done / spk.total_cut * 100) : 0;
+      html += '<div class="card-progress">Cut Progress: ' + spk.cuts_done + ' / ' + spk.total_cut + ' cuts (' + pct + '%)';
+      html += '<div class="card-progress-bar"><div class="card-progress-fill running" style="width:' + pct + '%"></div></div></div>';
+      if (spk.mulai_dt) {
+        html += '<div class="card-timer">⏱ Running: <span data-timer-start="' + spk.mulai_dt + '">' + formatDuration(spk.mulai_dt) + '</span></div>';
+      }
+    }
+
+    // Progress khusus TIMBANG
+    if (colType === 'timbang') {
+      var pctW = spk.rolls_total > 0 ? Math.round(spk.rolls_weighted / spk.rolls_total * 100) : 0;
+      html += '<div class="card-progress">Roll Timbang: ' + spk.rolls_weighted + ' / ' + spk.rolls_total + ' rolls (' + pctW + '%)';
+      html += '<div class="card-progress-bar"><div class="card-progress-fill timbang" style="width:' + pctW + '%"></div></div></div>';
+      if (spk.selesai_dt) {
+        html += '<div class="card-timer">⏱ Menunggu: <span data-timer-start="' + spk.selesai_dt + '">' + formatDuration(spk.selesai_dt) + '</span></div>';
+      }
+    }
+
+    // Actions
+    html += '<div class="card-actions">';
+    if (colType === 'antrian') {
+      html += '<button class="btn-card btn-start" onclick="openMulaiProses(\'' + spk.spk_no + '\')">▶️ Mulai Proses</button>';
+    } else if (colType === 'running') {
+      var nextCut = spk.cuts_done + 1;
+      if (nextCut <= spk.total_cut) {
+        html += '<button class="btn-card btn-cut" onclick="openCutSelesai(\'' + spk.spk_no + '\',' + nextCut + ',' + spk.jalur_count + ')">✅ Cut-' + nextCut + ' Selesai</button>';
+      }
+    } else if (colType === 'timbang') {
+      html += '<button class="btn-card btn-timbang" onclick="openInputTimbang(\'' + spk.spk_no + '\')">⚖️ Input Timbang</button>';
+    }
+    html += '</div></div></div>';
+
+    return html;
+  }
+
+  function renderApprovalPanel(items) {
+    var body = document.getElementById('approval-body');
+    if (items.length === 0) {
+      body.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:11px;">Tidak ada SPK menunggu approval</div>';
+      return;
+    }
+    body.innerHTML = items.map(function(spk) {
+      return '<div class="approval-item">' +
+        '<div><b>' + spk.spk_no + '</b> · ' + escapeHtml(spk.input_spec) + ' · ' + formatNum(spk.kg_actual) + '/' + formatNum(spk.kg_target) + ' kg</div>' +
+        '<button class="btn-card btn-approve" style="padding:6px 14px;" onclick="openApprovalClose(\'' + spk.spk_no + '\')">🔒 Tutup SPK</button>' +
+      '</div>';
+    }).join('');
+  }
+
+  window.toggleApprovalPanel = function() {
+    document.getElementById('approval-panel').classList.toggle('expanded');
+  };
+
+  // ============= TIMER UPDATE (setiap 30 detik) =============
+  function updateAllTimers() {
+    document.querySelectorAll('[data-timer-start]').forEach(function(el) {
+      el.textContent = formatDuration(el.getAttribute('data-timer-start'));
+    });
+  }
+
+  // ============= MODAL: MULAI PROSES =============
+  window.openMulaiProses = function(spkNo) {
+    _currentSpkNo = spkNo;
+    var spk = findSpk(spkNo);
+    if (!spk) return;
+    document.getElementById('modal-mulai-info').innerHTML =
+      '<b>' + spk.spk_no + '</b> · ' + escapeHtml(spk.input_spec) + '<br>' +
+      'Batch: ' + spk.batch_id + ' · KG: ' + formatNum(spk.kg_target) + ' kg · Jalur: ' + spk.jalur_count;
+    document.getElementById('modal-mulai-op').value = '';
+    document.getElementById('modal-mulai-note').value = '';
+    document.getElementById('modal-mulai').classList.add('active');
+    setTimeout(function(){ document.getElementById('modal-mulai-op').focus(); }, 100);
+  };
+
+  window.submitMulaiProses = function() {
+    var operator = document.getElementById('modal-mulai-op').value.trim();
+    var note = document.getElementById('modal-mulai-note').value.trim();
+    if (!operator) { alert('❌ Nama operator wajib diisi'); return; }
+    if (!_currentSpkNo) return;
+
+    showLoad('Memulai proses...');
+    google.script.run
+      .withSuccessHandler(function(res) {
+        hideLoad();
+        if (res.success) {
+          closeModal('modal-mulai');
+          loadBoardSlt(false);
+        } else {
+          alert('❌ ' + res.message);
+        }
+      })
+      .withFailureHandler(function(err) {
+        hideLoad();
+        alert('❌ Error: ' + (err.message||err));
+      })
+      .sltStartProcess({ spk_no: _currentSpkNo, operator: operator, note: note });
+  };
+
+  window.closeModal = function(id) {
+    document.getElementById(id).classList.remove('active');
+    _currentSpkNo = null;
+  };
+
+  function findSpk(spkNo) {
+    if (!_boardData) return null;
+    var all = (_boardData.antrian||[]).concat(_boardData.running||[], _boardData.menunggu_timbang||[], _boardData.menunggu_approval||[]);
+    return all.find(function(s){ return s.spk_no === spkNo; });
+  }
+// ============= SETTING PREVIEW (LAZY LOAD) =============
+  var _settingCache = {}; // cache per spk_no
+
+  window.toggleSettingPreview = function(el, spkNo) {
+    var isExpanded = el.classList.contains('expanded');
+    el.classList.toggle('expanded');
+    if (isExpanded) return; // just collapse
+
+    // Expand: check cache dulu
+    var bodyId = 'setting-body-' + spkNo.replace(/[^a-zA-Z0-9]/g, '_');
+    var body = document.getElementById(bodyId);
+    if (_settingCache[spkNo]) {
+      body.innerHTML = _settingCache[spkNo];
+      return;
+    }
+
+    // Lazy load dari backend
+    body.innerHTML = '<div class="card-setting-loading">⏳ Memuat setting...</div>';
+    google.script.run
+      .withSuccessHandler(function(detail) {
+        if (!detail || !detail.found) {
+          body.innerHTML = '<div class="card-setting-loading">❌ Gagal load detail</div>';
+          return;
+        }
+        var html = buildSettingPreviewHtml(detail);
+        _settingCache[spkNo] = html;
+        body.innerHTML = html;
+      })
+      .withFailureHandler(function(err) {
+        body.innerHTML = '<div class="card-setting-loading">❌ Error: ' + (err.message || err) + '</div>';
+      })
+      .sltGetSpkDetail(spkNo);
+  };
+
+  function buildSettingPreviewHtml(detail) {
+    var outs = detail.outs || [];
+    var ti = (detail.header || {}).trim_info || {};
+
+    // Group by setting_no + spec (item_code + lebar + so_ref + cust + owner_used)
+    var groupsBySetting = { 1: {}, 2: {} };
+    outs.forEach(function(o) {
+      var setNo = o.setting_no || 1;
+      var key = [o.item_code, o.lebar, o.so_ref, o.cust, o.owner_used].join('|');
+      if (!groupsBySetting[setNo][key]) {
+        groupsBySetting[setNo][key] = {
+          item_code: o.item_code, lebar: o.lebar, so_ref: o.so_ref,
+          cust: o.cust, owner_used: o.owner_used, jalur_set: {}
+        };
+      }
+      // Track unique jalur number (per jalur, 1 jalur × N cut = N roll dari jalur sama)
+      groupsBySetting[setNo][key].jalur_set[o.jalur] = true;
+    });
+
+    var t = (detail.header || {}).t || 0;
+    var html = '';
+
+    [1, 2].forEach(function(setNo) {
+      var groupKeys = Object.keys(groupsBySetting[setNo]);
+      if (groupKeys.length === 0) return;
+      if (setNo === 2 && !ti.is_split) return;
+
+      var trimStr = setNo === 1
+        ? 'TKi:' + (ti.s1_trim_kiri || 0) + ' TKa:' + (ti.s1_trim_kanan || 0)
+        : 'TKi:' + (ti.s2_trim_kiri || 0) + ' TKa:' + (ti.s2_trim_kanan || 0);
+
+      html += '<div class="card-setting-section">';
+      html += '<div class="card-setting-section-title">🔧 Setting ' + setNo + ' (' + trimStr + ')</div>';
+      html += '<table class="card-setting-table"><thead><tr>';
+      html += '<th>#</th><th>Item</th><th>Desc</th><th>J</th><th>Cust</th><th>O/U</th>';
+      html += '</tr></thead><tbody>';
+      groupKeys.forEach(function(k, i) {
+        var g = groupsBySetting[setNo][k];
+        var desc = (t > 0 && g.lebar > 0) ? (t + '×' + g.lebar) : '-';
+        var jalurCount = Object.keys(g.jalur_set).length;
+        html += '<tr>';
+        html += '<td>' + (i + 1) + '</td>';
+        html += '<td>' + escapeHtml(g.item_code) + '</td>';
+        html += '<td>' + desc + '</td>';
+        html += '<td>' + jalurCount + '</td>';
+        html += '<td>' + escapeHtml(g.cust || '-') + '</td>';
+        html += '<td>' + escapeHtml(g.owner_used || '-') + '</td>';
+        html += '</tr>';
+      });
+      html += '</tbody></table></div>';
+    });
+
+    if (html === '') html = '<div class="card-setting-loading">Tidak ada data setting</div>';
+    return html;
+  }
+
+  // ============= MODAL: CUT SELESAI =============
+  var _cutModalCtx = null;
+
+  window.openCutSelesai = function(spkNo, cutNo, jalurCount) {
+    var spk = findSpk(spkNo);
+    if (!spk) return;
+    _cutModalCtx = { spk_no: spkNo, cut_no: cutNo, jalur_count: jalurCount };
+    document.getElementById('modal-cut-info').innerHTML =
+      '<b>' + spk.spk_no + '</b> — Cut-<b>' + cutNo + '</b> dari ' + spk.total_cut + '<br>' +
+      'Item: ' + escapeHtml(spk.input_spec) + ' · Total jalur: ' + jalurCount;
+    document.getElementById('modal-cut-roll').value = jalurCount; // default = jalur count
+    document.getElementById('modal-cut-ng').value = '0';
+    document.getElementById('modal-cut-reason').value = '';
+    document.getElementById('modal-cut-reason-wrap').style.display = 'none';
+    document.getElementById('modal-cut-op').value = spk.operator || '';
+    document.getElementById('modal-cut-note').value = '';
+    document.getElementById('modal-cut').classList.add('active');
+    setTimeout(function(){ document.getElementById('modal-cut-op').focus(); }, 100);
+  };
+
+  window.onCutNgChange = function() {
+    var ng = parseInt(document.getElementById('modal-cut-ng').value, 10) || 0;
+    document.getElementById('modal-cut-reason-wrap').style.display = ng > 0 ? '' : 'none';
+    if (ng === 0) document.getElementById('modal-cut-reason').value = '';
+  };
+
+  window.submitCutSelesai = function() {
+    if (!_cutModalCtx) return;
+    var rollActual = parseInt(document.getElementById('modal-cut-roll').value, 10) || 0;
+    var ng = parseInt(document.getElementById('modal-cut-ng').value, 10) || 0;
+    var reason = document.getElementById('modal-cut-reason').value.trim();
+    var operator = document.getElementById('modal-cut-op').value.trim();
+    var note = document.getElementById('modal-cut-note').value.trim();
+
+    if (rollActual <= 0) { alert('❌ Roll actual harus > 0'); return; }
+    if (!operator) { alert('❌ Nama operator wajib diisi'); return; }
+    if (ng > 0 && !reason) { alert('❌ Reason NG wajib diisi kalau NG > 0'); return; }
+
+    var payload = {
+      spk_no: _cutModalCtx.spk_no,
+      cut_no: _cutModalCtx.cut_no,
+      roll_actual: rollActual,
+      ng_from_machine: ng,
+      operator: operator,
+      note: reason ? ('NG: ' + reason + '. ' + note) : note
+    };
+
+    showLoad('Menandai cut selesai...');
+    google.script.run
+      .withSuccessHandler(function(res) {
+        hideLoad();
+        if (res.success) {
+          closeModal('modal-cut');
+          _settingCache = {}; // invalidate cache (jaga-jaga kalau ada perubahan status)
+          loadBoardSlt(false);
+          if (res.is_mesin_selesai) {
+            setTimeout(function(){ alert('🏁 Mesin selesai! SPK pindah ke kolom Menunggu Timbang.'); }, 300);
+          }
+        } else {
+          alert('❌ ' + res.message);
+        }
+      })
+      .withFailureHandler(function(err) { hideLoad(); alert('❌ Error: ' + (err.message||err)); })
+      .sltMarkCutSelesai(payload);
+  };
+
+  // ============= MODAL: INPUT TIMBANG =============
+  var _timbangCtx = null; // { spk_no, detail, filter, edits: { out_spk: {kg_actual, kg_ng, reason} } }
+
+  window.openInputTimbang = function(spkNo) {
+    showLoad('Memuat detail SPK...');
+    google.script.run
+      .withSuccessHandler(function(detail) {
+        hideLoad();
+        if (!detail.found) { alert('❌ SPK tidak ditemukan'); return; }
+        _timbangCtx = { spk_no: spkNo, detail: detail, filter: 'pending', edits: {} };
+        document.getElementById('modal-timbang-info').innerHTML =
+          '<b>' + detail.header.spk_no + '</b> · ' + escapeHtml(detail.header.input_spec) + '<br>' +
+          'Total roll: ' + detail.outs.length + ' · Ditimbang: ' + detail.progress.rolls_weighted +
+          ' · Pending: ' + detail.progress.rolls_pending;
+        document.getElementById('modal-timbang-packing').value = '';
+        // Reset filter tabs
+        document.querySelectorAll('.timbang-filter-tab').forEach(function(t){ t.classList.remove('active'); });
+        document.querySelector('.timbang-filter-tab').classList.add('active');
+        renderTimbangTable();
+        document.getElementById('modal-timbang').classList.add('active');
+      })
+      .withFailureHandler(function(err) { hideLoad(); alert('❌ Error: ' + (err.message||err)); })
+      .sltGetSpkDetail(spkNo);
+  };
+
+  window.setTimbangFilter = function(filter, btn) {
+    if (!_timbangCtx) return;
+    _timbangCtx.filter = filter;
+    document.querySelectorAll('.timbang-filter-tab').forEach(function(t){ t.classList.remove('active'); });
+    btn.classList.add('active');
+    renderTimbangTable();
+  };
+
+  function renderTimbangTable() {
+    if (!_timbangCtx) return;
+    var outs = _timbangCtx.detail.outs || [];
+    var filtered = _timbangCtx.filter === 'pending'
+      ? outs.filter(function(o){ return !o.is_weighted; })
+      : outs;
+    var tbody = document.getElementById('modal-timbang-tbody');
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:20px;">Tidak ada roll untuk filter ini</td></tr>';
+      updateTimbangSummary();
+      return;
+    }
+    var html = filtered.map(function(o, i) {
+      var edit = _timbangCtx.edits[o.out_spk] || {};
+      var isWeighted = o.is_weighted;
+      var rowClass = isWeighted ? ' class="weighted"' : '';
+      var statusIcon = isWeighted ? '<span style="color:var(--andon-running);">✅</span>' : '<span style="color:var(--text-muted);">🕐</span>';
+      var kgActVal = edit.kg_actual != null ? edit.kg_actual : (isWeighted ? o.kg_actual : '');
+      var kgNgVal = edit.kg_ng != null ? edit.kg_ng : (isWeighted && o.kg_ng > 0 ? o.kg_ng : '');
+      var reasonVal = edit.reason != null ? edit.reason : '';
+      return '<tr' + rowClass + '>' +
+        '<td>' + (i+1) + '</td>' +
+        '<td style="font-family:monospace;font-size:10px;">' + o.out_spk + '</td>' +
+        '<td>' + escapeHtml(o.item_code) + '</td>' +
+        '<td>' + o.lebar + '</td>' +
+        '<td style="text-align:right;">' + formatNum(o.kg_target) + '</td>' +
+        '<td><input type="number" min="0" step="0.1" value="' + kgActVal + '" onchange="onTimbangEdit(\'' + o.out_spk + '\',\'kg_actual\',this.value)"></td>' +
+        '<td><input type="number" min="0" step="0.1" value="' + kgNgVal + '" onchange="onTimbangEdit(\'' + o.out_spk + '\',\'kg_ng\',this.value)"></td>' +
+        '<td><input type="text" value="' + escapeHtml(reasonVal) + '" placeholder="Kenapa NG?" onchange="onTimbangEdit(\'' + o.out_spk + '\',\'reason\',this.value)"></td>' +
+        '<td>' + statusIcon + '</td>' +
+      '</tr>';
+    }).join('');
+    tbody.innerHTML = html;
+    updateTimbangSummary();
+  }
+
+  window.onTimbangEdit = function(outSpk, field, val) {
+    if (!_timbangCtx) return;
+    if (!_timbangCtx.edits[outSpk]) _timbangCtx.edits[outSpk] = {};
+    if (field === 'kg_actual' || field === 'kg_ng') _timbangCtx.edits[outSpk][field] = parseFloat(val) || 0;
+    else _timbangCtx.edits[outSpk][field] = String(val || '');
+    updateTimbangSummary();
+  };
+
+  function updateTimbangSummary() {
+    if (!_timbangCtx) return;
+    var outs = _timbangCtx.detail.outs || [];
+    var total = outs.length;
+    var weighted = outs.filter(function(o){ return o.is_weighted; }).length;
+    var pending = total - weighted;
+    var inputCount = 0;
+    Object.keys(_timbangCtx.edits).forEach(function(k) {
+      var e = _timbangCtx.edits[k];
+      if ((e.kg_actual && e.kg_actual > 0) || (e.kg_ng && e.kg_ng > 0)) inputCount++;
+    });
+    document.getElementById('timbang-sum-total').textContent = total;
+    document.getElementById('timbang-sum-weighted').textContent = weighted;
+    document.getElementById('timbang-sum-pending').textContent = pending;
+    document.getElementById('timbang-sum-input').textContent = inputCount;
+  }
+
+  window.submitInputTimbang = function() {
+    if (!_timbangCtx) return;
+    var packing = document.getElementById('modal-timbang-packing').value.trim();
+    if (!packing) { alert('❌ Nama packing wajib diisi'); return; }
+
+    // Build weights array dari edits (skip yg tidak diisi)
+    var weights = [];
+    var errors = [];
+    Object.keys(_timbangCtx.edits).forEach(function(outSpk) {
+      var e = _timbangCtx.edits[outSpk];
+      var kgAct = parseFloat(e.kg_actual) || 0;
+      var kgNg = parseFloat(e.kg_ng) || 0;
+      if (kgAct <= 0 && kgNg <= 0) return; // skip yang kosong
+      var reason = String(e.reason || '').trim();
+      if (kgNg > 0 && !reason) {
+        errors.push(outSpk + ' — reason NG wajib');
+        return;
+      }
+      weights.push({
+        out_spk: outSpk,
+        kg_actual: kgAct,
+        qty_ng: kgNg, // SLT: qty=kg
+        kg_ng: kgNg,
+        ng_reason: reason
+      });
+    });
+
+    if (errors.length > 0) { alert('❌ Ada error:\n\n' + errors.join('\n')); return; }
+    if (weights.length === 0) { alert('❌ Tidak ada data timbang yang diinput'); return; }
+
+    var confirmMsg = 'Simpan input timbang?\n\n' +
+      '• ' + weights.length + ' roll di-input\n' +
+      '• Packing: ' + packing;
+    if (!confirm(confirmMsg)) return;
+
+    showLoad('Menyimpan input timbang...');
+    google.script.run
+      .withSuccessHandler(function(res) {
+        hideLoad();
+        if (res.success) {
+          closeModal('modal-timbang');
+          loadBoardSlt(false);
+          if (res.is_menunggu_approval) {
+            setTimeout(function(){ alert('📦 Semua roll ditimbang! SPK siap approval PPIC.'); }, 300);
+          } else {
+            setTimeout(function(){ alert('✅ ' + res.message); }, 300);
+          }
+        } else {
+          alert('❌ ' + res.message);
+        }
+      })
+      .withFailureHandler(function(err) { hideLoad(); alert('❌ Error: ' + (err.message||err)); })
+      .sltInputWeightBatch({ spk_no: _timbangCtx.spk_no, weights: weights, packing_by: packing });
+  };
+
+  // ============= MODAL: APPROVAL CLOSE =============
+  var _approvalSpkNo = null;
+
+  window.openApprovalClose = function(spkNo) {
+    var spk = findSpk(spkNo);
+    if (!spk) return;
+    _approvalSpkNo = spkNo;
+
+    var kgTgt = spk.kg_target || 0;
+    var kgAct = spk.kg_actual || 0;
+    var kgNg = 0; // ambil dari OUT total? backend sudah include per SPK? cek
+    var yieldPct = kgTgt > 0 ? (kgAct / kgTgt * 100).toFixed(1) : 0;
+    var lossPct = kgTgt > 0 ? ((kgTgt - kgAct) / kgTgt * 100).toFixed(1) : 0;
+
+    document.getElementById('modal-approval-info').innerHTML =
+      '<b>' + spk.spk_no + '</b> · ' + escapeHtml(spk.input_spec) + '<br>' +
+      'Batch: ' + spk.batch_id + ' · Owner: ' + spk.owner + ' · Cust: ' + (spk.cust || '-');
+
+    var summaryHtml = '';
+    summaryHtml += '<div class="info-row"><span class="label">KG Target Proses:</span><span class="value">' + formatNum(kgTgt) + ' kg</span></div>';
+    summaryHtml += '<div class="info-row"><span class="label">KG Actual Total:</span><span class="value">' + formatNum(kgAct) + ' kg</span></div>';
+    summaryHtml += '<div class="info-row"><span class="label">Total Roll:</span><span class="value">' + spk.rolls_total + ' / ' + spk.rolls_total + '</span></div>';
+    summaryHtml += '<div class="info-row"><span class="label">Cut Done:</span><span class="value">' + spk.cuts_done + ' / ' + spk.total_cut + '</span></div>';
+    summaryHtml += '<div class="info-row"><span class="label">Yield:</span><span class="value" style="color:var(--andon-running);">' + yieldPct + '%</span></div>';
+    summaryHtml += '<div class="info-row"><span class="label">Loss:</span><span class="value" style="color:' + (lossPct > 3 ? 'var(--accent-orange)' : 'var(--text-primary)') + ';">' + lossPct + '%</span></div>';
+    document.getElementById('modal-approval-summary').innerHTML = summaryHtml;
+
+    document.getElementById('modal-approval-ppic').value = '';
+    document.getElementById('modal-approval').classList.add('active');
+    setTimeout(function(){ document.getElementById('modal-approval-ppic').focus(); }, 100);
+  };
+
+  window.submitApprovalClose = function() {
+    if (!_approvalSpkNo) return;
+    var ppic = document.getElementById('modal-approval-ppic').value.trim();
+    if (!ppic) { alert('❌ Nama PPIC wajib diisi'); return; }
+    if (!confirm('Yakin close SPK ' + _approvalSpkNo + '?\n\nAksi ini tidak bisa di-undo.')) return;
+
+    showLoad('Memproses close SPK...');
+    google.script.run
+      .withSuccessHandler(function(res) {
+        hideLoad();
+        if (res.success) {
+          closeModal('modal-approval');
+          _settingCache = {};
+          loadBoardSlt(false);
+          setTimeout(function(){
+            alert('✅ ' + res.message + '\n\nBatch turunan: ' + res.batch_generated + '\nRekap_ICT: ' + res.ict_generated);
+          }, 300);
+        } else {
+          alert('❌ ' + res.message);
+        }
+      })
+      .withFailureHandler(function(err) { hideLoad(); alert('❌ Error: ' + (err.message||err)); })
+      .sltCloseSpkFinal({ spk_no: _approvalSpkNo, approved_by: ppic });
+  };
+  // ============= AUTO-REFRESH =============
+  function startAutoRefresh() {
+    if (_refreshTimer) clearInterval(_refreshTimer);
+    _refreshTimer = setInterval(function() {
+      loadBoardSlt(false);
+    }, REFRESH_MS);
+  }
+
+  function startTimerUpdate() {
+    if (_timerInterval) clearInterval(_timerInterval);
+    _timerInterval = setInterval(updateAllTimers, 30000); // update timer tiap 30 detik
+  }
+
+  // ============= INIT =============
+  loadBoardSlt(true);
+  startAutoRefresh();
+  startTimerUpdate();
+
+})();
+</script>
+</body>
 </html>

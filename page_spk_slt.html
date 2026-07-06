@@ -81,18 +81,31 @@ td { padding:8px 12px; border-bottom:1px solid #e2e8f0; vertical-align:middle;
   font-size:12px; outline:none; background:#fff; }
 .form-input:focus, .form-select:focus { border-color:var(--primary-blue); }
 .form-input.readonly, .form-input[readonly] { background:#f8fafc; color:var(--text-muted); }
-.form-input.highlight-edit { background:#fff7ed; border-color:var(--warning-orange); }
-.proses-recoil-row { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px; margin-top:8px;
-  padding-top:8px; border-top:1px dashed #e2e8f0; }
+.form-input.highlight-edit { background:#fff7ed; border-color:var(--warning-orange); font-weight: bold; color: #9a3412;}
+
+/* CSS Redesign Header Baru (Split Kiri-Kanan) */
+.header-split { display: flex; gap: 12px; flex-wrap: wrap; }
+.header-left { display: flex; flex-direction: column; gap: 10px; flex: 2; min-width: 350px; }
+.header-right { display: flex; flex-direction: column; gap: 10px; flex: 1.2; min-width: 280px; }
+.header-right-top { display: flex; gap: 10px; }
+.header-right-top .form-field { flex: 1; }
+.info-bar { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 8px 12px; display: flex; gap: 16px; flex-wrap: wrap; align-items: center; height: 100%; }
+.info-bar-recoil { background: #fff7ed; border: 1px dashed #fdba74; border-radius: 4px; padding: 8px 12px; display: flex; gap: 12px; align-items: center; justify-content: space-between; height: 100%; }
+.info-item { display: flex; flex-direction: column; gap: 1px; }
+.info-label { font-size: 9px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+.info-val { font-size: 12px; font-weight: 600; color: #0f172a; }
+.input-with-hint { position: relative; display: flex; align-items: center; }
+.input-with-hint .form-input { padding-right: 60px; width: 100%; }
+.input-hint-text { position: absolute; right: 8px; font-size: 11px; color: #c2410c; font-weight: 600; pointer-events: none;}
 .cut-fields-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
 .cut-field { display:flex; flex-direction:column; min-width:110px; }
 .cut-field label { font-size:10px; color:var(--text-muted); }
 .cut-field .cut-hint { font-size:9px; color:var(--text-muted); margin-top:1px; font-style:italic; }
 .cut-field .cut-hint.error { color:var(--danger-red); font-weight:600; }
-.jalur-table-wrap { margin-top:8px; overflow-x:auto; }
+.jalur-table-wrap { margin-top:8px; overflow:visible; } /* Ubah dari overflow-x:auto */
 .jalur-table { width:100%; table-layout:auto; font-size:11px; }
 .jalur-table th { background:#f1f5f9; padding:6px 8px; font-size:10px; }
-.jalur-table td { padding:4px 6px; border-bottom:1px solid #e2e8f0; }
+.jalur-table td { padding:4px 6px; border-bottom:1px solid #e2e8f0; overflow:visible; } /* Tambahkan overflow:visible di sini */
 .jalur-table td.readonly-cell { background:#f8fafc; color:#666; text-align:center; font-family:monospace; }
 .jalur-table td.kg-roll-cell { background:#f0f9ff; color:#1e40af; text-align:right; font-weight:600; font-family:monospace; }
 .jalur-table input, .jalur-table select { width:100%; padding:3px 6px; font-size:11px;
@@ -248,49 +261,68 @@ td { padding:8px 12px; border-bottom:1px solid #e2e8f0; vertical-align:middle;
 
         <!-- Input Coil -->
         <div class="form-section">
-          <div class="form-section-title">📦 Input Coil</div>
-          <div class="form-grid">
-            <div class="form-field" style="grid-column: span 2;">
-              <label class="form-label">Batch Coil *</label>
-              <div class="autocomplete-wrap">
-                <input type="text" id="slt-batch-search" class="form-input" placeholder="🔍 Ketik batch / spec..."
-                       oninput="onCoilSearchInput(this.value)" onfocus="onCoilSearchFocus()">
-                <div class="autocomplete-dropdown" id="slt-batch-dropdown"></div>
+          <div class="form-section-title">📦 Input Coil & Proses</div>
+          
+          <div class="header-split">
+            <!-- BAGIAN KIRI (Batas Garis Biru Kiri) -->
+            <div class="header-left">
+              <div class="form-field">
+                <label class="form-label">Batch Coil * (Ketik mencari)</label>
+                <div class="autocomplete-wrap" style="width: 100%;">
+                  <input type="text" id="slt-batch-search" class="form-input" style="width: 100%;" placeholder="🔍 Ketik batch / spec..."
+                         oninput="onCoilSearchInput(this.value)" onfocus="onCoilSearchFocus()">
+                  <div class="autocomplete-dropdown" id="slt-batch-dropdown"></div>
+                </div>
+              </div>
+              
+              <div class="info-bar">
+                <div class="info-item">
+                  <span class="info-label">Item Code</span>
+                  <span class="info-val" id="slt-info-item">-</span>
+                </div>
+                <div class="info-item" style="border-right: 1px solid #cbd5e1; padding-right: 16px;">
+                  <span class="info-label">T × Lebar</span>
+                  <span class="info-val" id="slt-info-dim">-</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Stok Avail</span>
+                  <span class="info-val" style="color: var(--primary-blue);"><span id="slt-info-kg">0</span> kg <small style="color:#64748b; font-weight:normal;" id="slt-info-m">(0 m)</small></span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Owner</span>
+                  <span class="info-val" id="slt-info-owner">-</span>
+                </div>
               </div>
             </div>
-            <div class="form-field"><label class="form-label">Item Code</label><input type="text" id="slt-coil-item" class="form-input readonly" readonly></div>
-            <div class="form-field"><label class="form-label">Description</label><input type="text" id="slt-coil-desc" class="form-input readonly" readonly></div>
-            <div class="form-field"><label class="form-label">T (mm)</label><input type="text" id="slt-coil-t" class="form-input readonly" readonly></div>
-            <div class="form-field"><label class="form-label">Lebar Coil (mm)</label><input type="text" id="slt-coil-lebar" class="form-input readonly" readonly></div>
-            <div class="form-field"><label class="form-label">KG Avail</label><input type="text" id="slt-coil-kg" class="form-input readonly" readonly></div>
-            <div class="form-field"><label class="form-label">Length (m)</label><input type="text" id="slt-coil-length" class="form-input readonly" readonly></div>
-            <div class="form-field"><label class="form-label">Owner</label><input type="text" id="slt-coil-owner" class="form-input readonly" readonly></div>
-            <div class="form-field"><label class="form-label">MC</label>
-              <select id="slt-mc" class="form-select"><option value="SLT-01">SLT-01</option></select>
-            </div>
-            <div class="form-field"><label class="form-label">Priority</label>
-              <select id="slt-priority" class="form-select">
-                <option value="Normal">Normal</option><option value="Urgent">Urgent</option><option value="Rush">Rush</option>
-              </select>
-            </div>
-          </div>
-          <!-- Total Proses & Recoil row -->
-          <div class="proses-recoil-row">
-            <div class="form-field">
-              <label class="form-label" style="color:var(--warning-orange);">Total Proses (KG) *</label>
-              <input type="number" id="slt-kg-proses" class="form-input highlight-edit" min="0" step="0.1" value="0" oninput="onKgProsesChange()">
-            </div>
-            <div class="form-field">
-              <label class="form-label">Total Panjang Proses (m)</label>
-              <input type="text" id="slt-length-proses" class="form-input readonly" readonly value="0">
-            </div>
-            <div class="form-field">
-              <label class="form-label">Recoil (KG)</label>
-              <input type="text" id="slt-kg-recoil" class="form-input readonly" readonly value="0">
-            </div>
-            <div class="form-field">
-              <label class="form-label">Recoil Panjang (m)</label>
-              <input type="text" id="slt-length-recoil" class="form-input readonly" readonly value="0">
+
+            <!-- BAGIAN KANAN (Batas Garis Biru Kanan) -->
+            <div class="header-right">
+              <div class="header-right-top">
+                <div class="form-field">
+                  <label class="form-label">MC (Mesin)</label>
+                  <select id="slt-mc" class="form-select"><option value="SLT-01">SLT-01</option></select>
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Priority</label>
+                  <select id="slt-priority" class="form-select">
+                    <option value="Normal">Normal</option><option value="Urgent">Urgent</option><option value="Rush">Rush</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="info-bar-recoil">
+                <div class="form-field" style="flex:1.5;">
+                  <label class="form-label" style="color:var(--warning-orange);">Total Proses (KG / Meter) *</label>
+                  <div class="input-with-hint">
+                      <input type="number" id="slt-kg-proses" class="form-input highlight-edit" min="0" step="0.1" value="0" oninput="onKgProsesChange()">
+                      <span class="input-hint-text" id="slt-length-proses-hint">0 M</span>
+                  </div>
+                </div>
+                <div class="info-item" style="border-left: 1px dashed #fdba74; padding-left: 12px; text-align: right; flex: 1;">
+                  <span class="info-label" style="color: #9a3412;">Est. Sisa / Recoil</span>
+                  <span class="info-val" style="color: #9a3412; font-size: 13px;"><span id="slt-kg-recoil">0</span> kg <br><small style="font-weight:normal;" id="slt-length-recoil-hint">(0 m)</small></span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -298,8 +330,9 @@ td { padding:8px 12px; border-bottom:1px solid #e2e8f0; vertical-align:middle;
         <!-- Cut Plan -->
         <div class="form-section">
           <div class="form-section-title">✂️ Cut Plan</div>
-          <div class="form-grid" style="max-width:320px;">
-            <div class="form-field">
+          <div style="display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap;">
+            <!-- Dropdown Jumlah Cut -->
+            <div class="form-field" style="width: 100px; flex-shrink: 0;">
               <label class="form-label">Jumlah Cut</label>
               <select id="slt-cut-count" class="form-select" onchange="onCutCountChange(this.value)">
                 <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option>
@@ -307,8 +340,13 @@ td { padding:8px 12px; border-bottom:1px solid #e2e8f0; vertical-align:middle;
                 <option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
               </select>
             </div>
+            
+            <!-- Garis Pemisah (Opsional, biar makin rapi) -->
+            <div style="width: 2px; background: #e2e8f0; margin-top: 5px; height: 35px;"></div>
+            
+            <!-- Deretan Input Cut-1, Cut-2, dst -->
+            <div class="cut-fields-row" id="slt-cut-fields" style="margin-top: 0; flex-grow: 1;"></div>
           </div>
-          <div class="cut-fields-row" id="slt-cut-fields"></div>
         </div>
 
         <!-- Setting 1 -->
@@ -439,13 +477,25 @@ td { padding:8px 12px; border-bottom:1px solid #e2e8f0; vertical-align:middle;
   // ============= CREATE =============
   window.openCreateSLT=function(){showViewSlt('view-create-slt');_selectedCoil=null;_jalurRowsS1=[];_jalurRowsS2=[];_isSplit=false;_jalurIdSeq=0;_kgProses=0;resetFormUI();loadFormDataSLT();onCutCountChange('3');addJalurRow(1);};
   window.cancelCreateSLT=function(){if(confirm('Batalkan pembuatan SPK? Data hilang.'))showViewSlt('view-list-slt');};
-  function resetFormUI(){['slt-batch-search','slt-coil-item','slt-coil-desc','slt-coil-t','slt-coil-lebar','slt-coil-kg','slt-coil-length','slt-coil-owner'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});document.getElementById('slt-kg-proses').value='0';document.getElementById('slt-length-proses').value='0';document.getElementById('slt-kg-recoil').value='0';document.getElementById('slt-length-recoil').value='0';document.getElementById('slt-s1-jalur-body').innerHTML='';document.getElementById('slt-s2-jalur-body').innerHTML='';document.getElementById('slt-setting-2').style.display='none';document.getElementById('slt-split-btn').textContent='🔀 Aktifkan Split (Setting 2)';document.getElementById('slt-split-btn').classList.remove('split-btn-on');document.getElementById('slt-cut-count').value='3';document.getElementById('slt-s1-trim-kiri').value='5';document.getElementById('slt-s1-trim-kanan').value='5';document.getElementById('slt-s1-trim-kanan').readOnly=false;document.getElementById('slt-s2-trim-kiri').value='5';document.getElementById('slt-s2-trim-kanan').value='5';}
+  function resetFormUI(){['slt-batch-search'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});document.getElementById('slt-info-item').textContent='-';document.getElementById('slt-info-dim').textContent='-';document.getElementById('slt-info-kg').textContent='0';document.getElementById('slt-info-m').textContent='(0 m)';document.getElementById('slt-info-owner').textContent='-';document.getElementById('slt-kg-proses').value='0';document.getElementById('slt-length-proses-hint').textContent='0 M';document.getElementById('slt-kg-recoil').textContent='0';document.getElementById('slt-length-recoil-hint').textContent='(0 m)';document.getElementById('slt-s1-jalur-body').innerHTML='';document.getElementById('slt-s2-jalur-body').innerHTML='';document.getElementById('slt-setting-2').style.display='none';document.getElementById('slt-split-btn').textContent='🔀 Aktifkan Split (Setting 2)';document.getElementById('slt-split-btn').classList.remove('split-btn-on');document.getElementById('slt-cut-count').value='3';document.getElementById('slt-s1-trim-kiri').value='5';document.getElementById('slt-s1-trim-kanan').value='5';document.getElementById('slt-s1-trim-kanan').readOnly=false;document.getElementById('slt-s2-trim-kiri').value='5';document.getElementById('slt-s2-trim-kanan').value='5';}
   function loadFormDataSLT(){showSltOverlay('Memuat master data...');google.script.run.withSuccessHandler(function(d){_formData=d||{stok_coil:[],m_item:[],so_open:[]};hideSltOverlay();}).withFailureHandler(function(err){hideSltOverlay();alert('❌ '+(err.message||err));}).sltGetFormData();}
 
   // ============= COIL AUTOCOMPLETE =============
   window.onCoilSearchInput=function(val){var q=String(val||'').trim().toLowerCase();var dropdown=document.getElementById('slt-batch-dropdown');if(!q){dropdown.classList.remove('show');return;}var results=(_formData.stok_coil||[]).filter(function(c){var h=[c.batch_id,c.item_code,c.description,c.spec,c.t,c.lebar_coil,c.owner].join(' ').toLowerCase();return h.indexOf(q)!==-1;}).slice(0,15);var html='';if(results.length===0)html='<div class="ac-empty">Tidak ada coil tersedia</div>';else results.forEach(function(c,i){html+='<div class="ac-item" onclick="selectCoil('+i+')"><b>'+c.batch_id+'</b> · '+c.description+'<small>T:'+c.t+'mm · Lebar:'+c.lebar_coil+'mm · '+formatSltNum(c.kg_avail)+'kg · '+c.owner+'</small></div>';});dropdown.innerHTML=html;dropdown.classList.add('show');_activeDropdownId='slt-batch-dropdown';window._sltFilteredCoils=results;};
   window.onCoilSearchFocus=function(){var inp=document.getElementById('slt-batch-search');if(inp.value)onCoilSearchInput(inp.value);};
-  window.selectCoil=function(idx){var c=(window._sltFilteredCoils||[])[idx];if(!c)return;_selectedCoil=c;document.getElementById('slt-batch-search').value=c.batch_id+' · '+c.description;document.getElementById('slt-coil-item').value=c.item_code;document.getElementById('slt-coil-desc').value=c.description;document.getElementById('slt-coil-t').value=c.t;document.getElementById('slt-coil-lebar').value=c.lebar_coil;document.getElementById('slt-coil-kg').value=formatSltNum(c.kg_avail);var lengthM=0;if(c.t>0&&c.lebar_coil>0)lengthM=Math.round((c.kg_avail*1000)/(c.t*c.lebar_coil*7.85)*100)/100;document.getElementById('slt-coil-length').value=lengthM;document.getElementById('slt-coil-owner').value=c.owner;document.getElementById('slt-batch-dropdown').classList.remove('show');
+  window.selectCoil=function(idx){
+    var c=(window._sltFilteredCoils||[])[idx];if(!c)return;_selectedCoil=c;
+    document.getElementById('slt-batch-search').value=c.batch_id+' · '+c.description;
+    
+    // Update Info Bar Readonly
+    document.getElementById('slt-info-item').textContent=c.item_code;
+    document.getElementById('slt-info-dim').textContent=c.t+' × '+c.lebar_coil+' mm';
+    document.getElementById('slt-info-kg').textContent=formatSltNum(c.kg_avail);
+    var lengthM=0;if(c.t>0&&c.lebar_coil>0)lengthM=Math.round((c.kg_avail*1000)/(c.t*c.lebar_coil*7.85)*100)/100;
+    document.getElementById('slt-info-m').textContent='('+lengthM+' m)';
+    document.getElementById('slt-info-owner').textContent=c.owner;
+    
+    document.getElementById('slt-batch-dropdown').classList.remove('show');
     // Default: kg_proses = kg_avail (proses semua)
     _kgProses = c.kg_avail;
     document.getElementById('slt-kg-proses').value = c.kg_avail;
@@ -475,12 +525,16 @@ td { padding:8px 12px; border-bottom:1px solid #e2e8f0; vertical-align:middle;
     var lengthP = (t > 0 && lebar > 0) ? Math.round(kgP * 1000 / (t * lebar * 7.85) * 100) / 100 : 0;
     var kgR = Math.max(0, kgAvail - kgP);
     var lengthR = (t > 0 && lebar > 0) ? Math.round(kgR * 1000 / (t * lebar * 7.85) * 100) / 100 : 0;
-    document.getElementById('slt-length-proses').value = lengthP;
-    document.getElementById('slt-kg-recoil').value = formatSltNum(kgR);
-    document.getElementById('slt-length-recoil').value = lengthR;
+    
+    document.getElementById('slt-length-proses-hint').textContent = lengthP + ' M';
+    document.getElementById('slt-kg-recoil').textContent = formatSltNum(kgR);
+    document.getElementById('slt-length-recoil-hint').textContent = '(' + lengthR + ' m)';
   }
   function getLengthProses() {
-    return parseFloat(document.getElementById('slt-length-proses').value) || 0;
+    if (!_selectedCoil) return 0;
+    var t = _selectedCoil.t, lebar = _selectedCoil.lebar_coil;
+    if (t > 0 && lebar > 0) return Math.round(_kgProses * 1000 / (t * lebar * 7.85) * 100) / 100;
+    return 0;
   }
 
   // ============= CUT PLAN (dengan smart hint) =============
@@ -607,6 +661,7 @@ td { padding:8px 12px; border-bottom:1px solid #e2e8f0; vertical-align:middle;
         // Target Loc
         bodyHtml += '<td><select onchange="onJalurFieldChange(' + settingNo + ',' + r.id + ',\'target_loc\',this.value)">';
         bodyHtml += '<option value="Stok_FG"' + (r.target_loc==='Stok_FG'?' selected':'') + '>Stok_FG</option>';
+        bodyHtml += '<option value="FG_RM_Stamping"' + (r.target_loc==='FG_RM_Stamping'?' selected':'') + '>FG_RM_Stamping</option>';
         bodyHtml += '<option value="Stok_Coil"' + (r.target_loc==='Stok_Coil'?' selected':'') + '>Stok_Coil</option>';
         bodyHtml += '</select></td>';
         // SO Ref
@@ -701,7 +756,8 @@ td { padding:8px 12px; border-bottom:1px solid #e2e8f0; vertical-align:middle;
     var html = '';
     if (filtered.length === 0) html = '<div class="ac-empty">Tidak ada SO OPEN cocok</div>';
     else filtered.forEach(function(so, i) {
-      html += '<div class="ac-item" onclick="selectSo(' + settingNo + ',' + rowId + ',' + i + ')"><b>' + so.so_no + '</b> · ' + so.cust +
+      var tipeLabel = so.tipe === 'STP' ? '<small style="color:#7c3aed;font-weight:700;margin-left:4px;">[STP]</small>' : '<small style="color:#0265dc;font-weight:700;margin-left:4px;">[SO]</small>';
+      html += '<div class="ac-item" onclick="selectSo(' + settingNo + ',' + rowId + ',' + i + ')"><b>' + so.so_no + '</b>' + tipeLabel + ' · ' + so.cust +
               '<small>' + so.item_code + ' · Sisa: ' + formatSltNum(so.bl_q) + '</small></div>';
     });
     dropdown.innerHTML = html; dropdown.classList.add('show');

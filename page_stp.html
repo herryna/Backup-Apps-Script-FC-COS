@@ -1,0 +1,1016 @@
+<style>
+/* ================================================================
+   STP REQUEST — Stamping Production Request Module
+================================================================ */
+:root {
+  --bg-app: #eef2f5; --bg-panel: #ffffff;
+  --text-main: #202b3c; --text-muted: #6b7785;
+  --border-color: #cbd5e1; --primary-blue: #0265dc;
+  --success-green: #108a4f; --danger-red: #d32f2f;
+  --table-head: #f1f5f9; --warning-orange: #f97316;
+  --stp-accent: #4f46e5;
+}
+
+body { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 12px; color: var(--text-main); background: var(--bg-app); margin: 0; padding: 16px; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; }
+* { box-sizing: border-box; }
+
+.view-container { display: none; flex-direction: column; gap: 12px; height: 100%; }
+.view-container.active { display: flex; }
+
+.panel { background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 4px; display: flex; flex-direction: column; flex-shrink: 0;}
+.panel-head { font-weight: 700; color: #0f172a; background: #f8fafc; padding: 10px 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+.panel-body { padding: 12px 16px; }
+
+.row { display: flex; gap: 12px; margin-bottom: 10px; } .row:last-child { margin-bottom: 0; }
+.col { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.col-2 { flex: 2; display: flex; flex-direction: column; gap: 4px; }
+label { font-weight: 600; color: var(--text-muted); font-size: 11px; }
+.f-inp { border: 1px solid var(--border-color); border-radius: 3px; padding: 6px 10px; font-size: 12px; height: 28px; width: 100%; transition: 0.1s; box-sizing: border-box; background:#fff;}
+.f-inp:focus { outline: none; border-color: var(--stp-accent); box-shadow: 0 0 0 2px rgba(79,70,229,0.15); }
+.f-inp:disabled { background: #f1f5f9; color: #64748b; font-weight: 600; cursor: not-allowed; }
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; }
+
+.btn { padding: 0 14px; height: 28px; border-radius: 3px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; display: inline-flex; align-items: center; justify-content: center; transition: 0.1s; gap:6px;}
+.btn-primary { background: var(--stp-accent); color: #fff; } .btn-primary:hover { background: #3730a3; }
+.btn-success { background: var(--success-green); color: #fff; } .btn-success:hover { background: #0c6b3d; }
+.btn-outline { background: #fff; color: var(--text-main); border: 1px solid var(--border-color); } .btn-outline:hover { background: #f1f5f9; }
+.btn-danger { background: #fee2e2; color: var(--danger-red); border: 1px solid #fca5a5; } .btn-danger:hover { background: #fca5a5; }
+.btn-mini { padding: 0 8px; height: 22px; font-size: 10px; border-radius: 3px; }
+
+.table-wrap { flex-grow: 1; overflow-y: auto; overflow-x: auto; background: #fff; border: 1px solid var(--border-color); border-radius: 4px; min-height: 150px; }
+table { width: 100%; border-collapse: collapse; text-align: left; }
+th { background: var(--table-head); font-size: 11px; padding: 10px 12px; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 10; color: var(--text-muted); text-transform: uppercase;}
+td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
+
+.badge { padding: 2px 6px; border-radius: 3px; font-weight: 700; font-size: 10px; display: inline-block; text-align: center;}
+.badge-open  { background: #fffbeb; color: var(--warning-orange); border: 1px solid #fcd34d; }
+.badge-done  { background: #f0fdf4; color: var(--success-green); border: 1px solid #86efac; }
+.badge-muted { background: #f1f5f9; color: var(--text-muted); border: 1px solid var(--border-color); }
+.badge-fc    { background: #eff6ff; color: var(--primary-blue); border: 1px solid #93c5fd; }
+.badge-drc   { background: #fff7ed; color: var(--warning-orange); border: 1px solid #fdba74; }
+.badge-rush  { background: #fef2f2; color: var(--danger-red); border: 1px solid #fca5a5; }
+.badge-urgent{ background: #fffbeb; color: var(--warning-orange); border: 1px solid #fcd34d; }
+
+/* FILTER BAR */
+.filter-bar { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+.filter-pills { display: flex; gap: 4px; }
+.filter-pill {
+  padding: 5px 12px; border: 1px solid var(--border-color); background: #fff;
+  border-radius: 999px; font-size: 11px; font-weight: 600;
+  cursor: pointer; transition: 0.15s; text-transform: uppercase;
+}
+.filter-pill:hover { background: #f1f5f9; }
+.filter-pill.active { background: var(--stp-accent); color: #fff; border-color: var(--stp-accent); }
+.filter-pill.active.open { background: var(--warning-orange); border-color: var(--warning-orange); }
+.filter-pill.active.done { background: var(--success-green); border-color: var(--success-green); }
+.filter-search-wrap { flex: 1; max-width: 340px; margin-left: auto; position: relative; }
+.filter-search-wrap input { padding-left: 32px; height: 30px; border-radius: 4px; }
+.filter-search-wrap::before {
+  content: "🔍"; position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  font-size: 12px; pointer-events: none; opacity: 0.5;
+}
+.filter-periode { width: 130px; }
+
+/* EXPANDABLE ROW */
+.stp-main-row { cursor: pointer; transition: background 0.1s; }
+.stp-main-row:hover { background: #f8fafc; }
+.stp-main-row.expanded { background: #eef2ff; }
+.expand-icon { display: inline-block; font-size: 10px; color: var(--text-muted); transition: transform 0.15s; width: 12px; }
+.stp-main-row.expanded .expand-icon { transform: rotate(90deg); color: var(--stp-accent); }
+
+.stp-detail-row td { padding: 0; border-bottom: 2px solid var(--border-color); }
+.stp-detail-block { padding: 8px 20px 12px 40px; background: #f8fafc; }
+.stp-detail-block table { border: 1px solid var(--border-color); background: #fff; }
+.stp-detail-block th { background: #e2e8f0; padding: 6px 10px; font-size: 10px; position: static; }
+.stp-detail-block td { padding: 6px 10px; font-size: 11px; }
+
+/* MODAL */
+.modal-backdrop {
+  display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.55);
+  z-index: 9998; justify-content: center; align-items: center;
+}
+.modal-backdrop.on { display: flex; }
+.modal-box {
+  background: #fff; border-radius: 8px; box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+  max-width: 900px; width: 92%; max-height: 92vh; display: flex; flex-direction: column;
+}
+.modal-box.narrow { max-width: 520px; }
+.modal-head {
+  padding: 12px 18px; border-bottom: 1px solid var(--border-color);
+  display: flex; justify-content: space-between; align-items: center;
+  background: #f8fafc; border-radius: 8px 8px 0 0;
+}
+.modal-head h3 { margin: 0; font-size: 14px; color: #0f172a; }
+.modal-body { padding: 14px 18px; overflow-y: auto; flex: 1; }
+.modal-foot {
+  padding: 10px 18px; border-top: 1px solid var(--border-color);
+  display: flex; justify-content: flex-end; gap: 8px; background: #f8fafc; border-radius: 0 0 8px 8px;
+}
+
+/* Item table di modal */
+.item-tbl { width: 100%; border-collapse: collapse; }
+.item-tbl th { background: #f1f5f9; padding: 6px 8px; font-size: 10px; text-align: left; border-bottom: 1px solid var(--border-color); text-transform: uppercase; color: var(--text-muted); position: static; }
+.item-tbl td { padding: 4px 6px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+.item-tbl .f-inp { height: 26px; padding: 3px 6px; font-size: 11px; }
+.btn-remove-item { background:#fee2e2; color:var(--danger-red); border:none; border-radius:3px; padding:2px 8px; cursor:pointer; font-size:11px; font-weight:700; }
+.btn-remove-item:hover { background:#fca5a5; }
+
+/* OWNER TOGGLE */
+.btn-owner {
+  width: 100%; height: 28px; border-radius: 3px; border: 2px dashed var(--border-color);
+  background: #f8fafc; color: var(--text-muted); font-weight: 700; cursor: pointer;
+  transition: all 0.15s; display: flex; align-items: center; justify-content: center;
+}
+.btn-owner.fc  { background: var(--primary-blue); color: white; border-style: solid; border-color: #014da8; }
+.btn-owner.drc { background: var(--warning-orange); color: white; border-style: solid; border-color: #c2410c; }
+
+/* OVERLAY LOADING */
+.stp-ov { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.8); z-index: 9999; justify-content: center; align-items: center; flex-direction: column; }
+.stp-ov.on { display: flex; }
+.stp-spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: var(--stp-accent); border-radius: 50%; animation: stp-spin 0.7s linear infinite; }
+@keyframes stp-spin { to { transform: rotate(360deg); } }
+.stp-msg { margin-top: 12px; font-weight: 700; color: var(--text-main); font-size: 12px; }
+
+/* DATALIST alternatif: search-container */
+.autocomplete-wrap { position: relative; }
+.ac-results {
+  position: absolute; top: 100%; left: 0; right: 0;
+  background: white; border: 1px solid var(--border-color);
+  z-index: 1000; max-height: 220px; overflow-y: auto;
+  border-radius: 4px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); display: none;
+}
+.ac-item { padding: 6px 10px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 11px; }
+.ac-item:hover, .ac-item.selected { background: #eef2ff; color: var(--stp-accent); font-weight: 700; }
+.ac-item .ac-code { font-weight: 700; color: var(--stp-accent); }
+.ac-item .ac-desc { color: var(--text-muted); font-size: 10px; }
+</style>
+
+<!-- ================================================================
+     VIEW UTAMA: DASHBOARD LIST
+================================================================ -->
+<div id="view-stp-dashboard" class="view-container active">
+  <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-shrink:0;">
+    <div>
+      <h1 style="font-size:20px; font-weight:800; color:#0f172a; margin:0;">📋 Stamping Production Request</h1>
+      <span style="color:var(--text-muted); font-size:12px;">Daftar request produksi dari admin Stamping. Auto-tracking fulfillment dari SPK.</span>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-outline" onclick="stpReloadList()">🔄 Refresh</button>
+      <button class="btn btn-primary" onclick="stpOpenCreateModal()">➕ STP Baru</button>
+    </div>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <div class="filter-pills">
+      <button class="filter-pill active" data-status="ALL" onclick="stpSetFilterStatus('ALL')">Semua</button>
+      <button class="filter-pill" data-status="OPEN" onclick="stpSetFilterStatus('OPEN')">🟡 Open</button>
+      <button class="filter-pill" data-status="FULFILLED" onclick="stpSetFilterStatus('FULFILLED')">✅ Fulfilled</button>
+    </div>
+    <input type="month" class="f-inp filter-periode" id="stp-filter-periode" onchange="stpSetFilterPeriode(this.value)" title="Filter periode">
+    <div class="filter-search-wrap">
+      <input type="text" class="f-inp" id="stp-search-input" placeholder="Cari STP / Cust / Item Code..." oninput="stpOnSearchInput(this.value)">
+    </div>
+  </div>
+
+  <!-- LIST -->
+  <div class="panel" style="flex:1; min-height:200px;">
+    <div class="panel-head">
+      <span>📋 Daftar STP Request</span>
+      <span id="stp-count-info" style="font-weight:500; color:var(--text-muted); font-size:11px;">— STP</span>
+    </div>
+    <div class="table-wrap" style="border:none; border-radius:0;">
+      <table>
+        <thead>
+          <tr>
+            <th width="3%"></th>
+            <th width="13%">STP No.</th>
+            <th width="14%">Cust</th>
+            <th width="8%">Periode</th>
+            <th width="10%">Schedule</th>
+            <th width="7%">Owner</th>
+            <th width="8%">Priority</th>
+            <th width="6%" style="text-align:center;">Items</th>
+            <th width="13%">Total Qty</th>
+            <th width="9%">Status</th>
+            <th width="9%">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="stp-list-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: STP BARU
+================================================================ -->
+<div class="modal-backdrop" id="stp-modal-create">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>➕ Buat STP Request Baru</h3>
+      <button class="btn btn-outline btn-mini" onclick="stpCloseModal('stp-modal-create')">✖</button>
+    </div>
+    <div class="modal-body">
+      <!-- HEADER -->
+      <div class="row">
+        <div class="col-2">
+          <label>Customer *</label>
+          <select class="f-inp" id="stp-new-cust"></select>
+        </div>
+        <div class="col">
+          <label>Periode * (YYYY-MM)</label>
+          <input type="month" class="f-inp" id="stp-new-periode">
+        </div>
+        <div class="col">
+          <label>Schedule Date *</label>
+          <input type="date" class="f-inp" id="stp-new-schedule">
+        </div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <label>Owner Used</label>
+          <button type="button" class="btn-owner fc" id="stp-new-owner" onclick="stpToggleOwner('stp-new-owner')">FC</button>
+        </div>
+        <div class="col">
+          <label>Priority</label>
+          <select class="f-inp" id="stp-new-priority">
+            <option value="Normal">Normal</option>
+            <option value="Urgent">Urgent</option>
+            <option value="Rush">Rush</option>
+          </select>
+        </div>
+        <div class="col-2">
+          <label>Note (opsional)</label>
+          <input type="text" class="f-inp" id="stp-new-note" placeholder="Catatan umum">
+        </div>
+      </div>
+
+      <!-- ITEM LIST -->
+      <div style="margin-top:12px; display:flex; justify-content:space-between; align-items:center;">
+        <label style="font-size:12px; font-weight:700; color:#0f172a;">📦 Daftar Item Request</label>
+        <button class="btn btn-outline btn-mini" onclick="stpAddNewItemRow()">➕ Tambah Item</button>
+      </div>
+      <table class="item-tbl" style="margin-top:6px;">
+        <thead>
+          <tr>
+            <th width="4%">#</th>
+            <th width="30%">Item Code *</th>
+            <th width="28%">Description</th>
+            <th width="10%">T</th>
+            <th width="12%">Qty Req *</th>
+            <th width="12%">Note</th>
+            <th width="4%"></th>
+          </tr>
+        </thead>
+        <tbody id="stp-new-items-tbody"></tbody>
+      </table>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="stpCloseModal('stp-modal-create')">Batal</button>
+      <button class="btn btn-primary" onclick="stpSubmitNew()">💾 Simpan STP</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: EDIT HEADER
+================================================================ -->
+<div class="modal-backdrop" id="stp-modal-edit-header">
+  <div class="modal-box narrow">
+    <div class="modal-head">
+      <h3>✏️ Edit Header STP: <span id="stp-edit-hdr-no"></span></h3>
+      <button class="btn btn-outline btn-mini" onclick="stpCloseModal('stp-modal-edit-header')">✖</button>
+    </div>
+    <div class="modal-body">
+      <div class="row"><div class="col">
+        <label>Customer</label>
+        <select class="f-inp" id="stp-edit-hdr-cust"></select>
+      </div></div>
+      <div class="row">
+        <div class="col"><label>Periode</label><input type="month" class="f-inp" id="stp-edit-hdr-periode"></div>
+        <div class="col"><label>Schedule Date</label><input type="date" class="f-inp" id="stp-edit-hdr-schedule"></div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <label>Owner Used</label>
+          <button type="button" class="btn-owner fc" id="stp-edit-hdr-owner" onclick="stpToggleOwner('stp-edit-hdr-owner')">FC</button>
+        </div>
+        <div class="col">
+          <label>Priority</label>
+          <select class="f-inp" id="stp-edit-hdr-priority">
+            <option value="Normal">Normal</option>
+            <option value="Urgent">Urgent</option>
+            <option value="Rush">Rush</option>
+          </select>
+        </div>
+      </div>
+      <div style="font-size:11px; color:var(--text-muted); margin-top:8px;">
+        ⚠️ Perubahan header akan apply ke SEMUA item di STP ini.
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="stpCloseModal('stp-modal-edit-header')">Batal</button>
+      <button class="btn btn-primary" onclick="stpSubmitEditHeader()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: EDIT ITEM
+================================================================ -->
+<div class="modal-backdrop" id="stp-modal-edit-item">
+  <div class="modal-box narrow">
+    <div class="modal-head">
+      <h3>✏️ Edit Item: <span id="stp-edit-item-label"></span></h3>
+      <button class="btn btn-outline btn-mini" onclick="stpCloseModal('stp-modal-edit-item')">✖</button>
+    </div>
+    <div class="modal-body">
+      <div class="row">
+        <div class="col">
+          <label>Qty Req <span id="stp-edit-item-lock-hint" style="color:var(--danger-red); font-weight:700;"></span></label>
+          <input type="number" class="f-inp" id="stp-edit-item-qty" min="1">
+        </div>
+      </div>
+      <div class="row"><div class="col">
+        <label>Ref SPK (opsional)</label>
+        <input type="text" class="f-inp" id="stp-edit-item-ref">
+      </div></div>
+      <div class="row"><div class="col">
+        <label>Note</label>
+        <input type="text" class="f-inp" id="stp-edit-item-note">
+      </div></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="stpCloseModal('stp-modal-edit-item')">Batal</button>
+      <button class="btn btn-primary" onclick="stpSubmitEditItem()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: ADD ITEM ke STP existing
+================================================================ -->
+<div class="modal-backdrop" id="stp-modal-add-item">
+  <div class="modal-box narrow">
+    <div class="modal-head">
+      <h3>➕ Tambah Item ke STP: <span id="stp-add-item-no"></span></h3>
+      <button class="btn btn-outline btn-mini" onclick="stpCloseModal('stp-modal-add-item')">✖</button>
+    </div>
+    <div class="modal-body">
+      <div class="row"><div class="col">
+        <label>Item Code *</label>
+        <div class="autocomplete-wrap">
+          <input type="text" class="f-inp" id="stp-add-item-search"
+                 placeholder="Ketik kode / deskripsi item..."
+                 oninput="stpAcFilter(this,'stp-add-item-ac')"
+                 onfocus="stpAcFilter(this,'stp-add-item-ac')">
+          <div class="ac-results" id="stp-add-item-ac"></div>
+        </div>
+        <input type="hidden" id="stp-add-item-code">
+        <div style="font-size:10px; color:var(--text-muted); margin-top:2px;" id="stp-add-item-info"></div>
+      </div></div>
+      <div class="row">
+        <div class="col"><label>Qty Req *</label><input type="number" class="f-inp" id="stp-add-item-qty" min="1"></div>
+        <div class="col"><label>Ref SPK</label><input type="text" class="f-inp" id="stp-add-item-ref"></div>
+      </div>
+      <div class="row"><div class="col">
+        <label>Note</label>
+        <input type="text" class="f-inp" id="stp-add-item-note">
+      </div></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="stpCloseModal('stp-modal-add-item')">Batal</button>
+      <button class="btn btn-primary" onclick="stpSubmitAddItem()">💾 Simpan Item</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: KONFIRMASI (delete/cancel)
+================================================================ -->
+<div class="modal-backdrop" id="stp-modal-confirm">
+  <div class="modal-box narrow">
+    <div class="modal-head">
+      <h3 id="stp-confirm-title">⚠️ Konfirmasi</h3>
+    </div>
+    <div class="modal-body">
+      <p id="stp-confirm-msg" style="margin:0; font-size:13px; line-height:1.5;"></p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="stpCloseModal('stp-modal-confirm')">Batal</button>
+      <button class="btn btn-danger" id="stp-confirm-btn">Ya, Lanjutkan</button>
+    </div>
+  </div>
+</div>
+
+<!-- OVERLAY LOADING -->
+<div class="stp-ov" id="stp-ov">
+  <div class="stp-spinner"></div>
+  <div class="stp-msg" id="stp-msg">Memuat…</div>
+</div>
+
+<script>
+// ==========================================
+// STATE
+// ==========================================
+var STP_STATE = {
+  filter    : { status: 'ALL', periode: '', search: '' },
+  data      : [],       // groups dari backend
+  items_ref : [],       // M_ITEM cache
+  cust_ref  : [],       // M_CUST cache
+  expanded  : {},       // { stp_no: true }
+  edit_item : null      // { stp_no, item_code, qty, ref_spk, note, locked }
+};
+var STP_SEARCH_DEBOUNCE = null;
+
+// ==========================================
+// UTIL
+// ==========================================
+function stpOv(show, msg) {
+  var el = document.getElementById('stp-ov');
+  if (!el) return;
+  el.classList[show ? 'add' : 'remove']('on');
+  if (msg) document.getElementById('stp-msg').textContent = msg;
+}
+function stpFmtNum(n) { return (n || 0).toLocaleString('id-ID', { maximumFractionDigits: 0 }); }
+function stpFmtKg(n)  { return (n || 0).toLocaleString('id-ID', { maximumFractionDigits: 1 }); }
+function stpEsc(s)    { return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+  return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+}); }
+function stpOpenModal(id)  { document.getElementById(id).classList.add('on'); }
+function stpCloseModal(id) { document.getElementById(id).classList.remove('on'); }
+function stpToast(msg, type) {
+  if (typeof showToast === 'function') showToast(msg, type);
+  else alert(msg);
+}
+
+// ==========================================
+// INIT (IIFE — DOMContentLoaded ga fire di injected page)
+// ==========================================
+(function stpInit() {
+  // Default periode filter = current month
+  var now = new Date();
+  var yyyymm = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  document.getElementById('stp-filter-periode').value = ''; // default = semua
+  document.getElementById('stp-new-periode').value = yyyymm;
+  document.getElementById('stp-new-schedule').value = now.toISOString().split('T')[0];
+
+  stpLoadInitData();
+})();
+
+// ==========================================
+// LOAD MASTER + LIST
+// ==========================================
+function stpLoadInitData() {
+  stpOv(true, 'Load master data…');
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res || !res.success) {
+        stpOv(false);
+        stpToast('Gagal load master: ' + (res && res.message ? res.message : 'unknown'), 'error');
+        return;
+      }
+      STP_STATE.items_ref = res.items || [];
+      STP_STATE.cust_ref  = res.customers || [];
+      stpFillCustDropdowns();
+      stpReloadList();
+    })
+    .withFailureHandler(function(e) {
+      stpOv(false);
+      stpToast('Gagal koneksi: ' + e.message, 'error');
+    })
+    .stpGetInitData();
+}
+
+function stpFillCustDropdowns() {
+  var opts = '<option value="">-- pilih customer --</option>';
+  STP_STATE.cust_ref.forEach(function(c) {
+    var label = c.nama + (c.initial ? ' (' + c.initial + ')' : '');
+    opts += '<option value="' + stpEsc(c.nama) + '">' + stpEsc(label) + '</option>';
+  });
+  document.getElementById('stp-new-cust').innerHTML = opts;
+  document.getElementById('stp-edit-hdr-cust').innerHTML = opts;
+}
+
+function stpReloadList() {
+  stpOv(true, 'Load daftar STP…');
+  google.script.run
+    .withSuccessHandler(function(res) {
+      stpOv(false);
+      if (!res || !res.success) {
+        stpToast('Gagal load list: ' + (res && res.message ? res.message : 'unknown'), 'error');
+        return;
+      }
+      STP_STATE.data = res.groups || [];
+      stpRenderList();
+    })
+    .withFailureHandler(function(e) {
+      stpOv(false);
+      stpToast('Gagal koneksi: ' + e.message, 'error');
+    })
+    .stpGetList(STP_STATE.filter);
+}
+
+// ==========================================
+// FILTER
+// ==========================================
+function stpSetFilterStatus(status) {
+  STP_STATE.filter.status = status;
+  document.querySelectorAll('.filter-pill').forEach(function(el) {
+    el.classList.remove('active', 'open', 'done');
+    if (el.dataset.status === status) {
+      el.classList.add('active');
+      if (status === 'OPEN') el.classList.add('open');
+      else if (status === 'FULFILLED') el.classList.add('done');
+    }
+  });
+  stpReloadList();
+}
+function stpSetFilterPeriode(v) {
+  STP_STATE.filter.periode = v || '';
+  stpReloadList();
+}
+function stpOnSearchInput(v) {
+  clearTimeout(STP_SEARCH_DEBOUNCE);
+  STP_SEARCH_DEBOUNCE = setTimeout(function() {
+    STP_STATE.filter.search = v.trim();
+    stpReloadList();
+  }, 400);
+}
+
+// ==========================================
+// RENDER LIST
+// ==========================================
+function stpRenderList() {
+  var tbody = document.getElementById('stp-list-tbody');
+  var data = STP_STATE.data;
+
+  document.getElementById('stp-count-info').textContent = data.length + ' STP';
+
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:#94a3b8; font-style:italic; padding:25px;">Tidak ada STP yang cocok dengan filter/pencarian.</td></tr>';
+    return;
+  }
+
+  var html = '';
+  data.forEach(function(g, idx) {
+    var statusBdg = g.overall_status === 'OPEN'
+      ? '<span class="badge badge-open">🟡 OPEN (' + g.open_count + ')</span>'
+      : '<span class="badge badge-done">✅ FULFILLED</span>';
+    var ownerBdg = (g.owner_used === 'DRC')
+      ? '<span class="badge badge-drc">DRC</span>'
+      : '<span class="badge badge-fc">FC</span>';
+    var priBdg = '';
+    if (g.priority === 'Rush')       priBdg = '<span class="badge badge-rush">RUSH</span>';
+    else if (g.priority === 'Urgent') priBdg = '<span class="badge badge-urgent">URGENT</span>';
+    else                              priBdg = '<span class="badge badge-muted">' + stpEsc(g.priority || 'Normal') + '</span>';
+
+    var isExpanded = STP_STATE.expanded[g.stp_no];
+
+    html +=
+      '<tr class="stp-main-row ' + (isExpanded ? 'expanded' : '') + '" data-idx="' + idx + '" onclick="stpToggleExpand(\'' + stpEsc(g.stp_no) + '\')">' +
+        '<td style="text-align:center;"><span class="expand-icon">▶</span></td>' +
+        '<td style="font-weight:700; color:var(--stp-accent);">' + stpEsc(g.stp_no) + '</td>' +
+        '<td>' + stpEsc(g.cust) + '</td>' +
+        '<td>' + stpEsc(g.periode) + '</td>' +
+        '<td>' + stpEsc(g.schedule) + '</td>' +
+        '<td>' + ownerBdg + '</td>' +
+        '<td>' + priBdg + '</td>' +
+        '<td style="text-align:center;">' + g.item_count + '</td>' +
+        '<td><b>' + stpFmtNum(g.total_qty_req) + '</b><br><span style="color:var(--text-muted); font-size:10px;">Sisa: ' + stpFmtNum(g.total_qty_sisa) + '</span></td>' +
+        '<td>' + statusBdg + '</td>' +
+        '<td onclick="event.stopPropagation();">' +
+          '<button class="btn btn-outline btn-mini" title="Edit Header" onclick="stpOpenEditHeaderModal(\'' + stpEsc(g.stp_no) + '\')">✏️</button> ' +
+          '<button class="btn btn-danger btn-mini" title="Cancel STP" onclick="stpConfirmCancel(\'' + stpEsc(g.stp_no) + '\')">🗑</button>' +
+        '</td>' +
+      '</tr>' +
+      '<tr class="stp-detail-row" data-detail="' + stpEsc(g.stp_no) + '" style="display:' + (isExpanded ? 'table-row' : 'none') + ';">' +
+        '<td colspan="11">' + stpRenderDetailBlock(g) + '</td>' +
+      '</tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function stpRenderDetailBlock(g) {
+  var rows = '';
+  g.items.forEach(function(it) {
+    var stat = it.status === 'FULFILLED'
+      ? '<span class="badge badge-done">✅</span>'
+      : '<span class="badge badge-open">OPEN</span>';
+    var qtyDisp = '<b>' + stpFmtNum(it.qty_req) + '</b> ' + stpEsc(it.uom) +
+                  ' &nbsp;<span style="color:var(--text-muted); font-size:10px;">(' + stpFmtKg(it.kg_req) + ' Kg)</span>';
+    var fulDisp = stpFmtNum(it.qty_fulfill) + ' / ' + stpFmtNum(it.qty_req) +
+                  '<br><span style="color:var(--text-muted); font-size:10px;">Sisa: ' + stpFmtNum(it.qty_sisa) + '</span>';
+
+    rows +=
+      '<tr>' +
+        '<td style="font-weight:700; color:var(--stp-accent);">' + stpEsc(it.item_code) + '</td>' +
+        '<td>' + stpEsc(it.description) + '</td>' +
+        '<td>' + stpEsc(it.spec) + '</td>' +
+        '<td style="text-align:right;">' + qtyDisp + '</td>' +
+        '<td>' + fulDisp + '</td>' +
+        '<td>' + stat + '</td>' +
+        '<td>' + stpEsc(it.ref_spk) + '</td>' +
+        '<td>' + stpEsc(it.note) + '</td>' +
+        '<td style="white-space:nowrap;">' +
+          '<button class="btn btn-outline btn-mini" title="Edit item" onclick="stpOpenEditItemModal(\'' + stpEsc(g.stp_no) + '\',\'' + stpEsc(it.item_code) + '\')">✏️</button> ' +
+          '<button class="btn btn-danger btn-mini" title="Hapus item" onclick="stpConfirmDeleteItem(\'' + stpEsc(g.stp_no) + '\',\'' + stpEsc(it.item_code) + '\')">🗑</button>' +
+        '</td>' +
+      '</tr>';
+  });
+
+  var addBtn = '<button class="btn btn-outline btn-mini" onclick="stpOpenAddItemModal(\'' + stpEsc(g.stp_no) + '\')">➕ Tambah Item</button>';
+
+  return '<div class="stp-detail-block">' +
+    '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">' +
+      '<span style="font-weight:700; font-size:11px;">📦 Detail Item — ' + stpEsc(g.stp_no) + ' &nbsp;<span style="color:var(--text-muted); font-weight:500;">(Created by ' + stpEsc(g.created_by) + ' @ ' + stpEsc(g.tgl_input) + ')</span></span>' +
+      addBtn +
+    '</div>' +
+    '<table>' +
+      '<thead><tr>' +
+        '<th width="12%">Item Code</th>' +
+        '<th width="22%">Description</th>' +
+        '<th width="10%">Spec</th>' +
+        '<th width="12%" style="text-align:right;">Qty Req</th>' +
+        '<th width="14%">Qty Fulfill</th>' +
+        '<th width="6%">Status</th>' +
+        '<th width="10%">Ref SPK</th>' +
+        '<th width="10%">Note</th>' +
+        '<th width="10%"></th>' +
+      '</tr></thead>' +
+      '<tbody>' + rows + '</tbody>' +
+    '</table>' +
+    '</div>';
+}
+
+function stpToggleExpand(stpNo) {
+  STP_STATE.expanded[stpNo] = !STP_STATE.expanded[stpNo];
+  stpRenderList();
+}
+
+// ==========================================
+// MODAL: CREATE
+// ==========================================
+function stpOpenCreateModal() {
+  // Reset form
+  document.getElementById('stp-new-cust').value = '';
+  var now = new Date();
+  var yyyymm = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  document.getElementById('stp-new-periode').value = yyyymm;
+  document.getElementById('stp-new-schedule').value = now.toISOString().split('T')[0];
+  document.getElementById('stp-new-priority').value = 'Normal';
+  document.getElementById('stp-new-note').value = '';
+  stpSetOwnerBtn('stp-new-owner', 'FC');
+
+  document.getElementById('stp-new-items-tbody').innerHTML = '';
+  stpAddNewItemRow();
+
+  stpOpenModal('stp-modal-create');
+}
+
+var STP_NEW_ITEM_ROW = 0;
+function stpAddNewItemRow() {
+  STP_NEW_ITEM_ROW++;
+  var idx = STP_NEW_ITEM_ROW;
+  var tbody = document.getElementById('stp-new-items-tbody');
+  var tr = document.createElement('tr');
+  tr.dataset.rowid = idx;
+  tr.innerHTML =
+    '<td style="text-align:center; font-weight:700; color:var(--text-muted);" class="row-num"></td>' +
+    '<td>' +
+      '<div class="autocomplete-wrap">' +
+        '<input type="text" class="f-inp" placeholder="Ketik item..." ' +
+               'oninput="stpAcFilterNew(this,' + idx + ')" onfocus="stpAcFilterNew(this,' + idx + ')" ' +
+               'data-role="search">' +
+        '<div class="ac-results" data-role="ac"></div>' +
+      '</div>' +
+      '<input type="hidden" data-role="code">' +
+    '</td>' +
+    '<td><span data-role="desc" style="font-size:11px; color:var(--text-muted);">—</span></td>' +
+    '<td><span data-role="t" style="font-size:11px;">—</span></td>' +
+    '<td><input type="number" class="f-inp" data-role="qty" min="1" placeholder="Qty"></td>' +
+    '<td><input type="text" class="f-inp" data-role="note" placeholder="opsional"></td>' +
+    '<td style="text-align:center;"><button class="btn-remove-item" onclick="stpRemoveNewItemRow(this)">✖</button></td>';
+  tbody.appendChild(tr);
+  stpReindexNewItems();
+}
+function stpRemoveNewItemRow(btn) {
+  var tr = btn.closest('tr');
+  var tbody = document.getElementById('stp-new-items-tbody');
+  if (tbody.rows.length <= 1) {
+    stpToast('Minimal 1 item wajib', 'error');
+    return;
+  }
+  tr.parentNode.removeChild(tr);
+  stpReindexNewItems();
+}
+function stpReindexNewItems() {
+  var tbody = document.getElementById('stp-new-items-tbody');
+  Array.from(tbody.rows).forEach(function(tr, i) {
+    tr.querySelector('.row-num').textContent = (i + 1);
+  });
+}
+
+// Autocomplete untuk row NEW
+function stpAcFilterNew(inp, rowid) {
+  var wrap = inp.parentElement;
+  var ac = wrap.querySelector('[data-role="ac"]');
+  var q = inp.value.trim().toLowerCase();
+  var list = STP_STATE.items_ref;
+  var hits;
+  if (!q) hits = list.slice(0, 30);
+  else hits = list.filter(function(it){
+    return (it.item_code || '').toLowerCase().indexOf(q) >= 0 ||
+           (it.description || '').toLowerCase().indexOf(q) >= 0;
+  }).slice(0, 30);
+  if (hits.length === 0) { ac.style.display = 'none'; return; }
+  ac.innerHTML = hits.map(function(it) {
+    return '<div class="ac-item" onmousedown="stpAcPickNew(' + rowid + ',\'' + stpEsc(it.item_code) + '\')">' +
+      '<div><span class="ac-code">' + stpEsc(it.item_code) + '</span> — ' + stpEsc(it.description) + '</div>' +
+      '<div class="ac-desc">' + stpEsc(it.spec) + ' | T=' + it.t + '</div>' +
+      '</div>';
+  }).join('');
+  ac.style.display = 'block';
+  // Close on blur
+  inp.onblur = function() { setTimeout(function(){ ac.style.display = 'none'; }, 180); };
+}
+function stpAcPickNew(rowid, code) {
+  var tr = document.querySelector('#stp-new-items-tbody tr[data-rowid="' + rowid + '"]');
+  if (!tr) return;
+  var it = STP_STATE.items_ref.find(function(x){ return x.item_code === code; });
+  if (!it) return;
+  tr.querySelector('[data-role="search"]').value = it.item_code;
+  tr.querySelector('[data-role="code"]').value   = it.item_code;
+  tr.querySelector('[data-role="desc"]').textContent = it.description || '—';
+  tr.querySelector('[data-role="t"]').textContent    = it.t || '—';
+  tr.querySelector('[data-role="ac"]').style.display = 'none';
+}
+
+// SUBMIT NEW
+function stpSubmitNew() {
+  var head = {
+    cust          : document.getElementById('stp-new-cust').value,
+    periode       : document.getElementById('stp-new-periode').value,
+    schedule_date : document.getElementById('stp-new-schedule').value,
+    owner_used    : document.getElementById('stp-new-owner').textContent.trim(),
+    priority      : document.getElementById('stp-new-priority').value,
+    note          : document.getElementById('stp-new-note').value
+  };
+  if (!head.cust) return stpToast('Pilih customer dulu', 'error');
+  if (!head.periode) return stpToast('Periode wajib', 'error');
+  if (!head.schedule_date) return stpToast('Schedule Date wajib', 'error');
+
+  var items = [];
+  var tbody = document.getElementById('stp-new-items-tbody');
+  for (var i = 0; i < tbody.rows.length; i++) {
+    var tr = tbody.rows[i];
+    var code = tr.querySelector('[data-role="code"]').value.trim();
+    var qty  = parseFloat(tr.querySelector('[data-role="qty"]').value);
+    var note = tr.querySelector('[data-role="note"]').value.trim();
+    if (!code) return stpToast('Item baris #' + (i+1) + ' belum dipilih', 'error');
+    if (!qty || qty <= 0) return stpToast('Qty item baris #' + (i+1) + ' harus > 0', 'error');
+    items.push({ item_code: code, qty_req: qty, note: note });
+  }
+
+  stpOv(true, 'Simpan STP…');
+  google.script.run
+    .withSuccessHandler(function(res) {
+      stpOv(false);
+      if (!res || !res.success) return stpToast(res && res.message ? res.message : 'Gagal simpan', 'error');
+      stpToast(res.message, 'success');
+      stpCloseModal('stp-modal-create');
+      STP_STATE.expanded[res.stp_no] = true;
+      stpReloadList();
+    })
+    .withFailureHandler(function(e) { stpOv(false); stpToast('Error: ' + e.message, 'error'); })
+    .stpSaveNew({ header: head, items: items });
+}
+
+// ==========================================
+// MODAL: EDIT HEADER
+// ==========================================
+function stpOpenEditHeaderModal(stpNo) {
+  var g = STP_STATE.data.find(function(x){ return x.stp_no === stpNo; });
+  if (!g) return stpToast('STP tidak ditemukan', 'error');
+  document.getElementById('stp-edit-hdr-no').textContent = g.stp_no;
+  document.getElementById('stp-edit-hdr-cust').value = g.cust;
+  document.getElementById('stp-edit-hdr-periode').value = g.periode;
+  document.getElementById('stp-edit-hdr-schedule').value = g.schedule;
+  document.getElementById('stp-edit-hdr-priority').value = g.priority || 'Normal';
+  stpSetOwnerBtn('stp-edit-hdr-owner', g.owner_used || 'FC');
+  // Simpan stp_no ke dataset
+  document.getElementById('stp-modal-edit-header').dataset.stpNo = stpNo;
+  stpOpenModal('stp-modal-edit-header');
+}
+function stpSubmitEditHeader() {
+  var stpNo = document.getElementById('stp-modal-edit-header').dataset.stpNo;
+  var payload = {
+    stp_no        : stpNo,
+    cust          : document.getElementById('stp-edit-hdr-cust').value,
+    periode       : document.getElementById('stp-edit-hdr-periode').value,
+    schedule_date : document.getElementById('stp-edit-hdr-schedule').value,
+    owner_used    : document.getElementById('stp-edit-hdr-owner').textContent.trim(),
+    priority      : document.getElementById('stp-edit-hdr-priority').value
+  };
+  stpOv(true, 'Update header…');
+  google.script.run
+    .withSuccessHandler(function(res) {
+      stpOv(false);
+      if (!res || !res.success) return stpToast(res && res.message ? res.message : 'Gagal update', 'error');
+      stpToast(res.message, 'success');
+      stpCloseModal('stp-modal-edit-header');
+      stpReloadList();
+    })
+    .withFailureHandler(function(e) { stpOv(false); stpToast('Error: ' + e.message, 'error'); })
+    .stpUpdateHeader(payload);
+}
+
+// ==========================================
+// MODAL: EDIT ITEM
+// ==========================================
+function stpOpenEditItemModal(stpNo, itemCode) {
+  var g = STP_STATE.data.find(function(x){ return x.stp_no === stpNo; });
+  if (!g) return stpToast('STP tidak ditemukan', 'error');
+  var it = g.items.find(function(x){ return x.item_code === itemCode; });
+  if (!it) return stpToast('Item tidak ditemukan', 'error');
+
+  var qtyLocked = (it.qty_fulfill > 0); // sudah ada SPK DONE → sinyal lock (definitif lock dicek backend)
+
+  document.getElementById('stp-edit-item-label').textContent = itemCode + ' — ' + (it.description || '');
+  document.getElementById('stp-edit-item-qty').value  = it.qty_req;
+  document.getElementById('stp-edit-item-qty').disabled = qtyLocked;
+  document.getElementById('stp-edit-item-lock-hint').textContent = qtyLocked ? ' 🔒 (Qty terkunci — sudah ada SPK linked)' : '';
+  document.getElementById('stp-edit-item-ref').value  = it.ref_spk || '';
+  document.getElementById('stp-edit-item-note').value = it.note || '';
+
+  STP_STATE.edit_item = { stp_no: stpNo, item_code: itemCode, orig_qty: it.qty_req, locked: qtyLocked };
+  stpOpenModal('stp-modal-edit-item');
+}
+function stpSubmitEditItem() {
+  var ei = STP_STATE.edit_item;
+  if (!ei) return;
+  var payload = {
+    stp_no    : ei.stp_no,
+    item_code : ei.item_code,
+    ref_spk   : document.getElementById('stp-edit-item-ref').value,
+    note      : document.getElementById('stp-edit-item-note').value
+  };
+  var newQty = parseFloat(document.getElementById('stp-edit-item-qty').value);
+  if (!ei.locked && newQty && newQty !== ei.orig_qty) {
+    payload.qty_req = newQty;
+  }
+  stpOv(true, 'Update item…');
+  google.script.run
+    .withSuccessHandler(function(res) {
+      stpOv(false);
+      if (!res || !res.success) return stpToast(res && res.message ? res.message : 'Gagal update', 'error');
+      stpToast(res.message, 'success');
+      stpCloseModal('stp-modal-edit-item');
+      stpReloadList();
+    })
+    .withFailureHandler(function(e) { stpOv(false); stpToast('Error: ' + e.message, 'error'); })
+    .stpUpdateItem(payload);
+}
+
+// ==========================================
+// MODAL: ADD ITEM ke STP existing
+// ==========================================
+function stpOpenAddItemModal(stpNo) {
+  document.getElementById('stp-add-item-no').textContent = stpNo;
+  document.getElementById('stp-add-item-search').value = '';
+  document.getElementById('stp-add-item-code').value = '';
+  document.getElementById('stp-add-item-info').textContent = '';
+  document.getElementById('stp-add-item-qty').value = '';
+  document.getElementById('stp-add-item-ref').value = '';
+  document.getElementById('stp-add-item-note').value = '';
+  document.getElementById('stp-modal-add-item').dataset.stpNo = stpNo;
+  stpOpenModal('stp-modal-add-item');
+}
+function stpAcFilter(inp, acId) {
+  var ac = document.getElementById(acId);
+  var q = inp.value.trim().toLowerCase();
+  var list = STP_STATE.items_ref;
+  var hits = !q ? list.slice(0, 30) : list.filter(function(it){
+    return (it.item_code || '').toLowerCase().indexOf(q) >= 0 ||
+           (it.description || '').toLowerCase().indexOf(q) >= 0;
+  }).slice(0, 30);
+  if (hits.length === 0) { ac.style.display = 'none'; return; }
+  ac.innerHTML = hits.map(function(it) {
+    return '<div class="ac-item" onmousedown="stpAcPickAddItem(\'' + stpEsc(it.item_code) + '\')">' +
+      '<div><span class="ac-code">' + stpEsc(it.item_code) + '</span> — ' + stpEsc(it.description) + '</div>' +
+      '<div class="ac-desc">' + stpEsc(it.spec) + ' | T=' + it.t + '</div>' +
+      '</div>';
+  }).join('');
+  ac.style.display = 'block';
+  inp.onblur = function() { setTimeout(function(){ ac.style.display = 'none'; }, 180); };
+}
+function stpAcPickAddItem(code) {
+  var it = STP_STATE.items_ref.find(function(x){ return x.item_code === code; });
+  if (!it) return;
+  document.getElementById('stp-add-item-search').value = it.item_code;
+  document.getElementById('stp-add-item-code').value = it.item_code;
+  document.getElementById('stp-add-item-info').textContent = it.description + ' | ' + it.spec + ' | T=' + it.t;
+  document.getElementById('stp-add-item-ac').style.display = 'none';
+}
+function stpSubmitAddItem() {
+  var stpNo = document.getElementById('stp-modal-add-item').dataset.stpNo;
+  var code  = document.getElementById('stp-add-item-code').value.trim();
+  var qty   = parseFloat(document.getElementById('stp-add-item-qty').value);
+  if (!code) return stpToast('Pilih item dulu', 'error');
+  if (!qty || qty <= 0) return stpToast('Qty harus > 0', 'error');
+  var payload = {
+    stp_no    : stpNo,
+    item_code : code,
+    qty_req   : qty,
+    ref_spk   : document.getElementById('stp-add-item-ref').value,
+    note      : document.getElementById('stp-add-item-note').value
+  };
+  stpOv(true, 'Tambah item…');
+  google.script.run
+    .withSuccessHandler(function(res) {
+      stpOv(false);
+      if (!res || !res.success) return stpToast(res && res.message ? res.message : 'Gagal tambah', 'error');
+      stpToast(res.message, 'success');
+      stpCloseModal('stp-modal-add-item');
+      STP_STATE.expanded[stpNo] = true;
+      stpReloadList();
+    })
+    .withFailureHandler(function(e) { stpOv(false); stpToast('Error: ' + e.message, 'error'); })
+    .stpAddItem(payload);
+}
+
+// ==========================================
+// CONFIRM: DELETE ITEM / CANCEL STP
+// ==========================================
+function stpConfirmDeleteItem(stpNo, itemCode) {
+  document.getElementById('stp-confirm-title').textContent = '⚠️ Hapus Item?';
+  document.getElementById('stp-confirm-msg').innerHTML =
+    'Yakin mau hapus item <b>' + stpEsc(itemCode) + '</b> dari STP <b>' + stpEsc(stpNo) + '</b>?<br>' +
+    '<span style="color:var(--text-muted); font-size:11px;">Item yang sudah punya SPK linked tidak akan bisa dihapus.</span>';
+  var btn = document.getElementById('stp-confirm-btn');
+  btn.textContent = '🗑 Hapus Item';
+  btn.onclick = function() {
+    stpCloseModal('stp-modal-confirm');
+    stpDoDeleteItem(stpNo, itemCode);
+  };
+  stpOpenModal('stp-modal-confirm');
+}
+function stpDoDeleteItem(stpNo, itemCode) {
+  stpOv(true, 'Hapus item…');
+  google.script.run
+    .withSuccessHandler(function(res) {
+      stpOv(false);
+      if (!res || !res.success) return stpToast(res && res.message ? res.message : 'Gagal hapus', 'error');
+      stpToast(res.message, 'success');
+      stpReloadList();
+    })
+    .withFailureHandler(function(e) { stpOv(false); stpToast('Error: ' + e.message, 'error'); })
+    .stpDeleteItem({ stp_no: stpNo, item_code: itemCode });
+}
+
+function stpConfirmCancel(stpNo) {
+  document.getElementById('stp-confirm-title').textContent = '⚠️ Cancel STP?';
+  document.getElementById('stp-confirm-msg').innerHTML =
+    'Yakin mau <b>hapus SEMUA</b> item di STP <b>' + stpEsc(stpNo) + '</b>?<br>' +
+    '<span style="color:var(--text-muted); font-size:11px;">STP yang sudah punya SPK linked tidak akan bisa di-cancel.</span>';
+  var btn = document.getElementById('stp-confirm-btn');
+  btn.textContent = '🗑 Ya, Cancel STP';
+  btn.onclick = function() {
+    stpCloseModal('stp-modal-confirm');
+    stpDoCancel(stpNo);
+  };
+  stpOpenModal('stp-modal-confirm');
+}
+function stpDoCancel(stpNo) {
+  stpOv(true, 'Cancel STP…');
+  google.script.run
+    .withSuccessHandler(function(res) {
+      stpOv(false);
+      if (!res || !res.success) return stpToast(res && res.message ? res.message : 'Gagal cancel', 'error');
+      stpToast(res.message, 'success');
+      delete STP_STATE.expanded[stpNo];
+      stpReloadList();
+    })
+    .withFailureHandler(function(e) { stpOv(false); stpToast('Error: ' + e.message, 'error'); })
+    .stpCancelAll({ stp_no: stpNo });
+}
+
+// ==========================================
+// OWNER TOGGLE HELPER
+// ==========================================
+function stpToggleOwner(btnId) {
+  var el = document.getElementById(btnId);
+  var current = el.textContent.trim();
+  stpSetOwnerBtn(btnId, current === 'FC' ? 'DRC' : 'FC');
+}
+function stpSetOwnerBtn(btnId, val) {
+  var el = document.getElementById(btnId);
+  el.textContent = val;
+  el.classList.remove('fc', 'drc');
+  el.classList.add(val === 'DRC' ? 'drc' : 'fc');
+}
+</script>
