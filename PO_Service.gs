@@ -159,6 +159,14 @@ function getPODashboardData(page, filter) {
   var iSts  = h.indexOf('STATUS');
   var iOwn  = h.indexOf('Owner');
   var iTgt  = h.indexOf('Target_Loc');
+  var iNote = h.indexOf('Note');
+  if (iNote === -1) iNote = h.indexOf('NOTE');
+  var iSpec = h.indexOf('Spec');
+  var iT    = h.indexOf('T');
+  var iP    = h.indexOf('P');
+  // Kolom L bisa muncul 2x di sheet (bug label historis)
+  // Ambil yang PERTAMA dari kanan (posisi absolut) — biasanya kolom L asli
+  var iL    = h.lastIndexOf('L');
 
   var tz = Session.getScriptTimeZone();
   var today = new Date();
@@ -219,6 +227,11 @@ function getPODashboardData(page, filter) {
       bl_q: parseInt(data[i][iBlQ]) || 0,
       bl_kg: parseFloat(data[i][iBlKg]) || 0,
       target_loc: iTgt !== -1 ? String(data[i][iTgt] || '').trim() : '',
+      note: iNote !== -1 ? String(data[i][iNote] || '') : '',
+      spec: iSpec !== -1 ? String(data[i][iSpec] || '').trim() : '',
+      t: iT !== -1 ? (parseFloat(data[i][iT]) || 0) : 0,
+      p: iP !== -1 ? (parseFloat(data[i][iP]) || 0) : 0,
+      l: iL !== -1 ? (parseFloat(data[i][iL]) || 0) : 0,
       status: itmOverall
     });
 
@@ -324,6 +337,246 @@ function savePurchaseOrder(payload) {
     
     SpreadsheetApp.flush();
     return JSON.stringify({ success: true, total_items: items.length });
+  } catch (e) {
+    return JSON.stringify({ error: e.message });
+  } finally { lock.releaseLock(); }
+}
+// =========================================================================
+// PO EDIT SPRINT — UPDATE QTY UNTUK 1 ITEM DI PO EXISTING
+// Payload: { po_no, item_code, new_qty }
+// Guard: new_qty >= GR_Q per item (tidak boleh turunin qty di bawah yg sudah diterima)
+// =========================================================================
+function updatePOItemQty(payload) {
+  var lock = LockService.getScriptLock(); lock.waitLock(15000);
+  try {
+    var poNo = String(payload.po_no || '').trim();
+    var itemCode = String(payload.item_code || '').trim();
+    var newQty = parseInt(payload.new_qty);
+
+    if (!poNo || !itemCode) throw new Error("No. PO dan Item Code wajib diisi.");
+    if (isNaN(newQty) || newQty <= 0) throw new Error("Qty baru harus > 0.");
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = ss.getSheetByName('PO');
+    var data = sh.getDataRange().getValues();
+    var h = data[0].map(function(x){ return String(x).trim(); });
+
+    var iPo    = h.indexOf('PO_No');
+    var iItem  = h.indexOf('Item_Code');
+    var iPoQ   = h.indexOf('PO_Q');
+    var iPoKg  = h.indexOf('PO_KG');
+    var iGrQ   = h.indexOf('GR_Q');
+    var iWg    = h.indexOf('Wg/Pce');
+
+    var targetRow = -1;
+    var targetGrQ = 0;
+    var targetWg = 0;
+
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][iPo]).trim() === poNo &&
+          String(data[i][iItem]).trim() === itemCode) {
+        targetRow = i + 1;
+        targetGrQ = parseInt(data[i][iGrQ]) || 0;
+        targetWg = parseFloat(data[i][iWg]) || 0;
+        break;
+      }
+    }
+
+    if (targetRow === -1) throw new Error("Item [" + itemCode + "] tidak ditemukan di PO [" + poNo + "].");
+    if (newQty < targetGrQ) {
+      throw new Error("Qty baru (" + newQty + ") tidak boleh < Qty yang sudah diterima GR (" + targetGrQ + ").");
+    }
+
+    sh.getRange(targetRow, iPoQ + 1).setValue(newQty);
+    // Auto-recalc PO_KG kalau Wg/Pce tersedia
+    if (targetWg > 0 && iPoKg >= 0) {
+      sh.getRange(targetRow, iPoKg + 1).setValue(newQty * targetWg);
+    }
+
+    SpreadsheetApp.flush();
+    return JSON.stringify({ success: true, po_no: poNo, item_code: itemCode, new_qty: newQty });
+  } catch (e) {
+    return JSON.stringify({ error: e.message });
+  } finally { lock.releaseLock(); }
+}
+// =========================================================================
+// PO EDIT SPRINT — UPDATE NOTE UNTUK 1 ITEM DI PO EXISTING
+// Payload: { po_no, item_code, new_note }
+// =========================================================================
+function updatePOItemNote(payload) {
+  var lock = LockService.getScriptLock(); lock.waitLock(15000);
+  try {
+    var poNo = String(payload.po_no || '').trim();
+    var itemCode = String(payload.item_code || '').trim();
+    var newNote = String(payload.new_note || '');
+
+    if (!poNo || !itemCode) throw new Error("No. PO dan Item Code wajib diisi.");
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = ss.getSheetByName('PO');
+    var data = sh.getDataRange().getValues();
+    var h = data[0].map(function(x){ return String(x).trim(); });
+
+    var iPo   = h.indexOf('PO_No');
+    var iItem = h.indexOf('Item_Code');
+    var iNote = h.indexOf('Note');
+    if (iNote === -1) iNote = h.indexOf('NOTE');
+    if (iNote === -1) throw new Error("Kolom 'Note' tidak ditemukan di sheet PO. Tambahkan dulu.");
+
+    var targetRow = -1;
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][iPo]).trim() === poNo &&
+          String(data[i][iItem]).trim() === itemCode) {
+        targetRow = i + 1;
+        break;
+      }
+    }
+    if (targetRow === -1) throw new Error("Item [" + itemCode + "] tidak ditemukan di PO [" + poNo + "].");
+
+    sh.getRange(targetRow, iNote + 1).setValue(newNote);
+    SpreadsheetApp.flush();
+
+    return JSON.stringify({ success: true, po_no: poNo, item_code: itemCode });
+  } catch (e) {
+    return JSON.stringify({ error: e.message });
+  } finally { lock.releaseLock(); }
+}
+// =========================================================================
+// PO EDIT SPRINT — TAMBAH ITEM BARU KE PO EXISTING
+// Payload: { po_no, item: { item_code, description, uom, wg_pce, po_q,
+//                            target_loc, note } }
+// Guard: Item belum ada di PO (biar tidak dobel — kalau mau nambah qty item
+//        yang sudah ada, edit qty aja)
+// =========================================================================
+function addItemToExistingPO(payload) {
+  var lock = LockService.getScriptLock(); lock.waitLock(15000);
+  try {
+    var poNo = String(payload.po_no || '').trim();
+    var item = payload.item || {};
+
+    if (!poNo) throw new Error("No. PO wajib diisi.");
+    if (!item.item_code) throw new Error("Item Code wajib diisi.");
+    if (!item.po_q || parseInt(item.po_q) <= 0) throw new Error("Qty Order wajib > 0.");
+    if (!item.target_loc) throw new Error("Target Gudang wajib diisi.");
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = ss.getSheetByName('PO');
+    if (!sh) throw new Error("Sheet 'PO' tidak ditemukan.");
+
+    var data = sh.getDataRange().getValues();
+    var h = data[0].map(function(x){ return String(x).trim(); });
+
+    var iPo    = h.indexOf('PO_No');
+    var iDate  = h.indexOf('PO_Date');
+    var iVen   = h.indexOf('Vendor');
+    var iSch   = h.indexOf('Schedule');
+    var iItem  = h.indexOf('Item_Code');
+    var iOwn   = h.indexOf('Owner');
+
+    // Cari sample row untuk copy header (PO_Date, Vendor, Schedule, Owner)
+    // + guard: item belum ada + posisi append
+    var sampleRow = null;
+    var itemAlreadyExists = false;
+    var actualLastRow = 1;
+
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][iPo] !== "" && data[i][iPo] !== null && data[i][iPo] !== undefined) {
+        actualLastRow = i + 1;
+      }
+      if (String(data[i][iPo]).trim() === poNo) {
+        if (!sampleRow) sampleRow = data[i];
+        if (String(data[i][iItem]).trim() === String(item.item_code).trim()) {
+          itemAlreadyExists = true;
+        }
+      }
+    }
+
+    if (!sampleRow) throw new Error("PO [" + poNo + "] tidak ditemukan di database.");
+    if (itemAlreadyExists) {
+      throw new Error("Item [" + item.item_code + "] sudah ada di PO ini. Edit qty item existing daripada tambah baru.");
+    }
+
+    var newRow = actualLastRow + 1;
+    var rowMap = {
+      'PO_Date':    sampleRow[iDate],
+      'PO_No':      poNo,
+      'Vendor':     sampleRow[iVen],
+      'Schedule':   sampleRow[iSch],
+      'Item_Code':  String(item.item_code).trim(),
+      'Description': String(item.description || '').trim(),
+      'UoM':        String(item.uom || '').trim(),
+      'Wg/Pce':     parseFloat(item.wg_pce) || 0,
+      'PO_Q':       parseInt(item.po_q),
+      'PO_KG':      (parseFloat(item.wg_pce) || 0) * parseInt(item.po_q),
+      'Owner':      String(sampleRow[iOwn] || '').trim(),
+      'Target_Loc': String(item.target_loc).trim(),
+      'Note':       String(item.note || '').trim(),
+      'NOTE':       String(item.note || '').trim()  // fallback nama header
+    };
+
+    h.forEach(function(hd, idx) {
+      if (rowMap[hd] !== undefined) {
+        sh.getRange(newRow, idx + 1).setValue(rowMap[hd]);
+      }
+    });
+
+    SpreadsheetApp.flush();
+    return JSON.stringify({ success: true, po_no: poNo, item_code: item.item_code });
+  } catch (e) {
+    return JSON.stringify({ error: e.message });
+  } finally { lock.releaseLock(); }
+}
+// =========================================================================
+// PO EDIT SPRINT — HAPUS 1 ITEM DARI PO EXISTING (hard delete row)
+// Payload: { po_no, item_code }
+// Guard: Item belum ada GR (GR_Q === 0 dan GR_KG === 0)
+// =========================================================================
+function deleteItemFromPO(payload) {
+  var lock = LockService.getScriptLock(); lock.waitLock(15000);
+  try {
+    var poNo = String(payload.po_no || '').trim();
+    var itemCode = String(payload.item_code || '').trim();
+
+    if (!poNo || !itemCode) throw new Error("No. PO dan Item Code wajib diisi.");
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = ss.getSheetByName('PO');
+    var data = sh.getDataRange().getValues();
+    var h = data[0].map(function(x){ return String(x).trim(); });
+
+    var iPo   = h.indexOf('PO_No');
+    var iItem = h.indexOf('Item_Code');
+    var iGrQ  = h.indexOf('GR_Q');
+    var iGrKg = h.indexOf('GR_KG');
+
+    var targetRow = -1;
+    var itemGrQ = 0;
+    var itemGrKg = 0;
+    var poItemCount = 0;
+
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][iPo]).trim() === poNo) {
+        poItemCount++;
+        if (String(data[i][iItem]).trim() === itemCode && targetRow === -1) {
+          targetRow = i + 1;
+          itemGrQ = parseInt(data[i][iGrQ]) || 0;
+          itemGrKg = parseFloat(data[i][iGrKg]) || 0;
+        }
+      }
+    }
+
+    if (targetRow === -1) throw new Error("Item [" + itemCode + "] tidak ditemukan di PO [" + poNo + "].");
+    if (itemGrQ > 0 || itemGrKg > 0) {
+      throw new Error("Item [" + itemCode + "] sudah ada penerimaan GR (" + itemGrQ + " qty / " + itemGrKg + " KG). Tidak bisa dihapus.");
+    }
+    if (poItemCount <= 1) {
+      throw new Error("Ini item terakhir di PO [" + poNo + "]. Hapus akan membuat PO orphan. Batalkan PO secara keseluruhan jika tidak dipakai.");
+    }
+
+    sh.deleteRow(targetRow);
+    SpreadsheetApp.flush();
+
+    return JSON.stringify({ success: true, po_no: poNo, item_code: itemCode });
   } catch (e) {
     return JSON.stringify({ error: e.message });
   } finally { lock.releaseLock(); }

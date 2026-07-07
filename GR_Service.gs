@@ -196,6 +196,8 @@ function getGRDashboardData(page) {
   var cIdx = h.indexOf('No_Coil');
   var ownIdx = h.indexOf('Owner');
   var locIdx = h.indexOf('Target_Loc');
+  var noteIdx = h.indexOf('NOTE');                  // 🟢 T1.6
+  if (noteIdx === -1) noteIdx = h.indexOf('Note');  // fallback nama header
 
   for (var i = 1; i < data.length; i++) {
     if (!data[i][bIdx]) continue;
@@ -228,6 +230,7 @@ function getGRDashboardData(page) {
       kg: kIdx >= 0 ? data[i][kIdx] : 0, 
       no_coil: cIdx >= 0 ? data[i][cIdx] : '-', 
       owner: ownIdx >= 0 ? data[i][ownIdx] : '',
+      note: noteIdx >= 0 ? String(data[i][noteIdx] || '') : '',   // 🟢 T1.6
       sheetName: 'GR',
       t: dim.t, // <- DATA KRUSIAL YANG DITAMBAHKAN
       p: dim.p, // <- DATA KRUSIAL YANG DITAMBAHKAN
@@ -316,7 +319,9 @@ function _saveGR_Log(data, batchId, tgl) {
     'Owner'      : data.owner,
     'No_DO'      : data.no_do,
     'No_PO'      : data.no_po,
-    'Target_Loc' : data.target_loc
+    'Target_Loc' : data.target_loc,
+    'NOTE'       : String(data.note || '').trim(),   // 🟢 T1.6: fix — sebelumnya di-drop
+    'Note'       : String(data.note || '').trim()    // fallback kalau header di-label 'Note' bukan 'NOTE'
   };
   var targetRow = getActualLastRow(sheet) + 1;
   // Tulis 1× setValues (lebih cepat dari setValue per cell)
@@ -357,6 +362,12 @@ function updateSingleGR(payload) {
       var qtyCol = h.indexOf('Qty_In');
       if (qtyCol === -1) qtyCol = h.indexOf('QTY_In');
       if (qtyCol >= 0) sh.getRange(targetRow, qtyCol + 1).setValue(parseInt(payload.qty));
+    }
+    // 🟢 T1.6: handle note update (undefined = skip, empty string = clear allowed)
+    if (payload.note !== undefined && payload.note !== null) {
+      var noteCol = h.indexOf('NOTE');
+      if (noteCol === -1) noteCol = h.indexOf('Note');
+      if (noteCol >= 0) sh.getRange(targetRow, noteCol + 1).setValue(String(payload.note));
     }
 
     SpreadsheetApp.flush();

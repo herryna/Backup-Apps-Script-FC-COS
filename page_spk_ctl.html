@@ -74,22 +74,33 @@ td{padding:8px 12px;border-bottom:1px solid #e2e8f0;vertical-align:middle;overfl
 #spk-ctl-wrap input[type=number]::-webkit-inner-spin-button, #spk-ctl-wrap input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 #spk-ctl-wrap input[type=number] { -moz-appearance: textfield; }
 
-.doc-header-box{border:1.5px solid #888;border-radius:4px;margin-bottom:10px;overflow:hidden}
-.doc-header-top{display:flex;align-items:stretch;border-bottom:1.5px solid #888}
-.doc-logo-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 14px;border-right:1.5px solid #888;min-width:130px}
-.doc-logo-fc{font-size:22px;font-weight:900;color:#1a3a6e;letter-spacing:2px;border:3px solid #1a3a6e;padding:2px 10px;line-height:1.2}
-.doc-nodoc{font-size:10px;color:#444;margin-top:4px;text-align:center}
-.doc-title-cell{flex:1;display:flex;align-items:center;justify-content:center;font-size:55px;font-weight:700;color:#222}
+/* CSS Baru Header CTL (Gaya SLT - Ultra Compact 60:40) */
+.form-section { background:#fff; border:1px solid var(--border-color); border-radius:4px; padding:12px; margin-bottom:12px; }
+.form-section-title { font-size:13px; font-weight:700; color:#0f172a; margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;}
+.header-split { display: flex; gap: 12px; flex-wrap: wrap; }
+.header-left { display: flex; flex-direction: column; gap: 10px; flex: 6; min-width: 380px; }
+.header-right { display: flex; flex-direction: column; gap: 10px; flex: 4; min-width: 350px; }
+.header-right-row { display: flex; gap: 10px; align-items: center;}
+.form-field { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.form-label { font-size: 9px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+.form-input, .form-select { padding: 5px 8px; border: 1px solid var(--border-color); border-radius: 3px; font-size: 12px; outline: none; background: #fff; width: 100%; box-sizing: border-box; }
+.form-input[readonly] { background: #f8fafc; color: var(--text-muted); border-color: #e2e8f0; }
 
-.hdr-fields{width:100%;border-collapse:collapse;margin-bottom:10px}
-.hdr-fields td{padding:4px 8px;border:0.5px solid #ccc}
-.hdr-fields .lbl{background:#eaf0fb;font-weight:600;color:#1a3a6e;white-space:nowrap;width:80px}
-.hdr-fields .lbl-spk{background:#1a3a6e;color:#fff;font-weight:700}
-.hdr-fields input{width:100%;border:none;background:transparent;padding:0;font-weight:500}
-.hdr-fields input[readonly]{color:#333}
-.hdr-fields .val-spk{font-weight:700;color:#1a3a6e;font-size:13px}
-.hdr-dim{font-weight:700;color:#1a3a6e;font-size:13px}
-.hdr-process{font-weight:700;color:#1b6b45;font-size:13px}
+.info-bar { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 8px 12px; display: flex; gap: 16px; flex-wrap: wrap; align-items: center; height: 100%; }
+.info-item { display: flex; flex-direction: column; gap: 1px; }
+.info-label { font-size: 9px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+.info-val { font-size: 12px; font-weight: 600; color: #0f172a; }
+
+.info-bar-recoil { background: #f0fdf4; border: 1px dashed #4ade80; border-radius: 4px; padding: 6px 12px; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; min-width: 140px; height: 100%;}
+.info-bar-recoil .info-label { color: #166534; }
+.info-bar-recoil .info-val { color: #14532d; font-size: 14px; }
+
+.checkbox-wrap { background: #fffbeb; border: 1px solid #fde047; padding: 6px 10px; border-radius: 4px; display: flex; align-items: center; gap: 6px; cursor: pointer; flex: 1;}
+.checkbox-wrap input { width: 14px; height: 14px; cursor: pointer; margin: 0; }
+.checkbox-wrap span { font-size: 11px; font-weight: 600; color: #b45309; }
+
+/* Sembunyikan elemen bawaan lama (tapi tetap ada di DOM buat JS) */
+.hidden-data { display: none !important; }
 .section-instruksi{background:#2c5282;color:#fff;font-weight:600;padding:7px 14px;font-size:13px;margin-bottom:0;border-radius:3px 3px 0 0}
 .out-ctl-block{border:1px solid #c5cfe0;margin-bottom:8px}
 
@@ -274,83 +285,100 @@ td{padding:8px 12px;border-bottom:1px solid #e2e8f0;vertical-align:middle;overfl
 
   <div style="flex:1;overflow-y:auto;">
     <div id="spk-ctl-wrap">
-      <div class="doc-header-box">
-        <div class="doc-header-top">
-          <div class="doc-logo-cell">
-            <div class="doc-logo-fc">F/C</div>
-            <div class="doc-nodoc">NO Doc :<br><b>FM-PP-015</b></div>
-          </div>
-          <div class="doc-title-cell">SPK &amp; REPORT &nbsp;#Cut to Length</div>
-        </div>
+      <!-- Boks Tersembunyi (Agar JS tetap jalan) -->
+      <div class="hidden-data">
+        <input id="hdr-supplier" readonly/>
+        <input id="hdr-nocoil" readonly/>
+        <span id="hdr-date"></span>
+      </div>
 
-        <table class="hdr-fields">
-          <tr>
-            <td class="lbl">Batch ID</td>
-            <td>
+      <div class="form-section">
+        <div class="form-section-title">
+          <div>📦 Input Coil & Parameter CTL</div>
+          <div style="font-size:11px; font-weight:normal; color:var(--text-muted);">
+            SPK No: <span id="hdr-spkno" style="font-weight:600; color:var(--primary-blue);" title="Nomor digenerate saat simpan">(auto)</span> | Date: <span id="hdr-date-display"></span>
+          </div>
+        </div>
+        
+        <div class="header-split">
+          <!-- BAGIAN KIRI (60%) -->
+          <div class="header-left">
+            <div class="form-field">
+              <label class="form-label">Batch ID * (Ketik mencari)</label>
               <div style="position:relative;width:100%;">
-                <input id="hdr-batch-search" type="text"
+                <input id="hdr-batch-search" type="text" class="form-input"
                   placeholder="🔍 Ketik Batch / Spec / T / P / L..."
                   autocomplete="off"
-                  style="width:100%;border:none;background:transparent;font-weight:600;font-size:13px;padding:3px 6px;box-sizing:border-box;"
                   oninput="onBatchSearchInput(this.value)"
                   onkeydown="onBatchSearchKey(event)"
                   onfocus="onBatchSearchInput(this.value)"/>
                 <div id="hdr-batch-dropdown"
-                  style="display:none;position:fixed;background:#eaf0fb;border:1.5px solid #1a3a6e;border-radius:0 0 4px 4px;max-height:240px;overflow-y:auto;z-index:99999;box-shadow:0 4px 16px rgba(26,58,110,0.18);min-width:400px;">
+                  style="display:none;position:fixed;background:#eaf0fb;border:1px solid #1a3a6e;border-radius:0 0 4px 4px;max-height:240px;overflow-y:auto;z-index:99999;box-shadow:0 4px 16px rgba(26,58,110,0.18);min-width:400px;">
                 </div>
               </div>
               <input type="hidden" id="hdr-batch"/>
-            </td>
-            <td class="lbl">Item Code</td><td><input id="hdr-item" readonly/></td>
-            <td class="lbl">No. Coil</td><td><input id="hdr-nocoil" readonly/></td>
-            <td class="lbl-spk lbl">SPK_No</td>
-            <td class="val-spk"><span id="hdr-spkno" title="Nomor digenerate saat simpan">(auto)</span></td>
-          </tr>
-          <tr>
-            <td class="lbl">Supplier</td><td><input id="hdr-supplier" readonly/></td>
-            <td class="lbl">SPEC</td><td><input id="hdr-spec" readonly/></td>
-            <td class="lbl">T &times; W</td>
-            <td colspan="1" style="white-space:nowrap">
-              <span id="hdr-t" class="hdr-dim">--</span> &nbsp;&times;&nbsp;
-              <span id="hdr-w" class="hdr-dim">--</span> &nbsp;mm &nbsp;=&nbsp;
-              <span id="hdr-kg-avail" class="hdr-dim">0</span> &nbsp;kg
-            </td>
-            <td class="lbl">DATE</td>
-            <td><span id="hdr-date" style="font-weight:600"></span></td>
-          </tr>
-          <tr>
-            <td class="lbl">Machine</td>
-            <td><input id="hdr-machine" value="CTL-01" readonly style="cursor:not-allowed;"/></td>
-            <td class="lbl">Priority</td>
-            <td>
-              <select id="hdr-priority" style="width:100%;border:none;background:transparent">
-                <option>Normal</option><option>High</option><option>Urgent</option>
-              </select>
-            </td>
-            <td class="lbl">Source_Loc</td>
-            <td>
-              <select id="hdr-source-loc" style="width:100%;border:none;background:transparent;font-weight:600;color:#c62828">
-                <option value="Stok Coil">Stok Coil</option>
-              </select>
-            </td>
-            <td class="lbl">OP</td>
-            <td><input id="hdr-op" placeholder="Operator"/></td>
-          </tr>
-          <tr>
-            <td colspan="4" style="background:#fff8e1;padding:6px 10px;">
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;color:#7a3e00;">
-                <input type="checkbox" id="hdr-is-habis" onchange="updateWeightTotal()" style="width:18px;height:18px;cursor:pointer;"/>
-                <span>🔒 Coil habis di SPK ini</span>
+              <input type="hidden" id="hdr-item"/>
+            </div>
+            
+            <div class="info-bar">
+              <div class="info-item">
+                <span class="info-label">Item / No.Coil</span>
+                <span class="info-val"><span id="display-item">-</span> <span style="color:var(--text-muted); font-weight:normal;" id="display-nocoil"></span></span>
+              </div>
+              <div class="info-item" style="border-left: 1px solid #cbd5e1; padding-left: 16px;">
+                <span class="info-label">Spec / Supplier</span>
+                <input type="hidden" id="hdr-spec"/>
+                <span class="info-val"><span id="display-spec">-</span> <span style="color:var(--text-muted); font-weight:normal;" id="display-supplier"></span></span>
+              </div>
+              <div class="info-item" style="border-left: 1px solid #cbd5e1; padding-left: 16px;">
+                <span class="info-label">T × W</span>
+                <span class="info-val"><span id="hdr-t">--</span> × <span id="hdr-w">--</span> mm</span>
+              </div>
+              <div class="info-item" style="border-left: 1px solid #cbd5e1; padding-left: 16px;">
+                <span class="info-label">Stok Avail</span>
+                <span class="info-val" style="color: var(--primary-blue);"><span id="hdr-kg-avail">0</span> kg</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- BAGIAN KANAN (40%) -->
+          <div class="header-right">
+            <div class="header-right-row">
+              <div class="form-field">
+                <label class="form-label">Machine</label>
+                <input id="hdr-machine" class="form-input" value="CTL-01" readonly style="cursor:not-allowed;"/>
+              </div>
+              <div class="form-field">
+                <label class="form-label">Priority</label>
+                <select id="hdr-priority" class="form-select">
+                  <option>Normal</option><option>High</option><option>Urgent</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label class="form-label">Operator</label>
+                <input id="hdr-op" class="form-input" placeholder="Nama OP"/>
+              </div>
+            </div>
+
+            <div class="header-right-row" style="height: 100%;">
+              <div class="form-field" style="flex: 0.8;">
+                <label class="form-label">Source Loc</label>
+                <select id="hdr-source-loc" class="form-select">
+                  <option value="Stok Coil">Stok Coil</option>
+                </select>
+              </div>
+              <label class="checkbox-wrap" title="Centang kalau SPK ini menghabiskan coil. KG_Actual akan di-lock ke Target_KG saat selesai.">
+                <input type="checkbox" id="hdr-is-habis" onchange="updateWeightTotal()"/>
+                <span>🔒 Coil habis</span>
               </label>
-              <span style="color:#888;font-size:10px;display:block;margin-top:2px;margin-left:26px;">Centang kalau SPK ini menghabiskan coil. KG_Actual akan di-lock ke Target_KG saat selesai.</span>
-            </td>
-            <td class="lbl" style="background:#e8ecf4">Process_Wt</td>
-            <td colspan="3" style="white-space:nowrap">
-              <span id="hdr-weight" class="hdr-process">0</span> &nbsp;kg
-              <span style="color:#888;font-size:10px">(&sum; Keseluruhan Aktual Rencana CTL)</span>
-            </td>
-          </tr>
-        </table>
+              <div class="info-bar-recoil">
+                <span class="info-label">TOTAL PROCESS WT.</span>
+                <span class="info-val"><span id="hdr-weight">0</span> kg</span>
+                <span style="font-size:9px; color:#166534; margin-top:2px;">∑ Aktual Rencana</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="section-instruksi">instruksi proses</div>
@@ -1255,16 +1283,24 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
       document.getElementById('hdr-t').textContent       =r.T||'--';
       document.getElementById('hdr-w').textContent       =r.P||'--';
       document.getElementById('hdr-kg-avail').textContent=Math.round(parseFloat(r.KG_Avail||0));
+      document.getElementById('display-item').textContent = r.Item_Code || '-';
+      document.getElementById('display-nocoil').textContent = (r.No_Coil || r.Coil_No || '') ? '('+(r.No_Coil || r.Coil_No)+')' : '';
+      document.getElementById('display-spec').textContent = r.Spec || '-';
+      document.getElementById('display-supplier').textContent = (r.Supplier || r.supplier || '') ? '('+(r.Supplier || r.supplier)+')' : '';
+      var today = new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+      document.getElementById('hdr-date-display').textContent = today;
 
       _coilOwner = String(r.Owner || r.owner || 'FC').trim().toUpperCase();
       document.querySelectorAll('#out-ctl-list .out-ctl-block').forEach(function(b){
           var bn = parseInt(b.id.replace('ctl-block-',''));
-          var inp = document.getElementById('ctl-owner-'+bn);
-          var disp = document.getElementById('ctl-owner-display-'+bn);
-          if(inp) inp.value = _coilOwner;
-          if(disp){
-              disp.textContent = _coilOwner;
-              disp.className = 'owner-badge ' + (_coilOwner==='DRC' ? 'badge-drc' : 'badge-fc');
+          var inpOwner = document.getElementById('ctl-owner-'+bn);
+          var inpUsed  = document.getElementById('ctl-owner-used-'+bn);
+          var badge    = document.getElementById('ctl-badge-'+bn);
+          if(inpOwner) inpOwner.value = _coilOwner;
+          if(inpUsed)  inpUsed.value  = _coilOwner;
+          if(badge){
+              badge.textContent = _coilOwner;
+              badge.className   = 'owner-badge ' + (_coilOwner==='DRC' ? 'badge-drc' : 'badge-fc');
           }
           handleCtlTargetChange(bn); 
       });
@@ -1339,8 +1375,15 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
       '</div>';
     document.getElementById('out-ctl-list').appendChild(block);
     
-    var inp = document.getElementById('ctl-owner-'+n);
-    if(inp) inp.value = _coilOwner;
+    var inpOwner = document.getElementById('ctl-owner-'+n);
+    var inpUsed  = document.getElementById('ctl-owner-used-'+n);
+    var badge    = document.getElementById('ctl-badge-'+n);
+    if(inpOwner) inpOwner.value = _coilOwner;
+    if(inpUsed)  inpUsed.value  = _coilOwner;
+    if(badge){
+        badge.textContent = _coilOwner;
+        badge.className   = 'owner-badge ' + (_coilOwner==='DRC' ? 'badge-drc' : 'badge-fc');
+    }
     if (typeof window.updateCtlRemoveButtonsState === 'function') window.updateCtlRemoveButtonsState();
   };
 
@@ -1453,23 +1496,38 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
       var ownerUsedInp = document.getElementById('ctl-owner-used-'+n);
       var badge        = document.getElementById('ctl-badge-'+n);
       if (!targetEl || !ownerInp || !ownerUsedInp || !badge) return;
-      var locked = (targetEl.value === 'WIP_Cust' || targetEl.value === 'WIP_Stamping');
-      if (locked) {
-          var coilOwner = ownerInp.value;
+
+      var target    = targetEl.value;
+      var coilOwner = ownerInp.value;
+
+      // Auto-lock targets: Owner_Used = coilOwner (material asal)
+      //   WIP_Cust / WIP_Stamping → material stok tetap milik Owner asli
+      //   Scrap_Area              → scrap tetap menginduk ke material asal (per rule PPIC)
+      var isLockedTarget = (target === 'WIP_Cust' || target === 'WIP_Stamping' || target === 'Scrap_Area');
+
+      if (isLockedTarget) {
           ownerUsedInp.value  = coilOwner;
           badge.textContent   = coilOwner;
           badge.className     = 'owner-badge ' + (coilOwner === 'DRC' ? 'badge-drc' : 'badge-fc');
           badge.style.cursor        = 'default';
           badge.style.pointerEvents = 'none';
           badge.style.opacity       = '0.65';
-      } else {
-          badge.style.cursor        = 'pointer';
-          badge.style.pointerEvents = '';
-          badge.style.opacity       = '1';
+          badge.title = 'Terkunci — target ' + target;
+          return;
       }
 
+      // Unlock badge + reset Owner_Used ke coilOwner (default)
+      badge.style.cursor        = 'pointer';
+      badge.style.pointerEvents = '';
+      badge.style.opacity       = '1';
+      badge.title = '';
+      ownerUsedInp.value  = coilOwner;
+      badge.textContent   = coilOwner;
+      badge.className     = 'owner-badge ' + (coilOwner === 'DRC' ? 'badge-drc' : 'badge-fc');
+
+      // Cust check: kalau cust=DRC → override Owner_Used ke DRC (cross-billing)
       var custEl = document.getElementById('ctl-cust-'+n);
-      if (custEl && custEl.value && targetEl.value !== 'Scrap_Area') {
+      if (custEl && custEl.value) {
         applyCtlOwnerByCust(n, custEl.value);
       }
   };
@@ -2238,11 +2296,11 @@ function printSPK_CTL(dataSPK, dataOut) {
     totalKg  += kg;
     rowsHtml += '<tr>'
       + '<td class="c num">'+(index+1)+'</td>'
-      + '<td class="bold">'+(item.spk_child_no||'')+'</td>'
-      + '<td>'+(item.item_code||'')+'</td>'
-      + '<td class="bold">'+tpl+'</td>'
-      + '<td>'+(item.target_loc||'')+'</td>'
-      + '<td>'+(item.cust||'')+' / '+(item.so_no||'')+'</td>'
+      + '<td class="bold" style="white-space:normal; word-break:break-word; font-size:7.5pt;">'+(item.spk_child_no||'')+'</td>'
+      + '<td style="white-space:normal; word-break:break-word;">'+(item.item_code||'')+'</td>'
+      + '<td class="bold" style="white-space:normal;">'+tpl+'</td>'
+      + '<td style="white-space:normal; font-size:7.5pt; line-height:1.1;">'+(item.target_loc||'')+'</td>'
+      + '<td style="white-space:normal; line-height:1.1;"><b style="font-size:7.5pt;">'+(item.cust||'')+'</b><br><span style="font-size:7pt;color:#444;">'+(item.so_no||'')+'</span></td>'
       + '<td class="num r bold">'+nfmt(qty)+'</td>'
       + '<td class="num r bold">'+nfmt(kg)+'</td>'
       + '<td class="aktual"></td>'
@@ -2288,21 +2346,21 @@ function printSPK_CTL(dataSPK, dataOut) {
     + '.hdr-box tr:last-child td{border-bottom:none}'
     + '.hdr-box .lbl{font-weight:bold;background:#f0f0f0;width:12%}'
     + '.tbl{width:100%;border-collapse:collapse;table-layout:fixed}'
-    + '.tbl th,.tbl td{border:1px solid #000;padding:2px 4px;font-size:8pt;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+    + '.tbl th,.tbl td{border:1px solid #000;padding:2px 4px;font-size:8pt;vertical-align:middle;word-wrap:break-word;}'
     + '.tbl th{background:#e0e0e0;font-weight:bold;text-align:center;font-size:7.5pt;padding:4px 2px}'
     + '.tbl tbody td{height:11mm}'
     + '.tbl tfoot td{height:8mm;font-size:8.5pt}'
     + '.tbl .row-total td{background:#f0f0f0}'
     + '.tbl .row-sisa td{background:#f8f8f8}'
     + '.tbl .aktual{background:#fff5f5}'
-    + '.col-num{width:4%}'
-    + '.col-id{width:12%}'
+    + '.col-num{width:3%}'
+    + '.col-id{width:14%}'
     + '.col-item{width:10%}'
-    + '.col-spec{width:18%}'
-    + '.col-loc{width:9%}'
-    + '.col-cs{width:14%}'
-    + '.col-plan{width:7%}'
-    + '.col-akt{width:9.5%}'
+    + '.col-spec{width:17%}'
+    + '.col-loc{width:11%}'
+    + '.col-cs{width:15%}'
+    + '.col-plan{width:6%}'
+    + '.col-akt{width:9%}'
     + '.catatan{margin-top:6px;font-size:8pt;font-style:italic}'
     + '.sig-row{margin-top:12px;display:table;width:100%}'
     + '.sig-cell{display:table-cell;text-align:center;font-size:8.5pt;padding:0 8px}'

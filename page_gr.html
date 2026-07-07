@@ -73,7 +73,7 @@ td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle
   <div class="table-wrap" style="border-radius: 4px 4px 0 0; min-height: unset;">
     <table>
       <thead>
-        <tr><th width="8%">Tanggal</th><th width="12%">Batch ID</th><th width="13%">Item Code</th><th width="23%">Deskripsi</th><th width="11%">Qty / KG</th><th width="15%">Vendor</th><th width="9%">No. DO</th><th width="9%">No. PO</th></tr>
+        <tr><th width="7%">Tanggal</th><th width="11%">Batch ID</th><th width="12%">Item Code</th><th width="18%">Deskripsi</th><th width="10%">Qty / KG</th><th width="13%">Vendor</th><th width="8%">No. DO</th><th width="8%">No. PO</th><th width="13%">Catatan</th></tr>
       </thead>
       <tbody id="dash-tbody"></tbody>
     </table>
@@ -109,13 +109,16 @@ td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle
     </div>
   </div>
   <div class="panel" style="flex-grow: 1; overflow: hidden;">
-    <div class="panel-head"><div style="display:flex; align-items:center; gap: 16px;"><span>2. Verifikasi Fisik Material yang Tiba</span></div></div>
+    <div class="panel-head">
+      <span>2. Input Item Penerimaan</span>
+      <button class="btn btn-primary" id="btn-add-row" onclick="addRow()" disabled style="height:28px;">➕ Tambah Baris</button>
+    </div>
     <div class="table-wrap">
       <table class="inline-table" style="table-layout: auto;">
         <thead>
-          <tr><th width="3%" style="text-align:center;">✓</th><th width="15%">Item Code</th><th width="20%">Deskripsi (Balance)</th><th width="6%">UoM</th><th width="10%">Target Gudang</th><th width="8%">Qty Aktual</th><th width="8%">KG Aktual</th><th width="12%">No. Coil Fisik</th><th width="18%">Catatan</th></tr>
+          <tr><th width="14%">Item Code *</th><th width="22%">Deskripsi (Balance)</th><th width="6%">UoM</th><th width="10%">Target Gudang</th><th width="8%">Qty Aktual</th><th width="8%">KG Aktual</th><th width="12%">No. Coil Fisik</th><th width="16%">Catatan</th><th width="4%" style="text-align:center;">🗑️</th></tr>
         </thead>
-        <tbody id="item-tbody"><tr><td colspan="9" style="text-align:center; padding:30px; color:#94a3b8; font-style:italic;">Pilih Nomor PO di atas untuk memunculkan daftar material.</td></tr></tbody>
+        <tbody id="item-tbody"><tr><td colspan="9" style="text-align:center; padding:30px; color:#94a3b8; font-style:italic;">Pilih Nomor PO di atas, lalu klik "➕ Tambah Baris".</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -157,8 +160,16 @@ td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle
 <script>
 var DB = { pos: [] };
 var DASH = { data: [], page: 1, total: 1 };
-var SELECTED_PO_ITEMS = [];
+var SELECTED_PO_ITEMS = [];       // legacy — dipertahankan untuk backward-safety
+var PO_ITEMS_MAP = {};             // { item_code: { po_item_ref } }
+var ROWS = [];                     // array state per baris input GR
+var ROW_COUNTER = 0;               // unique row_id generator
+var CUR_PO_NO = '';                // PO yang sedang aktif dipilih
 var CUR = { editingRow: null };
+
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 
 function showView(viewId) {
   document.querySelectorAll('.view-container').forEach(function(el){ el.classList.remove('active'); });
@@ -210,21 +221,28 @@ function renderDashboardTable() {
   document.getElementById('pg-info').textContent = 'Halaman ' + DASH.page + ' / ' + DASH.total;
   document.getElementById('pg-prev').disabled = (DASH.page === 1);
   document.getElementById('pg-next').disabled = (DASH.page === DASH.total);
-  if (DASH.data.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:#94a3b8; font-style:italic;">Belum ada riwayat penerimaan barang.</td></tr>'; return; }
+  if (DASH.data.length === 0) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:30px; color:#94a3b8; font-style:italic;">Belum ada riwayat penerimaan barang.</td></tr>'; return; }
 
   tbody.innerHTML = DASH.data.map(function(r, index) {
     var qtykg = r.jenis === 'COIL' ? `<b>${r.kg}</b> KG` : `<b>${r.qty}</b> Sht / ${r.kg} KG`;
+    var noteRaw = String(r.note || '').trim();
+    var noteEsc = noteRaw.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    var noteCell = noteRaw
+      ? `<td title="${noteEsc}" style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#334155;">${noteEsc}</td>`
+      : `<td style="color:#cbd5e1; text-align:center;">—</td>`;
     return `<tr class="dash-row" onclick="openDetail(${index})">
       <td>${r.tgl_str}</td><td class="td-link"><b>${r.batch_id}</b></td><td>${r.item_code}</td>
-      <td style="color:var(--primary-blue); font-weight:700;">${r.desc}</td><td>${qtykg}</td><td>${r.supplier}</td><td>${r.no_do}</td><td>${r.no_po}</td>
+      <td style="color:var(--primary-blue); font-weight:700;">${r.desc}</td><td>${qtykg}</td><td>${r.supplier}</td><td>${r.no_do}</td><td>${r.no_po}</td>${noteCell}
     </tr>`;
   }).join('');
 }
 
 function openCreateMulti() {
-  document.getElementById('item-tbody').innerHTML = '<tr><td colspan="9" style="text-align:center; padding:30px; color:#94a3b8; font-style:italic;">Pilih Nomor PO di atas untuk memunculkan daftar material.</td></tr>';
+  document.getElementById('item-tbody').innerHTML = '<tr><td colspan="9" style="text-align:center; padding:30px; color:#94a3b8; font-style:italic;">Pilih Nomor PO di atas, lalu klik "➕ Tambah Baris".</td></tr>';
   ['h-supp','h-owner','h-do','h-po'].forEach(function(id) { document.getElementById(id).value = ''; });
-  SELECTED_PO_ITEMS = []; showView('view-create');
+  SELECTED_PO_ITEMS = []; PO_ITEMS_MAP = {}; ROWS = []; ROW_COUNTER = 0; CUR_PO_NO = '';
+  document.getElementById('btn-add-row').disabled = true;
+  showView('view-create');
 }
 
 function buildPODD() {
@@ -247,108 +265,344 @@ function buildPODD() {
 
 function selectPO(poNo) { 
   var selectedData = DB.pos.find(function(p){ return p.po_no === poNo; }); if (!selectedData) return;
-  document.getElementById('h-po').value = selectedData.po_no; document.getElementById('h-supp').value = selectedData.vendor; 
-  document.getElementById('h-owner').value = selectedData.owner; document.getElementById('sdl-po').style.display = 'none'; 
-  SELECTED_PO_ITEMS = selectedData.items; renderPOItemsToTable(); document.getElementById('h-do').focus(); 
+
+  // Confirm dialog kalau user ganti PO padahal sudah ada baris terisi
+  if (CUR_PO_NO && CUR_PO_NO !== poNo && ROWS.length > 0) {
+    if (!confirm('⚠️ Ganti PO akan MERESET semua baris item yang sudah diinput (' + ROWS.length + ' baris).\n\nYakin ingin lanjutkan?')) {
+      document.getElementById('h-po').value = CUR_PO_NO;
+      document.getElementById('sdl-po').style.display = 'none';
+      return;
+    }
+  }
+
+  document.getElementById('h-po').value = selectedData.po_no;
+  document.getElementById('h-supp').value = selectedData.vendor;
+  document.getElementById('h-owner').value = selectedData.owner;
+  document.getElementById('sdl-po').style.display = 'none';
+
+  SELECTED_PO_ITEMS = selectedData.items;
+  CUR_PO_NO = poNo;
+
+  // Build lookup map by item_code
+  PO_ITEMS_MAP = {};
+  selectedData.items.forEach(function(it) { PO_ITEMS_MAP[it.item_code] = it; });
+
+  // Reset semua baris
+  ROWS = []; ROW_COUNTER = 0;
+  renderRowsTable();
+
+  document.getElementById('btn-add-row').disabled = false;
+  document.getElementById('h-do').focus();
 }
 
-function renderPOItemsToTable() {
-  var tbody = document.getElementById('item-tbody'); tbody.innerHTML = '';
-  SELECTED_PO_ITEMS.forEach(function(itm, i) {
-    var tr = document.createElement('tr'); var isCoil = itm.target_loc === 'Stok_Coil';
-    tr.innerHTML = `
-      <td style="text-align:center;"><input type="checkbox" class="inp-chk" onchange="toggleRow(this, ${i})"></td>
-      <td><b>${itm.item_code}</b></td>
-      <td><div style="font-weight:700; color:var(--primary-blue);">${itm.description}</div><div style="font-size:10px; color:var(--danger-red);">Sisa PO: ${itm.bal_qty} ${itm.uom} / ${itm.bal_kg} KG</div></td>
-      <td>${itm.uom}</td><td><span class="badge ${isCoil ? 'badge-blue' : 'badge-green'}">${itm.target_loc}</span></td>
-      <td><input type="number" class="f-inp inp-qty" placeholder="Qty" disabled oninput="calcRowKg(${i})"></td>
-      <td><input type="number" class="f-inp inp-kg" placeholder="KG" disabled style="font-weight:bold;"></td>
-      <td><input type="text" class="f-inp inp-coil" placeholder="${isCoil ? 'Wajib Diisi...' : '-'}" ${isCoil ? '' : 'disabled style="background:transparent;border-color:transparent;"'}></td>
-      <td><input type="text" class="f-inp inp-note" placeholder="Note..." disabled></td>`;
-    tbody.appendChild(tr);
+// ─────────────────────────────────────────────────────────────────────────
+// ROW-BASED INPUT SYSTEM (v2 — Multi Row Same Item Support)
+// ─────────────────────────────────────────────────────────────────────────
+
+function addRow() {
+  if (!CUR_PO_NO) return alert('Pokayoke: Pilih No PO terlebih dahulu!');
+  var rowId = ++ROW_COUNTER;
+  ROWS.push({
+    row_id: rowId,
+    item_code: '', description: '', uom: '', target_loc: '',
+    spec: '', thick: 0, lebar: 0, l_dim: 0, wg_pce: 0,
+    qty: '', kg: '', no_coil: '', note: ''
   });
+  renderRowsTable();
+  setTimeout(function() {
+    var newInput = document.getElementById('inp-item-' + rowId);
+    if (newInput) newInput.focus();
+  }, 50);
 }
 
-function toggleRow(chkBox, index) {
-  var tr = chkBox.closest('tr'); var inputs = tr.querySelectorAll('.inp-qty, .inp-kg, .inp-note');
-  var isCoil = SELECTED_PO_ITEMS[index].target_loc === 'Stok_Coil'; var coilInput = tr.querySelector('.inp-coil');
-  if (chkBox.checked) {
-    inputs.forEach(function(el){ el.disabled = false; }); if(isCoil) coilInput.disabled = false;
-    tr.style.background = '#f0fdf4'; tr.querySelector('.inp-qty').focus();
-  } else {
-    inputs.forEach(function(el){ el.disabled = true; el.value = ''; }); if(isCoil) { coilInput.disabled = true; coilInput.value = ''; }
-    tr.style.background = '';
+function deleteRow(rowId) {
+  var idx = ROWS.findIndex(function(r) { return r.row_id === rowId; });
+  if (idx === -1) return;
+  var r = ROWS[idx];
+  if (r.item_code && (r.qty || r.kg || r.no_coil)) {
+    if (!confirm('Hapus baris ke-' + (idx+1) + ' (' + r.item_code + ')?')) return;
+  }
+  ROWS.splice(idx, 1);
+  renderRowsTable();
+}
+
+function renderRowsTable() {
+  var tbody = document.getElementById('item-tbody');
+  if (ROWS.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:30px; color:#94a3b8; font-style:italic;">Belum ada baris. Klik "➕ Tambah Baris" di atas untuk mulai input.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = ROWS.map(function(r, idx) {
+    var isCoil = r.target_loc === 'Stok_Coil';
+    var itemChosen = !!r.item_code;
+    var bal = itemChosen ? calcRemainBalance(r.item_code) : null;
+    var balLine = bal
+      ? '<div class="row-balance" data-item="' + escHtml(r.item_code) + '" style="font-size:10px; color:var(--danger-red);">Sisa PO: ' + bal.remain_qty + ' ' + escHtml(r.uom) + ' / ' + bal.remain_kg.toFixed(2) + ' KG</div>'
+      : '';
+    var descCell = itemChosen
+      ? '<div style="font-weight:700; color:var(--primary-blue);">' + escHtml(r.description) + '</div>' + balLine
+      : '<span style="color:#94a3b8; font-style:italic;">(pilih Item Code dulu)</span>';
+    var tgtBadge = r.target_loc
+      ? '<span class="badge ' + (isCoil ? 'badge-blue' : 'badge-green') + '">' + escHtml(r.target_loc) + '</span>'
+      : '<span style="color:#94a3b8;">-</span>';
+    var coilAttr = (itemChosen && isCoil) ? '' : 'disabled style="background:transparent;border-color:transparent;"';
+    var coilPh = isCoil ? 'Wajib Diisi...' : '-';
+
+    return '<tr data-row-id="' + r.row_id + '">' +
+      '<td><div class="sd-wrap"><input class="f-inp" id="inp-item-' + r.row_id + '" placeholder="Ketik Item Code..." autocomplete="off" value="' + escHtml(r.item_code) + '" style="font-weight:bold;"><div class="sd-list" id="sdl-item-' + r.row_id + '"></div></div></td>' +
+      '<td>' + descCell + '</td>' +
+      '<td>' + (r.uom ? escHtml(r.uom) : '-') + '</td>' +
+      '<td>' + tgtBadge + '</td>' +
+      '<td><input type="number" class="f-inp inp-qty" value="' + escHtml(r.qty) + '" placeholder="Qty" ' + (itemChosen ? '' : 'disabled') + ' oninput="onRowQtyInput(' + r.row_id + ', this.value)"></td>' +
+      '<td><input type="number" class="f-inp inp-kg" value="' + escHtml(r.kg) + '" placeholder="KG" ' + (itemChosen ? '' : 'disabled') + ' style="font-weight:bold;" oninput="onRowKgInput(' + r.row_id + ', this.value)"></td>' +
+      '<td><input type="text" class="f-inp inp-coil" value="' + escHtml(r.no_coil) + '" placeholder="' + coilPh + '" ' + coilAttr + ' oninput="onRowCoilInput(' + r.row_id + ', this.value)"></td>' +
+      '<td><input type="text" class="f-inp inp-note" value="' + escHtml(r.note) + '" placeholder="Note..." ' + (itemChosen ? '' : 'disabled') + ' oninput="onRowNoteInput(' + r.row_id + ', this.value)"></td>' +
+      '<td style="text-align:center;"><button class="btn btn-outline" style="height:24px; padding:0 8px; font-size:14px; color:var(--danger-red);" onclick="deleteRow(' + r.row_id + ')" title="Hapus baris">🗑️</button></td>' +
+    '</tr>';
+  }).join('');
+
+  // Attach smart-search handler ke setiap row
+  ROWS.forEach(function(r) { buildItemDD(r.row_id); });
+}
+
+function calcRemainBalance(itemCode) {
+  var poItem = PO_ITEMS_MAP[itemCode];
+  if (!poItem) return { remain_qty: 0, remain_kg: 0 };
+  var usedQty = 0, usedKg = 0;
+  ROWS.forEach(function(r) {
+    if (r.item_code === itemCode) {
+      usedQty += parseFloat(r.qty) || 0;
+      usedKg += parseFloat(r.kg) || 0;
+    }
+  });
+  return {
+    remain_qty: poItem.bal_qty - usedQty,
+    remain_kg: poItem.bal_kg - usedKg
+  };
+}
+
+function buildItemDD(rowId) {
+  var inp = document.getElementById('inp-item-' + rowId);
+  var lst = document.getElementById('sdl-item-' + rowId);
+  if (!inp || !lst) return;
+  var actIdx = -1;
+
+  inp.addEventListener('input', function() {
+    actIdx = -1;
+    var q = this.value.toLowerCase();
+    var poItems = Object.keys(PO_ITEMS_MAP).map(function(k){ return PO_ITEMS_MAP[k]; });
+    var res = poItems.filter(function(it) {
+      return it.item_code.toLowerCase().includes(q) || String(it.description || '').toLowerCase().includes(q);
+    }).slice(0, 30);
+    lst.innerHTML = res.map(function(it) {
+      return '<div class="sd-item" data-code="' + escHtml(it.item_code) + '"><div class="title">' + escHtml(it.item_code) + '</div><div class="desc">' + escHtml(it.description) + ' | Sisa: ' + it.bal_qty + ' ' + escHtml(it.uom) + ' / ' + it.bal_kg + ' KG</div></div>';
+    }).join('');
+    lst.style.display = res.length ? 'block' : 'none';
+  });
+
+  lst.addEventListener('mousedown', function(e) {
+    var el = e.target.closest('.sd-item');
+    if (el) selectItemForRow(rowId, el.dataset.code);
+  });
+
+  inp.addEventListener('keydown', function(e) {
+    var items = lst.querySelectorAll('.sd-item');
+    if (e.key === 'ArrowDown') { e.preventDefault(); if (!items.length) return; actIdx = (actIdx + 1) % items.length; hiItem(items); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); if (!items.length) return; actIdx = (actIdx - 1 + items.length) % items.length; hiItem(items); }
+    else if (e.key === 'Enter' || e.key === 'Tab') {
+      if (lst.style.display === 'block' && items.length > 0) { e.preventDefault(); selectItemForRow(rowId, items[Math.max(0, actIdx)].dataset.code); }
+    }
+  });
+
+  inp.addEventListener('blur', function() {
+    setTimeout(function() { lst.style.display = 'none'; }, 200);
+  });
+
+  function hiItem(items) {
+    items.forEach(function(el, i) {
+      if (i === actIdx) { el.classList.add('active'); el.scrollIntoView({block:'nearest'}); }
+      else { el.classList.remove('active'); }
+    });
   }
 }
 
-function calcRowKg(index) {
-  var tr = document.querySelectorAll('#item-tbody tr')[index]; var itm = SELECTED_PO_ITEMS[index];
-  var qty = parseFloat(tr.querySelector('.inp-qty').value) || 0;
-  if (qty > 0 && itm.wg_pce > 0) tr.querySelector('.inp-kg').value = (qty * itm.wg_pce).toFixed(2);
+function selectItemForRow(rowId, itemCode) {
+  var poItem = PO_ITEMS_MAP[itemCode];
+  if (!poItem) return;
+  var r = ROWS.find(function(x) { return x.row_id === rowId; });
+  if (!r) return;
+
+  r.item_code = poItem.item_code;
+  r.description = poItem.description;
+  r.uom = poItem.uom;
+  r.target_loc = poItem.target_loc;
+  r.spec = poItem.spec;
+  r.thick = poItem.thick;
+  r.lebar = poItem.lebar;
+  r.l_dim = poItem.l_dim;
+  r.wg_pce = poItem.wg_pce;
+
+  renderRowsTable();
+  setTimeout(function() {
+    var tr = document.querySelector('tr[data-row-id="' + rowId + '"]');
+    if (tr) {
+      var qtyInput = tr.querySelector('.inp-qty');
+      if (qtyInput) qtyInput.focus();
+    }
+  }, 50);
+}
+
+function onRowQtyInput(rowId, val) {
+  var r = ROWS.find(function(x) { return x.row_id === rowId; });
+  if (!r) return;
+  r.qty = val;
+  // Auto-calc KG utk non-coil (wg_pce > 0)
+  var isCoil = r.target_loc === 'Stok_Coil';
+  if (!isCoil && r.wg_pce > 0) {
+    var q = parseFloat(val) || 0;
+    r.kg = q > 0 ? (q * r.wg_pce).toFixed(2) : '';
+    var tr = document.querySelector('tr[data-row-id="' + rowId + '"]');
+    if (tr) {
+      var kgInp = tr.querySelector('.inp-kg');
+      if (kgInp) kgInp.value = r.kg;
+    }
+  }
+  updateBalanceDisplay(r.item_code);
+}
+
+function onRowKgInput(rowId, val) {
+  var r = ROWS.find(function(x) { return x.row_id === rowId; });
+  if (!r) return;
+  r.kg = val;
+  updateBalanceDisplay(r.item_code);
+}
+
+function onRowCoilInput(rowId, val) {
+  var r = ROWS.find(function(x) { return x.row_id === rowId; });
+  if (r) r.no_coil = val;
+}
+
+function onRowNoteInput(rowId, val) {
+  var r = ROWS.find(function(x) { return x.row_id === rowId; });
+  if (r) r.note = val;
+}
+
+function updateBalanceDisplay(itemCode) {
+  if (!itemCode) return;
+  var bal = calcRemainBalance(itemCode);
+  var poItem = PO_ITEMS_MAP[itemCode]; if (!poItem) return;
+  document.querySelectorAll('.row-balance[data-item="' + itemCode.replace(/"/g,'&quot;') + '"]').forEach(function(el) {
+    el.textContent = 'Sisa PO: ' + bal.remain_qty + ' ' + poItem.uom + ' / ' + bal.remain_kg.toFixed(2) + ' KG';
+    // Warning color kalau over
+    el.style.color = (bal.remain_qty < 0 || bal.remain_kg < 0) ? 'var(--warning-orange)' : 'var(--danger-red)';
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────
 // LOGIKA POKAYOKE OVER-DELIVERY (DRC 0%, COIL 10%, SHEET 5%)
 // ─────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────
+// LOGIKA POKAYOKE OVER-DELIVERY — CUMULATIVE per item_code
+// (DRC 0%, COIL 10%, SHEET 5%)
+// ─────────────────────────────────────────────────────────────────────────
 function submitGR() {
   var vendorName = document.getElementById('h-supp').value.toUpperCase();
-  var h = { no_po: document.getElementById('h-po').value, supplier: document.getElementById('h-supp').value, no_do: document.getElementById('h-do').value, tgl_masuk: document.getElementById('h-tgl').value, owner: document.getElementById('h-owner').value };
-  
+  var h = {
+    no_po: document.getElementById('h-po').value,
+    supplier: document.getElementById('h-supp').value,
+    no_do: document.getElementById('h-do').value,
+    tgl_masuk: document.getElementById('h-tgl').value,
+    owner: document.getElementById('h-owner').value
+  };
+
   if (!h.no_po || !h.no_do || !h.tgl_masuk) return alert('Pokayoke: Header No PO dan Surat Jalan wajib diisi!');
+  if (ROWS.length === 0) return alert('Pokayoke: Tambahkan minimal 1 baris item!');
 
   var isDRC = vendorName.indexOf("DIAN RAYA CIPTA") !== -1;
-  var rows = document.querySelectorAll('#item-tbody tr');
   var finalItems = [];
   var warningMessages = [];
-  
-  for (var i = 0; i < rows.length; i++) {
-    var tr = rows[i]; var chk = tr.querySelector('.inp-chk');
-    if (!chk || !chk.checked) continue; 
 
-    var itmRef = SELECTED_PO_ITEMS[i];
-    var isCoil = itmRef.target_loc === 'Stok_Coil';
-    var qty = parseInt(tr.querySelector('.inp-qty').value) || 0;
-    var kg = parseFloat(tr.querySelector('.inp-kg').value) || 0;
-    var noCoil = tr.querySelector('.inp-coil').value.trim();
-    
-    if (qty <= 0 || kg <= 0) return alert('Pokayoke: Baris ke-'+(i+1)+' ('+itmRef.item_code+') Qty/KG harus lebih dari 0!');
-    if (isCoil && !noCoil) return alert('Pokayoke: Baris ke-'+(i+1)+' ('+itmRef.item_code+') No. Coil fisik wajib diketik!');
+  // ── Step 1: Validasi per baris ─────────────────────────────────
+  for (var i = 0; i < ROWS.length; i++) {
+    var r = ROWS[i];
+    var rowNo = i + 1;
 
-    var tol_pct = isDRC ? 0 : (isCoil ? 0.10 : 0.05);
-    var max_qty = itmRef.bal_qty + Math.ceil(itmRef.po_qty * tol_pct);
-    var max_kg = itmRef.bal_kg + (itmRef.po_kg * tol_pct);
+    if (!r.item_code) return alert('Pokayoke: Baris ke-' + rowNo + ' — Item Code wajib dipilih!');
+    var itmRef = PO_ITEMS_MAP[r.item_code];
+    if (!itmRef) return alert('Pokayoke: Baris ke-' + rowNo + ' — Item "' + r.item_code + '" tidak ada di PO!');
 
-    if (qty > max_qty || kg > max_kg) {
-      var pctText = isDRC ? "0%" : (isCoil ? "10%" : "5%");
-      return alert('Pokayoke OVER-DELIVERY DITOLAK:\nBaris ke-'+(i+1)+' ('+itmRef.item_code+') melebihi batas toleransi '+pctText+' dari total PO!\n\nSisa PO: '+itmRef.bal_kg+' KG\nMaksimal Penerimaan Diizinkan: ' + max_kg.toFixed(2) + ' KG');
-    }
+    var isCoil = r.target_loc === 'Stok_Coil';
+    var qty = parseInt(r.qty) || 0;
+    var kg = parseFloat(r.kg) || 0;
+    var noCoil = String(r.no_coil || '').trim();
 
-    if (qty > itmRef.bal_qty || kg > itmRef.bal_kg) {
-      var diffKg = (kg - itmRef.bal_kg).toFixed(2);
-      warningMessages.push('- ' + itmRef.item_code + ' (Lebih ' + diffKg + ' KG dari sisa PO)');
-    }
+    if (qty <= 0 || kg <= 0) return alert('Pokayoke: Baris ke-' + rowNo + ' (' + r.item_code + ') — Qty/KG harus lebih dari 0!');
+    if (isCoil && !noCoil) return alert('Pokayoke: Baris ke-' + rowNo + ' (' + r.item_code + ') — No. Coil fisik wajib diisi!');
 
     finalItems.push({
-      item_code: itmRef.item_code, description: itmRef.description, uom: itmRef.uom, spec: itmRef.spec,
-      thick: itmRef.thick, lebar: itmRef.lebar, l_dim: itmRef.l_dim, target_loc: itmRef.target_loc,
-      qty_in: qty, kg_in: kg, no_coil: noCoil, note: tr.querySelector('.inp-note').value
+      row_no: rowNo,
+      item_code: r.item_code, description: r.description, uom: r.uom, spec: r.spec,
+      thick: r.thick, lebar: r.lebar, l_dim: r.l_dim, target_loc: r.target_loc,
+      qty_in: qty, kg_in: kg, no_coil: noCoil, note: r.note || ''
     });
   }
-  
-  if (finalItems.length === 0) return alert('Pokayoke: Centang minimal 1 material yang datang!');
+
+  // ── Step 2: Validasi CUMULATIVE per item_code ──────────────────
+  var cumByItem = {};
+  finalItems.forEach(function(it) {
+    if (!cumByItem[it.item_code]) cumByItem[it.item_code] = { qty: 0, kg: 0, rows: [] };
+    cumByItem[it.item_code].qty += it.qty_in;
+    cumByItem[it.item_code].kg += it.kg_in;
+    cumByItem[it.item_code].rows.push(it.row_no);
+  });
+
+  for (var itemCode in cumByItem) {
+    var cum = cumByItem[itemCode];
+    var itmRef2 = PO_ITEMS_MAP[itemCode];
+    var isCoil2 = itmRef2.target_loc === 'Stok_Coil';
+    var tol_pct = isDRC ? 0 : (isCoil2 ? 0.10 : 0.05);
+    var max_qty = itmRef2.bal_qty + Math.ceil(itmRef2.po_qty * tol_pct);
+    var max_kg = itmRef2.bal_kg + (itmRef2.po_kg * tol_pct);
+
+    if (cum.qty > max_qty || cum.kg > max_kg) {
+      var pctText = isDRC ? "0%" : (isCoil2 ? "10%" : "5%");
+      return alert(
+        'Pokayoke OVER-DELIVERY DITOLAK:\n\n' +
+        'Item: ' + itemCode + '\n' +
+        'Baris: ke-' + cum.rows.join(', ke-') + '\n' +
+        'Total Input: ' + cum.qty + ' ' + itmRef2.uom + ' / ' + cum.kg.toFixed(2) + ' KG\n\n' +
+        'Melebihi batas toleransi ' + pctText + ' dari PO!\n\n' +
+        'Sisa PO Awal: ' + itmRef2.bal_qty + ' ' + itmRef2.uom + ' / ' + itmRef2.bal_kg + ' KG\n' +
+        'Maksimal Diizinkan: ' + max_qty + ' ' + itmRef2.uom + ' / ' + max_kg.toFixed(2) + ' KG'
+      );
+    }
+
+    if (cum.qty > itmRef2.bal_qty || cum.kg > itmRef2.bal_kg) {
+      var diffKg = (cum.kg - itmRef2.bal_kg).toFixed(2);
+      warningMessages.push('- ' + itemCode + ' (Total ' + cum.kg.toFixed(2) + ' KG, lebih ' + diffKg + ' KG dari sisa PO)');
+    }
+  }
 
   if (warningMessages.length > 0) {
-    var msg = "⚠️ PERINGATAN OVER-DELIVERY (Dalam Batas Toleransi) ⚠️\n\nMaterial berikut melebihi sisa PO namun masih dalam batas aman:\n" + warningMessages.join("\n") + "\n\nApakah Anda yakin ingin tetap menyimpan penerimaan berlebih ini?";
-    if (!confirm(msg)) return; 
+    var msg = "⚠️ PERINGATAN OVER-DELIVERY (Dalam Batas Toleransi) ⚠️\n\nItem berikut melebihi sisa PO namun masih dalam batas aman:\n" + warningMessages.join("\n") + "\n\nYakin ingin tetap menyimpan penerimaan berlebih ini?";
+    if (!confirm(msg)) return;
   }
-  
+
+  // Strip row_no sebelum kirim ke backend (backend nggak butuh field ini)
+  var payloadItems = finalItems.map(function(x) {
+    var copy = {};
+    for (var k in x) if (k !== 'row_no') copy[k] = x[k];
+    return copy;
+  });
+
   grOv(true, 'Menyimpan & Menyiapkan Print...');
   google.script.run.withSuccessHandler(function(jsonStr) {
     var res = JSON.parse(jsonStr);
     if(res.error) { grOv(false); return alert("Sistem Error: " + res.error); }
-    showView('view-dashboard'); 
+    showView('view-dashboard');
     syncAllData(function() { setTimeout(function() { printLabels(res.labels); }, 500); });
-  }).withFailureHandler(function(e) { grOv(false); alert('Gagal: '+e.message); }).saveGR({ header: h, items: finalItems });
+  }).withFailureHandler(function(e) { grOv(false); alert('Gagal: '+e.message); }).saveGR({ header: h, items: payloadItems });
 }
 
 function openDetail(index) {

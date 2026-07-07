@@ -122,6 +122,64 @@ td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle
 .po-detail-block td { padding: 6px 10px; font-size: 11px; }
 .qty-line { font-weight: 700; font-size: 12px; }
 .kg-line { color: var(--text-muted); font-size: 10px; }
+
+/* ==== MODAL EDIT (Sprint PO Edit A+B) ==== */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  z-index: 10000; justify-content: center; align-items: center;
+}
+.modal-overlay.on { display: flex; }
+.modal-box {
+  background: #fff; border-radius: 8px; padding: 0;
+  width: 900px; max-width: 95vw; max-height: 90vh;
+  box-shadow: 0 20px 60px rgba(0,0,0,.3); overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.modal-head {
+  background: #eff6ff; border-bottom: 1px solid #bfdbfe;
+  padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;
+}
+.modal-title { font-size: 14px; font-weight: 700; color: #1e40af; margin: 0; display: flex; align-items: center; gap: 8px; }
+.modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; }
+.modal-foot { padding: 12px 20px; border-top: 1px solid var(--border-color); background: #f8fafc; display: flex; justify-content: flex-end; gap: 8px; }
+.modal-close-x {
+  background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b;
+  padding: 0 6px; border-radius: 3px;
+}
+.modal-close-x:hover { background: #e2e8f0; color: var(--danger-red); }
+
+.em-info-bar {
+  background: #f8fafc; padding: 10px 12px; border: 1px solid var(--border-color);
+  border-radius: 4px; margin-bottom: 14px;
+}
+.em-info-bar .row { margin-bottom: 0; }
+.em-items-table { table-layout: auto; margin: 0; }
+.em-items-table th {
+  background: #e2e8f0; padding: 6px 10px; font-size: 10px; position: static;
+}
+.em-items-table td { padding: 6px 10px; font-size: 11px; }
+.em-items-table input.f-inp { height: 26px; padding: 4px 8px; }
+
+.em-locked-warn {
+  background: #fef3c7; border: 1px solid #fcd34d; color: #92400e;
+  padding: 10px 12px; border-radius: 4px; margin-bottom: 12px; font-size: 12px;
+}
+
+/* Search dropdown untuk add item modal */
+.sd-wrap { position: relative; width: 100%; }
+.sd-list {
+  display: none; position: absolute; top: calc(100% + 2px); left: 0;
+  min-width: 300px; background: #fff; border: 1px solid var(--primary-blue);
+  border-radius: 3px; max-height: 250px; overflow-y: auto; z-index: 999;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+}
+.sd-item { padding: 6px 10px; cursor: pointer; border-bottom: 1px solid #f1f5f9; }
+.sd-item:hover, .sd-item.active { background: #e2e8f0; border-left: 3px solid var(--primary-blue); }
+.sd-item .title { font-size: 12px; font-weight: 700; color: var(--primary-blue); margin-bottom: 2px; }
+.sd-item .desc { font-size: 10px; color: var(--text-muted); }
+
+/* Hover cell No PO — visual cue subtle bahwa cell interaktif */
+.po-no-cell { cursor: pointer; user-select: none; }
 </style>
 
 <div id="view-po-dashboard" class="view-container active">
@@ -235,6 +293,101 @@ td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle
 
   <div style="display:flex; justify-content:flex-end; flex-shrink:0;">
     <button class="btn btn-success" style="height:36px; padding:0 50px; font-size:14px;" onclick="submitPurchaseOrderForm()">📥 Simpan Dokumen PO ke Sistem</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     MODAL EDIT PO (Sprint PO Edit A+B) — Triple-click cell No PO to open
+═══════════════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="po-edit-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 class="modal-title">
+        <span>📝 Edit PO — <span id="pem-po-no" style="font-family:ui-monospace,monospace;"></span></span>
+      </h3>
+      <button class="modal-close-x" onclick="closePOEditModal()" title="Tutup">✖</button>
+    </div>
+    <div class="modal-body">
+      
+      <!-- INFO HEADER (read-only) -->
+      <div class="em-info-bar">
+        <div class="row">
+          <div class="col"><label>Vendor</label><input class="f-inp" id="pem-vendor" disabled></div>
+          <div class="col"><label>Tgl PO</label><input class="f-inp" id="pem-date" disabled></div>
+          <div class="col"><label>Est. Tiba</label><input class="f-inp" id="pem-schedule" disabled></div>
+          <div class="col"><label>Owner</label><input class="f-inp" id="pem-owner" disabled></div>
+        </div>
+      </div>
+      
+      <!-- CLOSED PO WARNING -->
+      <div id="pem-closed-warn" class="em-locked-warn" style="display:none;">
+        🔒 <b>PO ini sudah CLOSED</b> (semua item balance ≤ 0). Edit qty tetap bisa, tapi hati-hati: qty baru harus &ge; qty yang sudah diterima.
+      </div>
+      
+      <!-- LIST ITEMS EDITABLE -->
+      <div style="margin-bottom:14px;">
+        <h4 style="margin:0 0 8px; font-size:12px; font-weight:700; color:#0f172a;">📦 Daftar Item (Klik input untuk edit)</h4>
+        <div style="border:1px solid var(--border-color); border-radius:4px; overflow:hidden;">
+          <table class="em-items-table">
+            <thead>
+              <tr>
+                <th style="width:13%;">Item Code</th>
+                <th style="width:22%;">Deskripsi</th>
+                <th style="width:8%;">UoM</th>
+                <th style="width:10%;">Qty Order</th>
+                <th style="width:10%;">Terima GR</th>
+                <th style="width:10%;">Target</th>
+                <th style="width:17%;">Note</th>
+                <th style="width:10%; text-align:center;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="pem-items-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      
+      <!-- ADD ITEM BARU -->
+      <div id="pem-add-section" style="border-top:2px dashed var(--border-color); padding-top:14px;">
+        <h4 style="margin:0 0 8px; font-size:12px; font-weight:700; color:#0f172a;">➕ Tambah Item Baru</h4>
+        <div class="row" style="align-items:flex-end;">
+          <div class="col-2">
+            <label>Item Code *</label>
+            <div class="sd-wrap">
+              <input class="f-inp" id="pem-add-input" placeholder="Ketik nama/kode item..." oninput="filterPOAddItemList()" onfocus="filterPOAddItemList()" autocomplete="off">
+              <div class="sd-list" id="pem-add-list"></div>
+              <input type="hidden" id="pem-add-code">
+              <input type="hidden" id="pem-add-desc">
+              <input type="hidden" id="pem-add-uom">
+              <input type="hidden" id="pem-add-wg">
+            </div>
+          </div>
+          <div class="col">
+            <label>Qty Order *</label>
+            <input type="number" class="f-inp" id="pem-add-qty" min="1" placeholder="0">
+          </div>
+          <div class="col">
+            <label>Target Gudang *</label>
+            <select class="f-inp" id="pem-add-target">
+              <option value="">-- Pilih --</option>
+              <option value="Stok_Coil">Stok_Coil</option>
+              <option value="Stok_Sheet">Stok_Sheet</option>
+            </select>
+          </div>
+          <div class="col-2">
+            <label>Note</label>
+            <input class="f-inp" id="pem-add-note" placeholder="Optional">
+          </div>
+          <div class="col" style="flex:0 0 auto;">
+            <label>&nbsp;</label>
+            <button class="btn btn-success" onclick="submitPOAddItem()">➕ Tambah</button>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closePOEditModal()">Tutup</button>
+    </div>
   </div>
 </div>
 
@@ -361,7 +514,7 @@ function renderPO_ListTable() {
       '<tr class="po-main-row" data-po-main="' + idx + '" onclick="togglePOExpand(' + idx + ')">' +
         '<td style="text-align:center;"><span class="expand-icon">▶</span></td>' +
         '<td>' + p.po_date + '</td>' +
-        '<td style="font-weight:700; color:var(--primary-blue);">' + p.po_no + '</td>' +
+        '<td class="po-no-cell" onclick="onPONoClick(event, \'' + p.po_no + '\', ' + idx + ')" style="font-weight:700; color:var(--primary-blue);" title="Klik 3x untuk buka mode Edit">' + p.po_no + '</td>' +
         '<td>' + p.vendor + '</td>' +
         '<td>' + p.schedule + '</td>' +
         '<td style="text-align:center;">' + p.total_items + ' item</td>' +
@@ -688,4 +841,304 @@ function submitPurchaseOrderForm() {
   }).withFailureHandler(function(e){ poOv(false); alert("Gagal koneksi: "+e.message); })
   .savePurchaseOrder({ info: info, items: items });
 }
+// ═══════════════════════════════════════════════════════════════════════
+// PO EDIT MODAL — Sprint A+B (Triple-click unlock)
+// ═══════════════════════════════════════════════════════════════════════
+
+var POEM = {
+  po_no: '', po_data: null, click_count: 0, click_timer: null, last_click_target: null
+};
+var TRIPLE_CLICK_WINDOW_MS = 700;
+
+// ── HTML escape helper (safety untuk render) ──────────────────────────
+function escapeAttr(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+    .replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/'/g,'&#39;');
+}
+function escapeHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+    .replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Triple-click detector ─────────────────────────────────────────────
+function onPONoClick(event, poNo, idx) {
+  // Klik ke-1 propagate (row expand/collapse tetap jalan)
+  // Klik ke-2 & 3 stopPropagation supaya expand nggak flip-flop
+  var targetKey = poNo + ':' + idx;
+
+  // Reset counter kalau target beda
+  if (POEM.last_click_target !== targetKey) {
+    POEM.click_count = 0;
+    POEM.last_click_target = targetKey;
+    if (POEM.click_timer) { clearTimeout(POEM.click_timer); POEM.click_timer = null; }
+  }
+
+  POEM.click_count++;
+
+  if (POEM.click_count >= 2) {
+    // Cegah expand flip-flop di klik ke-2 dan ke-3
+    event.stopPropagation();
+  }
+
+  if (POEM.click_count >= 3) {
+    // TRIPLE-CLICK SUKSES → buka modal edit
+    POEM.click_count = 0;
+    POEM.last_click_target = null;
+    if (POEM.click_timer) { clearTimeout(POEM.click_timer); POEM.click_timer = null; }
+    openPOEditModal(poNo);
+    return;
+  }
+
+  // Restart timer setelah tiap klik
+  if (POEM.click_timer) clearTimeout(POEM.click_timer);
+  POEM.click_timer = setTimeout(function() {
+    POEM.click_count = 0;
+    POEM.last_click_target = null;
+    POEM.click_timer = null;
+  }, TRIPLE_CLICK_WINDOW_MS);
+}
+
+// ── Modal Open / Close ────────────────────────────────────────────────
+function openPOEditModal(poNo) {
+  var po = PO_LIST_STATE.data.find(function(p){ return p.po_no === poNo; });
+  if (!po) { alert('Data PO tidak ditemukan di cache. Refresh dulu.'); return; }
+
+  POEM.po_no = poNo;
+  POEM.po_data = po;
+
+  document.getElementById('pem-po-no').textContent = poNo;
+  document.getElementById('pem-vendor').value = po.vendor || '';
+  document.getElementById('pem-date').value = po.po_date || '';
+  document.getElementById('pem-schedule').value = po.schedule || '';
+  document.getElementById('pem-owner').value = po.owner || '';
+
+  // Show closed warning kalau overall CLOSED
+  document.getElementById('pem-closed-warn').style.display =
+    (po.overall_status === 'CLOSED') ? '' : 'none';
+
+  renderPOEditItems();
+  clearPOAddForm();
+
+  document.getElementById('po-edit-modal').classList.add('on');
+}
+
+function closePOEditModal() {
+  document.getElementById('po-edit-modal').classList.remove('on');
+  POEM.po_no = '';
+  POEM.po_data = null;
+}
+
+// ── Render tabel items dalam modal ────────────────────────────────────
+function renderPOEditItems() {
+  var tbody = document.getElementById('pem-items-tbody');
+  if (!POEM.po_data || !POEM.po_data.items) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:20px;">(Tidak ada item)</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = POEM.po_data.items.map(function(itm, idx) {
+    var canDelete = (itm.gr_q === 0 && itm.gr_kg === 0);
+    var statusBadge = itm.status === 'CLOSED'
+      ? '<span class="badge badge-green">CLOSED</span>'
+      : itm.status === 'OVERDUE'
+      ? '<span class="badge badge-red">OVERDUE</span>'
+      : '<span class="badge badge-yellow">OPEN</span>';
+
+    return '<tr data-item-code="' + escapeAttr(itm.item_code) + '">' +
+      '<td><b>' + escapeHtml(itm.item_code) + '</b><br>' + statusBadge + '</td>' +
+      '<td>' + escapeHtml(itm.description) + '</td>' +
+      '<td>' + escapeHtml(itm.uom) + '</td>' +
+      '<td><input type="number" class="f-inp pem-qty-inp" value="' + itm.po_q + '" min="' + itm.gr_q + '" data-orig="' + itm.po_q + '" style="width:80px;"></td>' +
+      '<td style="font-size:10px; color:var(--text-muted);"><b>' + itm.gr_q + '</b> / ' + itm.gr_kg.toFixed(0) + ' KG</td>' +
+      '<td><span class="badge ' + (itm.target_loc === 'Stok_Coil' ? 'badge-yellow' : 'badge-green') + '">' + escapeHtml(itm.target_loc || '-') + '</span></td>' +
+      '<td><input type="text" class="f-inp pem-note-inp" value="' + escapeAttr(itm.note || '') + '" data-orig="' + escapeAttr(itm.note || '') + '" placeholder="(kosong)"></td>' +
+      '<td style="text-align:center;">' +
+        '<button class="btn btn-primary" style="padding:0 8px; height:22px; font-size:10px;" onclick="submitPOItemQty(\'' + escapeAttr(itm.item_code) + '\', ' + idx + ')" title="Simpan qty">💾 Qty</button> ' +
+        '<button class="btn btn-outline" style="padding:0 8px; height:22px; font-size:10px;" onclick="submitPOItemNote(\'' + escapeAttr(itm.item_code) + '\', ' + idx + ')" title="Simpan note">💾 Note</button> ' +
+        (canDelete
+          ? '<button class="btn btn-danger" style="padding:0 8px; height:22px; font-size:10px;" onclick="submitPOItemDelete(\'' + escapeAttr(itm.item_code) + '\')" title="Hapus item (belum ada GR)">🗑️</button>'
+          : '<button class="btn btn-danger" style="padding:0 8px; height:22px; font-size:10px; opacity:0.4; cursor:not-allowed;" disabled title="Tidak bisa hapus — sudah ada GR">🗑️</button>'
+        ) +
+      '</td>' +
+    '</tr>';
+  }).join('');
+}
+// ═══════════════════════════════════════════════════════════════════════
+// SUBMIT HANDLERS — Edit qty, edit note, delete item, add item
+// ═══════════════════════════════════════════════════════════════════════
+
+function poOvShow(show, msg) {
+  var ov = document.getElementById('po-ov');
+  if (show) ov.classList.add('on'); else ov.classList.remove('on');
+  if (msg) document.getElementById('po-msg').textContent = msg;
+}
+
+// ── SUBMIT: Edit Qty per item ─────────────────────────────────────────
+function submitPOItemQty(itemCode, idx) {
+  var tr = document.querySelector('#pem-items-tbody tr[data-item-code="' + itemCode.replace(/"/g,'\\"') + '"]');
+  if (!tr) return alert('Row tidak ditemukan.');
+  var qtyInp = tr.querySelector('.pem-qty-inp');
+  var newQty = parseInt(qtyInp.value);
+  var origQty = parseInt(qtyInp.dataset.orig);
+
+  if (isNaN(newQty) || newQty <= 0) return alert('Qty baru harus > 0.');
+  if (newQty === origQty) return alert('Qty tidak berubah, tidak perlu simpan.');
+  if (!confirm('Ubah Qty item [' + itemCode + '] dari ' + origQty + ' → ' + newQty + '?')) return;
+
+  poOvShow(true, 'Menyimpan Qty...');
+  google.script.run.withSuccessHandler(function(jsonStr) {
+    poOvShow(false);
+    var res = JSON.parse(jsonStr);
+    if (res.error) return alert('Error: ' + res.error);
+    alert('✓ Qty berhasil diubah: ' + res.item_code + ' = ' + res.new_qty);
+    reloadPOAndReopen();
+  }).withFailureHandler(function(e) {
+    poOvShow(false); alert('Server Error: ' + e.message);
+  }).updatePOItemQty({ po_no: POEM.po_no, item_code: itemCode, new_qty: newQty });
+}
+
+// ── SUBMIT: Edit Note per item ────────────────────────────────────────
+function submitPOItemNote(itemCode, idx) {
+  var tr = document.querySelector('#pem-items-tbody tr[data-item-code="' + itemCode.replace(/"/g,'\\"') + '"]');
+  if (!tr) return alert('Row tidak ditemukan.');
+  var noteInp = tr.querySelector('.pem-note-inp');
+  var newNote = noteInp.value;
+  var origNote = noteInp.dataset.orig || '';
+
+  if (newNote === origNote) return alert('Note tidak berubah, tidak perlu simpan.');
+
+  poOvShow(true, 'Menyimpan Note...');
+  google.script.run.withSuccessHandler(function(jsonStr) {
+    poOvShow(false);
+    var res = JSON.parse(jsonStr);
+    if (res.error) return alert('Error: ' + res.error);
+    alert('✓ Note berhasil disimpan untuk ' + res.item_code);
+    reloadPOAndReopen();
+  }).withFailureHandler(function(e) {
+    poOvShow(false); alert('Server Error: ' + e.message);
+  }).updatePOItemNote({ po_no: POEM.po_no, item_code: itemCode, new_note: newNote });
+}
+
+// ── SUBMIT: Delete item ───────────────────────────────────────────────
+function submitPOItemDelete(itemCode) {
+  if (!confirm('⚠️ Hapus item [' + itemCode + '] dari PO [' + POEM.po_no + ']?\n\nAksi ini permanen dan tidak bisa di-undo.')) return;
+
+  poOvShow(true, 'Menghapus item...');
+  google.script.run.withSuccessHandler(function(jsonStr) {
+    poOvShow(false);
+    var res = JSON.parse(jsonStr);
+    if (res.error) return alert('Error: ' + res.error);
+    alert('✓ Item [' + res.item_code + '] berhasil dihapus.');
+    reloadPOAndReopen();
+  }).withFailureHandler(function(e) {
+    poOvShow(false); alert('Server Error: ' + e.message);
+  }).deleteItemFromPO({ po_no: POEM.po_no, item_code: itemCode });
+}
+
+// ── SUBMIT: Add item baru ─────────────────────────────────────────────
+function submitPOAddItem() {
+  var code = document.getElementById('pem-add-code').value;
+  var desc = document.getElementById('pem-add-desc').value;
+  var uom = document.getElementById('pem-add-uom').value;
+  var wg = parseFloat(document.getElementById('pem-add-wg').value) || 0;
+  var qty = parseInt(document.getElementById('pem-add-qty').value);
+  var target = document.getElementById('pem-add-target').value;
+  var note = document.getElementById('pem-add-note').value;
+
+  if (!code) return alert('Item Code wajib dipilih dari dropdown.');
+  if (!qty || qty <= 0) return alert('Qty Order harus > 0.');
+  if (!target) return alert('Target Gudang wajib dipilih.');
+
+  if (!confirm('Tambah item [' + code + '] Qty=' + qty + ' ke PO [' + POEM.po_no + ']?')) return;
+
+  poOvShow(true, 'Menambah item...');
+  google.script.run.withSuccessHandler(function(jsonStr) {
+    poOvShow(false);
+    var res = JSON.parse(jsonStr);
+    if (res.error) return alert('Error: ' + res.error);
+    alert('✓ Item [' + res.item_code + '] berhasil ditambah ke PO.');
+    reloadPOAndReopen();
+  }).withFailureHandler(function(e) {
+    poOvShow(false); alert('Server Error: ' + e.message);
+  }).addItemToExistingPO({
+    po_no: POEM.po_no,
+    item: { item_code: code, description: desc, uom: uom, wg_pce: wg, po_q: qty, target_loc: target, note: note }
+  });
+}
+
+// ── Filter dropdown item untuk add form ───────────────────────────────
+function filterPOAddItemList() {
+  var q = String(document.getElementById('pem-add-input').value || '').toLowerCase().trim();
+  var lst = document.getElementById('pem-add-list');
+  if (!MASTER_ITEMS || MASTER_ITEMS.length === 0) {
+    lst.innerHTML = '<div style="padding:10px; color:#94a3b8; font-style:italic;">Master item belum di-load. Refresh dulu.</div>';
+    lst.style.display = 'block';
+    return;
+  }
+  var res = MASTER_ITEMS.filter(function(it) {
+    return it.code.toLowerCase().indexOf(q) !== -1 ||
+           String(it.desc || '').toLowerCase().indexOf(q) !== -1;
+  }).slice(0, 30);
+
+  if (res.length === 0) {
+    lst.innerHTML = '<div style="padding:8px 10px; color:#94a3b8;">Tidak ada match.</div>';
+  } else {
+    lst.innerHTML = res.map(function(it) {
+      return '<div class="sd-item" onclick="pickPOAddItem(\'' + escapeAttr(it.code) + '\')">' +
+        '<div class="title">' + escapeHtml(it.code) + '</div>' +
+        '<div class="desc">' + escapeHtml(it.desc) + ' | ' + escapeHtml(it.uom) + ' | Wg: ' + (it.wg || 0) + '</div>' +
+      '</div>';
+    }).join('');
+  }
+  lst.style.display = 'block';
+}
+
+function pickPOAddItem(code) {
+  var it = MASTER_ITEMS.find(function(x){ return x.code === code; });
+  if (!it) return;
+  document.getElementById('pem-add-input').value = it.code + ' — ' + it.desc;
+  document.getElementById('pem-add-code').value = it.code;
+  document.getElementById('pem-add-desc').value = it.desc;
+  document.getElementById('pem-add-uom').value = it.uom;
+  document.getElementById('pem-add-wg').value = it.wg;
+  document.getElementById('pem-add-list').style.display = 'none';
+}
+
+function clearPOAddForm() {
+  ['pem-add-input','pem-add-code','pem-add-desc','pem-add-uom','pem-add-wg','pem-add-qty','pem-add-note'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('pem-add-target').value = '';
+  document.getElementById('pem-add-list').style.display = 'none';
+}
+
+// ── Reload PO data + reopen modal (setelah edit sukses) ───────────────
+// Fallback-safe: works whether loadPOData support callback or not.
+// Delay 1500ms cukup untuk backend fetch + client render.
+function reloadPOAndReopen() {
+  var currentPoNo = POEM.po_no;
+  closePOEditModal();
+  try { loadPOData(); } catch (e) { console.warn('loadPOData call error:', e); }
+  setTimeout(function() {
+    // Check data fresh sudah ada di state, baru reopen
+    var found = PO_LIST_STATE.data.find(function(p){ return p.po_no === currentPoNo; });
+    if (found) {
+      openPOEditModal(currentPoNo);
+    } else {
+      alert('Data PO ter-refresh — modal ditutup. Silakan buka ulang manual dengan triple-click.');
+    }
+  }, 1500);
+}
+
+// ── Close dropdown add-item saat klik di luar ─────────────────────────
+document.addEventListener('click', function(e) {
+  var lst = document.getElementById('pem-add-list');
+  var inp = document.getElementById('pem-add-input');
+  if (lst && inp && !lst.contains(e.target) && e.target !== inp) {
+    lst.style.display = 'none';
+  }
+});
 </script>
