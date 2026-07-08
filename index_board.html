@@ -18,10 +18,17 @@
     align-items: center;
     gap: 12px;
   }
-  .countdown {
+  .mode-badge {
     font-size: 12px;
     color: rgba(255,255,255,0.85);
+    background: rgba(34, 197, 94, 0.15);
+    border: 1px solid rgba(34, 197, 94, 0.5);
+    padding: 4px 10px;
+    border-radius: 4px;
     font-variant-numeric: tabular-nums;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
   }
   .refresh-btn {
     background: rgba(255,255,255,0.15);
@@ -48,9 +55,11 @@
   <header class="topbar">
     <h1><i class="ti <?= pageIcon ?>"></i> <?= pageTitle ?></h1>
     <div class="topbar-right">
-      <span class="countdown" id="countdown">Auto-refresh: 60s</span>
-      <button class="refresh-btn" id="refresh-btn" onclick="refreshBoard()">
-        <i class="ti ti-refresh" id="refresh-icon"></i> Refresh
+      <span class="mode-badge" title="Refresh manual — klik tombol Refresh untuk muat ulang halaman">
+        <i class="ti ti-hand-click"></i> Manual mode
+      </span>
+      <button class="refresh-btn" id="refresh-btn" onclick="refreshBoard()" title="Muat ulang seluruh halaman board dari server">
+        <i class="ti ti-refresh" id="refresh-icon"></i> Reload Page
       </button>
       <div id="conn-status" class="conn loading">
         <i class="ti ti-loader spin-anim"></i>
@@ -69,15 +78,17 @@
 <?!= include('shared_js'); ?>
 
 <script>
-// ==========================================
-// STANDALONE BOARD - AUTO REFRESH 60 DETIK
-// ==========================================
-var TARGET_PAGE      = '<?= targetPage ?>';
-var REFRESH_INTERVAL = 60; // detik
-
-var countdownValue = REFRESH_INTERVAL;
-var countdownTimer = null;
-var isLoading      = false;
+// ============================================================
+// STANDALONE BOARD WRAPPER — MANUAL REFRESH ONLY
+// ============================================================
+// [FIX 2026-07-08] Hapus auto-refresh polling.
+// Sebelumnya: setInterval per 60 detik memanggil loadBoard() → re-execute
+// semua <script> tag halaman target → memicu overlay "Update Data,
+// Mohon Tunggu..." di board child (SHR/CTL/SLT).
+// Sekarang: hanya load sekali saat pertama buka + tombol manual Reload Page.
+// ============================================================
+var TARGET_PAGE = '<?= targetPage ?>';
+var isLoading   = false;
 
 function loadBoard() {
   if (isLoading) return;
@@ -107,14 +118,12 @@ function loadBoard() {
       icon.style.animation = '';
       btn.disabled = false;
       isLoading = false;
-      resetCountdown();
     })
     .withFailureHandler(function(err) {
       main.innerHTML = '<div class="loading" style="color:#A32D2D">Error: ' + err.message + '</div>';
       icon.style.animation = '';
       btn.disabled = false;
       isLoading = false;
-      resetCountdown();
     })
     .getPageContent(TARGET_PAGE);
 }
@@ -123,28 +132,7 @@ function refreshBoard() {
   loadBoard();
 }
 
-function resetCountdown() {
-  countdownValue = REFRESH_INTERVAL;
-  updateCountdownLabel();
-}
-
-function updateCountdownLabel() {
-  document.getElementById('countdown').textContent = 'Auto-refresh: ' + countdownValue + 's';
-}
-
-function startCountdown() {
-  if (countdownTimer) clearInterval(countdownTimer);
-  countdownTimer = setInterval(function() {
-    countdownValue--;
-    if (countdownValue <= 0) {
-      loadBoard(); // resetCountdown akan dipanggil di handler
-    } else {
-      updateCountdownLabel();
-    }
-  }, 1000);
-}
-
-// Cek koneksi DB
+// Cek koneksi DB (sekali saat load)
 google.script.run
   .withSuccessHandler(function() {
     var conn = document.getElementById('conn-status');
@@ -158,9 +146,8 @@ google.script.run
   })
   .getSheetData('M_ITEM');
 
-// Initial load + start countdown
+// Initial load (sekali) — TIDAK ada startCountdown() lagi
 loadBoard();
-startCountdown();
 </script>
 
 </body>

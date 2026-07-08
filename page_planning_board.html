@@ -28,16 +28,24 @@
 .btn-save-pb:hover  { background: #145236; }
 .btn-save-pb:disabled { background: #555; cursor: not-allowed; }
 
-.pb-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; align-items: start; }
+/* Grid dynamic: auto-fit min 220px → 5 kolom di ≥1400px, wrap otomatis di layar sempit */
+.pb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  align-items: start;
+}
 
 .pb-col { border-radius: 6px; overflow: hidden; border: 1.5px solid #dde4f0; }
 .pb-col-header {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 9px 12px; font-weight: 700; font-size: 12px; color: #fff; user-select: none;
+  padding: 8px 10px; font-weight: 700; font-size: 12px; color: #fff; user-select: none;
 }
-.pb-col-header.ctl { background: #1565c0; }
-.pb-col-header.shr { background: #1b6b45; }
-.pb-col-hint { font-size: 9px; color: rgba(255,255,255,.55); font-weight: 400; margin-top: 1px; }
+.pb-col-header.slt     { background: #7b1fa2; }   /* SLT — deep purple */
+.pb-col-header.ctl     { background: #1565c0; }   /* CTL — blue */
+.pb-col-header.shr     { background: #1b6b45; }   /* SHR-01/02 — green */
+.pb-col-header.shr-adv { background: #a855f7; }   /* SHR-03 — purple accent (ikut Board SHR) */
+.pb-col-hint { font-size: 9px; color: rgba(255,255,255,.65); font-weight: 400; margin-top: 1px; }
 .pb-col-count { background: rgba(255,255,255,.25); border-radius: 99px; padding: 2px 8px; font-size: 11px; }
 
 /* Card list */
@@ -93,7 +101,7 @@
 
 /* Card body */
 .pb-card-body { padding: 5px 8px 6px; }
-.pb-spec { font-weight: 600; color: #222; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+.pb-spec { font-weight: 600; color: #222; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11.5px; }
 .pb-cust { font-size: 11px; color: #1565c0; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pb-row  { display: flex; justify-content: space-between; font-size: 10px; color: #666; margin-bottom: 1px; }
 .pb-row b { color: #333; }
@@ -115,6 +123,7 @@
 .pb-feedback.ok  { background: #e8f5e9; color: #1b6b45; border: 1px solid #a5d6a7; }
 .pb-feedback.err { background: #fbe9e7; color: #c62828; border: 1px solid #ef9a9a; }
 .pb-loading { text-align: center; padding: 40px; color: #888; font-style: italic; }
+.pb-empty { text-align: center; padding: 40px; color: #c62828; font-style: italic; }
 
 /* ── POPUP ── */
 #pb-overlay {
@@ -167,7 +176,7 @@
   <div class="pb-topbar">
     <div>
       <div class="pb-title">📋 Planning Board — Antrian Mesin</div>
-      <div class="pb-subtitle">Tahan &amp; geser kartu untuk atur urutan · SHR-01 ↔ SHR-02 bisa saling tukar · Klik kartu untuk detail</div>
+      <div class="pb-subtitle">Tahan &amp; geser kartu untuk atur urutan · SHR-01/02/03 bisa saling tukar · Klik kartu untuk detail</div>
     </div>
     <div class="pb-topbar-right">
       <span class="pb-dirty" id="pb-dirty">● Perubahan belum disimpan</span>
@@ -180,45 +189,26 @@
   <div id="pb-loading" class="pb-loading">⏳ Memuat data antrian...</div>
 
   <div id="pb-content" style="display:none">
-    <div class="pb-grid">
-      <div class="pb-col">
-        <div class="pb-col-header ctl">
-          <div><div>✂️ CTL-01</div><div class="pb-col-hint">Hanya reorder di kolom ini</div></div>
-          <span class="pb-col-count" id="count-CTL-01">0 SPK</span>
-        </div>
-        <div class="pb-card-list" id="list-CTL-01"></div>
-      </div>
-      <div class="pb-col">
-        <div class="pb-col-header shr">
-          <div><div>✂️ SHR-01</div><div class="pb-col-hint">Drag ke SHR-02 untuk pindah mesin</div></div>
-          <span class="pb-col-count" id="count-SHR-01">0 SPK</span>
-        </div>
-        <div class="pb-card-list" id="list-SHR-01"></div>
-      </div>
-      <div class="pb-col">
-        <div class="pb-col-header shr">
-          <div><div>✂️ SHR-02</div><div class="pb-col-hint">Drag ke SHR-01 untuk pindah mesin</div></div>
-          <span class="pb-col-count" id="count-SHR-02">0 SPK</span>
-        </div>
-        <div class="pb-card-list" id="list-SHR-02"></div>
-      </div>
-    </div>
+    <div id="pb-columns" class="pb-grid"></div>
   </div>
 </div>
 
 <script>
 (function(){
 
-var _board   = { 'CTL-01': [], 'SHR-01': [], 'SHR-02': [] };
-var _isDirty = false;
+// ── State ──
+var _board       = {};       // {mc_no: [items]}
+var _machines    = [];       // [{mc_no, mc_name, type, display_order}]
+var _machineDict = {};       // {mc_no: meta}
+var _isDirty     = false;
 
 // ── Drag state ──
 var _d = {
-  on: false, dragging: false,         // on=pointer down, dragging=gerakan sudah cukup
+  on: false, dragging: false,
   spkNo: null, fromMc: null, fromIdx: null,
   clone: null, originEl: null,
-  ox: 0, oy: 0,                       // offset pointer dalam kartu
-  startX: 0, startY: 0,              // posisi awal (untuk deteksi klik vs drag)
+  ox: 0, oy: 0,
+  startX: 0, startY: 0,
   curMc: null, curIdx: null
 };
 
@@ -233,9 +223,22 @@ window.loadBoard = function() {
     .withSuccessHandler(function(res) {
       document.getElementById('pb-loading').style.display = 'none';
       if (!res.success) { showFeedback('❌ ' + res.message, 'err'); return; }
-      _board = res.data;
+      _board    = res.data     || {};
+      _machines = res.machines || [];
+
+      // Build lookup dict
+      _machineDict = {};
+      _machines.forEach(function(m) { _machineDict[m.mc_no] = m; });
+
       _isDirty = false; updateDirty();
-      renderBoard();
+
+      if (_machines.length === 0) {
+        document.getElementById('pb-columns').innerHTML =
+          '<div class="pb-empty">❌ Tidak ada mesin aktif di M_MC.<br>Cek sheet M_MC — pastikan ada row dengan Is_Active=TRUE.</div>';
+      } else {
+        buildColumnsDOM();
+        renderBoard();
+      }
       document.getElementById('pb-content').style.display = 'block';
     })
     .withFailureHandler(function(err) {
@@ -245,15 +248,61 @@ window.loadBoard = function() {
     .getPlanningBoardData();
 };
 
+// Bangun skeleton kolom (header + list container) berdasarkan _machines
+function buildColumnsDOM() {
+  var html = '';
+  _machines.forEach(function(m) {
+    var colCls = getColClass(m);
+    var icon   = getIcon(m);
+    var hint   = getColHint(m);
+    html += '<div class="pb-col">';
+    html +=   '<div class="pb-col-header ' + colCls + '">';
+    html +=     '<div>';
+    html +=       '<div>' + icon + ' ' + m.mc_no + '</div>';
+    html +=       '<div class="pb-col-hint">' + hint + '</div>';
+    html +=     '</div>';
+    html +=     '<span class="pb-col-count" id="count-' + m.mc_no + '">0 SPK</span>';
+    html +=   '</div>';
+    html +=   '<div class="pb-card-list" id="list-' + m.mc_no + '"></div>';
+    html += '</div>';
+  });
+  document.getElementById('pb-columns').innerHTML = html;
+}
+
+function getColClass(m) {
+  if (m.type === 'SLT') return 'slt';
+  if (m.type === 'CTL') return 'ctl';
+  if (m.mc_no === 'SHR-03') return 'shr-adv';  // Stage 2 accent
+  return 'shr';
+}
+
+function getIcon(m) {
+  if (m.type === 'SLT') return '🔪';
+  return '✂️'; // CTL & SHR
+}
+
+function getColHint(m) {
+  if (m.type === 'SLT' || m.type === 'CTL') return 'Hanya reorder di kolom ini';
+  // SHR → list mesin SHR lain (SHR-01/02/03)
+  var others = _machines
+    .filter(function(x) { return x.type === 'SHR' && x.mc_no !== m.mc_no; })
+    .map(function(x) { return x.mc_no; });
+  if (others.length === 0) return 'Hanya reorder di kolom ini';
+  return 'Drag ke ' + others.join(' / ') + ' untuk pindah mesin';
+}
+
 function renderBoard() {
-  ['CTL-01','SHR-01','SHR-02'].forEach(renderColumn);
+  _machines.forEach(function(m) { renderColumn(m.mc_no); });
 }
 
 function renderColumn(mc) {
   var items = _board[mc] || [];
-  document.getElementById('count-' + mc).textContent = items.length + ' SPK';
+  var countEl = document.getElementById('count-' + mc);
+  if (countEl) countEl.textContent = items.length + ' SPK';
+
   var list = document.getElementById('list-' + mc);
   if (!list) return;
+
   var seq = 0;
   var html = items.length === 0
     ? '<div style="text-align:center;color:#bbb;font-style:italic;padding:20px 8px;font-size:11px">Tidak ada antrian</div>'
@@ -265,8 +314,8 @@ function renderColumn(mc) {
   list.innerHTML = html;
 }
 
-// ── buildCard: kartu lebih clean, spec dari OUT pertama, klik → popup ──
 function buildCard(item, mc, idx, seqN) {
+  var meta = _machineDict[mc] || { type: '' };
   var run  = item.status === 'RUNNING';
   var tl   = trafficLight(item);
   var doi  = deliveryInfo(item);
@@ -281,11 +330,12 @@ function buildCard(item, mc, idx, seqN) {
   var badge = run ? '<span class="pb-status-badge running">RUNNING</span>'
                   : '<span class="pb-status-badge antrian">ANTRIAN</span>';
 
-  var wgt = mc.indexOf('CTL') !== -1 && item.kg_target > 0
+  // Mesin basis KG (CTL & SLT) tampilkan kg; SHR tampilkan Sht
+  var isKgMachine = meta.type === 'CTL' || meta.type === 'SLT';
+  var wgt = isKgMachine && item.kg_target > 0
     ? Math.round(item.kg_target) + ' kg'
     : item.qty_target > 0 ? item.qty_target + ' Sht' : '';
 
-  // Tampilkan jam mulai → selesai
   var jamMulai   = item.est_mulai   || '—';
   var jamSelesai = item.est_selesai || '—';
   var jamRow = jamMulai === '—' && jamSelesai === '—'
@@ -329,7 +379,7 @@ window.pbDown = function(e, spkNo, mc, idx) {
   var rect = card.getBoundingClientRect();
 
   _d.on       = true;
-  _d.dragging = false;   // belum drag, tunggu gerakan > threshold
+  _d.dragging = false;
   _d.spkNo    = spkNo;
   _d.fromMc   = mc;
   _d.fromIdx  = parseInt(idx);
@@ -340,14 +390,13 @@ window.pbDown = function(e, spkNo, mc, idx) {
   _d.startY   = e.clientY;
   _d.curMc    = null;
   _d.curIdx   = null;
-  _d.clone    = null;   // clone dibuat NANTI di startDrag(), bukan di sini
+  _d.clone    = null;
 
   document.addEventListener('pointermove',   pbMove);
   document.addEventListener('pointerup',     pbUp);
   document.addEventListener('pointercancel', pbUp);
 };
 
-// Buat clone & mulai drag (dipanggil saat gerakan > threshold)
 function startDrag() {
   if (_d.dragging || !_d.originEl) return;
   _d.dragging = true;
@@ -367,7 +416,6 @@ function startDrag() {
 function pbMove(e) {
   if (!_d.on) return;
 
-  // Cek threshold: jika belum drag dan belum bergerak cukup, tunggu
   if (!_d.dragging) {
     var dx = Math.abs(e.clientX - _d.startX);
     var dy = Math.abs(e.clientY - _d.startY);
@@ -379,7 +427,6 @@ function pbMove(e) {
   _d.clone.style.left = (e.clientX - _d.ox) + 'px';
   _d.clone.style.top  = (e.clientY - _d.oy) + 'px';
 
-  // Hit-test target drop
   _d.clone.style.display = 'none';
   var below = document.elementFromPoint(e.clientX, e.clientY);
   _d.clone.style.display = '';
@@ -432,7 +479,6 @@ function pbUp(e) {
   var targetMc    = _d.curMc;
   var targetIdx   = _d.curIdx;
 
-  // Hapus clone
   if (_d.clone) {
     _d.clone.style.transition = 'transform .2s ease, opacity .2s ease';
     _d.clone.style.transform  = 'scale(0.9)';
@@ -445,17 +491,14 @@ function pbUp(e) {
   clearIndicators();
   if (_d.originEl) { _d.originEl.classList.remove('pb-dimmed'); _d.originEl = null; }
 
-  // Reset state
   _d.on = false; _d.dragging = false; _d.spkNo = null;
   _d.fromMc = null; _d.curMc = null; _d.curIdx = null;
 
-  // Tidak bergerak cukup → ini klik → tampilkan popup
   if (!wasDragging) {
     showPopup(spkNo);
     return;
   }
 
-  // Bergerak → ini drag → lakukan drop
   if (targetMc && targetIdx !== null && isOk(fromMc, targetMc)) {
     performDrop(spkNo, fromMc, targetMc, targetIdx);
   }
@@ -534,8 +577,8 @@ function cleanAnim() {
 // ══════════════════════════════════════
 window.showPopup = function(spkNo) {
   var item = null;
-  ['CTL-01','SHR-01','SHR-02'].forEach(function(mc) {
-    (_board[mc] || []).forEach(function(it) { if (it.spk_no === spkNo) item = it; });
+  _machines.forEach(function(m) {
+    (_board[m.mc_no] || []).forEach(function(it) { if (it.spk_no === spkNo) item = it; });
   });
   if (!item) return;
 
@@ -550,7 +593,6 @@ window.showPopup = function(spkNo) {
 
   var html = '';
 
-  // Header popup
   html += '<div class="pp-hdr">';
   html += '<div style="flex:1">';
   html += '<div class="pp-spk">' + item.spk_no + '</div>';
@@ -559,7 +601,6 @@ window.showPopup = function(spkNo) {
   html += '<span class="pp-badge ' + statusCls + '">' + item.status + '</span>';
   html += '</div>';
 
-  // Info grid
   html += '<div class="pp-grid">';
   html += '<div><div class="pp-lbl">Material Input</div><div class="pp-val">' + (item.parent_spk || '—') + '</div></div>';
   html += '<div><div class="pp-lbl">Spec Input</div><div class="pp-val">' + (item.input_spec_header || '—') + '</div></div>';
@@ -569,7 +610,6 @@ window.showPopup = function(spkNo) {
   html += '<div><div class="pp-lbl">Tgl Delivery</div><div class="pp-val">' + (item.tgl_delivery || 'No DO') + '</div></div>';
   html += '</div>';
 
-  // Tabel output
   if (outs.length > 0) {
     html += '<div class="pp-section">Output (' + outs.length + ' item)</div>';
     html += '<div style="overflow-x:auto"><table class="pp-table">';
@@ -609,14 +649,21 @@ window.saveBoard = function() {
   var btn = document.getElementById('btn-save-pb');
   btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
   hideFeedback();
+
   var updates = [];
-  ['CTL-01','SHR-01','SHR-02'].forEach(function(mc) {
+  _machines.forEach(function(m) {
+    var mc = m.mc_no;
     var seq = 0;
     (_board[mc] || []).forEach(function(item) {
       if (item.status !== 'RUNNING') seq++;
-      updates.push({ spk_no: item.spk_no, plan_seq: item.status === 'RUNNING' ? 0 : seq, mc_no: item.mc_no });
+      updates.push({
+        spk_no  : item.spk_no,
+        plan_seq: item.status === 'RUNNING' ? 0 : seq,
+        mc_no   : item.mc_no
+      });
     });
   });
+
   google.script.run
     .withSuccessHandler(function(res) {
       btn.disabled = false; btn.textContent = '💾 Simpan Urutan';
@@ -638,6 +685,7 @@ window.saveBoard = function() {
 // ══════════════════════════════════════
 function isOk(from, to) {
   if (from === to) return true;
+  // SHR-01/02/03 boleh saling tukar. SLT & CTL hanya reorder di kolom sendiri.
   return from.indexOf('SHR') !== -1 && to.indexOf('SHR') !== -1;
 }
 function clearIndicators() {
@@ -671,7 +719,6 @@ function deliveryInfo(item) {
 }
 function parseEst(s) {
   if (!s) return null;
-  // Format baru: "02 Jun 08:07" (dd MMM HH:mm)
   var mNew = s.match(/^(\d+)\s+([A-Za-z]+)\s+(\d+):(\d+)/);
   if (mNew) {
     var MONTHS = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11,
@@ -682,7 +729,6 @@ function parseEst(s) {
     if (mo < new Date().getMonth() - 1) yr++;
     return new Date(yr, mo, parseInt(mNew[1]), parseInt(mNew[3]), parseInt(mNew[4]));
   }
-  // Fallback format lama: "dd/MM HH:mm" atau "dd-MM HH:mm"
   var mOld = s.match(/^(\d+)[\/\-](\d+)\s+(\d+):(\d+)/);
   if (!mOld) return null;
   var yr = new Date().getFullYear(), mo = parseInt(mOld[2]) - 1;

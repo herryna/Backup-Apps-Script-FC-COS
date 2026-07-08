@@ -4462,3 +4462,103 @@ function finalizeShrBatch(payload, machineNo) {
     lock.releaseLock();
   }
 }
+/* =========================================================================
+ * fetchBoardBundleSHR — TAMBAHAN 2026-07-08
+ * ------------------------------------------------------------------------
+ * Bulk-load data untuk Board SHR dalam 1 backend call:
+ *   - queue     : SHR-HEADER (ANTRIAN + RUNNING) untuk machineNo
+ *   - done      : SHR-HEADER (DONE hari ini) untuk machineNo
+ *   - Setiap HEADER punya property _outs = list SHR-OUT children (preloaded)
+ *
+ * Menggantikan pola frontend lama yang panggil 2 backend call terpisah
+ * (fetchBoardQueueDataSHR + fetchTodayDoneJobs) lalu N call fetchBoardChildData.
+ *
+ * READ-ONLY, tidak modify sheet. Aman untuk deploy tanpa risiko regresi.
+ * Fungsi existing (fetchBoardQueueDataSHR, fetchTodayDoneJobs,
+ * fetchBoardChildData) TIDAK dimodifikasi — masih dipakai board CTL dan
+ * flow finalize existing.
+ * ========================================================================= */
+function fetchBoardBundleSHR(machineNo) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("SPK");
+  if (!sheet) throw new Error("Sheet SPK not found");
+  const rows = sheet.getDataRange().getValues();
+  const headers = rows[0].map(function(h) { return String(h).trim(); });
+
+  const iType    = headers.indexOf("SPK_Type");
+  const iMc      = headers.indexOf("MC_No");
+  const iStatus  = headers.indexOf("Status");
+  const iParent  = headers.indexOf("Parent_SPK");
+  const iSpkNo   = headers.indexOf("SPK_No");
+  const iSelesai = headers.indexOf("Selesai_DT");
+
+  const tz = Session.getScriptTimeZone();
+  const today = Utilities.formatDate(new Date(), tz, "dd-MM-yyyy");
+  const mcUp = String(machineNo).trim().toUpperCase();
+
+  const queue = [];
+  const done = [];
+  const headerMap = {};   // spkNo → objek HEADER (reference)
+  const outCache = [];    // temp: {parent, rowIdx}
+
+  function toObj(rowIdx) {
+    const obj = {};
+    headers.forEach(function(h, idx){
+      let val = rows[rowIdx][idx];
+      if (val instanceof Date) val = Utilities.formatDate(val, tz, "dd-MM-yyyy HH:mm:ss");
+      obj[h] = val;
+    });
+    return obj;
+  }
+
+  // Pass 1: kumpulkan HEADER match mesin ini + cache SHR-OUT
+  for (let i = 1; i < rows.length; i++) {
+    const spkType = rows[i][iType];
+
+    if (spkType === 'SHR-HEADER' &&
+        String(rows[i][iMc]).trim().toUpperCase() === mcUp) {
+      const status = rows[i][iStatus];
+      const spkNo = String(rows[i][iSpkNo]).trim();
+
+      if (status === 'ANTRIAN' || status === 'RUNNING') {
+        const obj = toObj(i);
+        obj._outs = [];
+        queue.push(obj);
+        headerMap[spkNo] = obj;
+      } else if (status === 'DONE') {
+        const selesaiDt = rows[i][iSelesai];
+        const selesaiDate = selesaiDt instanceof Date
+          ? Utilities.formatDate(selesaiDt, tz, "dd-MM-yyyy") : '';
+        if (selesaiDate === today) {
+          const obj = toObj(i);
+          obj._outs = [];
+          done.push(obj);
+          headerMap[spkNo] = obj;
+        }
+      }
+    } else if (spkType === 'SHR-OUT') {
+      outCache.push({ parent: String(rows[i][iParent]).trim(), rowIdx: i });
+    }
+  }
+
+  // Pass 2: attach SHR-OUT ke HEADER
+  outCache.forEach(function(oc){
+    const hdrObj = headerMap[oc.parent];
+    if (!hdrObj) return;
+    const outObj = toObj(oc.rowIdx);
+    const tQty = parseFloat(outObj['Qty_Target']) || 1;
+    const tKg  = parseFloat(outObj['KG_Target'])  || 0;
+    outObj['BQ'] = tKg / tQty;
+    hdrObj._outs.push(outObj);
+  });
+
+  // Sort queue by priority (Urgent → High → Normal), lalu Plan_Seq
+  const prioWeight = { 'Urgent': 3, 'High': 2, 'Normal': 1 };
+  queue.sort(function(a, b) {
+    const d = (prioWeight[b.Priority] || 1) - (prioWeight[a.Priority] || 1);
+    if (d !== 0) return d;
+    return (parseFloat(a.Plan_Seq) || 999) - (parseFloat(b.Plan_Seq) || 999);
+  });
+
+  return { queue: queue, done: done };
+}

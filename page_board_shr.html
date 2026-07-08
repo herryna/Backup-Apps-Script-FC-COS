@@ -2,855 +2,1058 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Board SHR</title>
+<meta name="viewport" content="width=1440, initial-scale=1.0">
+<title>SHR Monitoring Board</title>
 <style>
-/* ===== DARK THEME PALETTE & POKA-YOKE VARIABLES ===== */
+/* ============================================================
+ * SHR MONITORING BOARD — 3-COLUMN LAYOUT (1440×900)
+ * SHR-01 (ACL / Biru), SHR-02 (LVD / Silver), SHR-03 (Cutting Press / Ungu — Stage 2)
+ * ============================================================ */
+
+/* ===== ROOT PALETTE ===== */
 :root {
-  --bg-base: #020617;        
-  --bg-card: #0f172a;        
-  --bg-card-alt: #1e293b;    
+  --bg-base: #020617;
+  --bg-card: #0f172a;
+  --bg-card-alt: #1e293b;
   --border: #334155;
   --border-soft: #475569;
-  --text-primary: #ffffff;   
-  --text-secondary: #e2e8f0; 
-  --text-muted: #cbd5e1;     
-  
+  --text-primary: #ffffff;
+  --text-secondary: #e2e8f0;
+  --text-muted: #cbd5e1;
+
   --andon-running: #22c55e;
-  --andon-setup: #f59e0b;
-  --andon-idle: #3b82f6;
-  --andon-down: #ef4444;
-  
-  --accent-yellow: #fde047;  
+  --andon-setup:   #f59e0b;
+  --andon-idle:    #3b82f6;
+  --andon-down:    #ef4444;
+  --andon-over:    #ef4444;
+
+  --accent-yellow: #fde047;
   --accent-orange: #f97316;
-  
-  /* Fallback Theme Variables */
-  --accent-machine: #3b82f6;
-  --accent-machine-glow: rgba(59, 130, 246, 0.4);
-  --accent-text: #ffffff;
-  --watermark-text: "ACL";
-  --watermark-color: rgba(59, 130, 246, 0.06);
 }
 
-/* THEME: SHR-01 (ACL) - BIRU */
+/* ===== THEME PER MESIN ===== */
 .theme-acl {
-  --accent-machine: #3b82f6; 
-  --accent-machine-glow: rgba(59, 130, 246, 0.4);
-  --accent-text: #ffffff;
-  --watermark-text: "ACL";
-  --watermark-color: rgba(59, 130, 246, 0.08);
+  --mc-color: #3b82f6;
+  --mc-glow: rgba(59, 130, 246, 0.4);
+  --mc-text-on: #ffffff;
+  --mc-watermark: rgba(59, 130, 246, 0.05);
 }
-
-/* THEME: SHR-02 (LVD) - SILVER / PUTIH ABU */
 .theme-lvd {
-  --accent-machine: #cbd5e1; 
-  --accent-machine-glow: rgba(203, 213, 225, 0.4);
-  --accent-text: #020617; /* Teks gelap di atas tombol silver */
-  --watermark-text: "LVD";
-  --watermark-color: rgba(203, 213, 225, 0.06);
+  --mc-color: #cbd5e1;
+  --mc-glow: rgba(203, 213, 225, 0.4);
+  --mc-text-on: #020617;
+  --mc-watermark: rgba(203, 213, 225, 0.05);
 }
-
-/* Transisi halus saat ganti tema */
-.board-shell, .btn-huge-switch, .modal-box, .modal-head, .active-spkno, .popup-table th, td, span {
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+.theme-cutpress {
+  --mc-color: #a855f7;
+  --mc-glow: rgba(168, 85, 247, 0.4);
+  --mc-text-on: #ffffff;
+  --mc-watermark: rgba(168, 85, 247, 0.05);
 }
 
 /* ===== BASE ===== */
-body { margin: 0; padding: 0; background: var(--bg-base); }
-.board-shell, .board-shell *, .modal-overlay, .modal-overlay * { box-sizing: border-box; }
-.board-shell, .modal-overlay {
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-}
-.board-shell {
-  background: var(--bg-base);
-  color: var(--text-primary);
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 12px;
-}
+* { box-sizing: border-box; }
+body { margin: 0; padding: 0; background: var(--bg-base); font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: var(--text-primary); }
+.board-shell { display: flex; flex-direction: column; min-height: 100vh; padding: 10px; gap: 10px; }
 
-/* ===== ZONE 1: STATUS BAR ===== */
-.zone-status {
+/* ===== HEADER BOARD ===== */
+.board-header {
   display: flex;
-  align-items: stretch;
+  align-items: center;
+  justify-content: space-between;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 16px; /* sedikit dilonggarkan untuk ruang stack vertikal */
-  gap: 16px;
-  flex-shrink: 0;
+  padding: 10px 16px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-}
-.machine-status { display:flex; align-items:center; gap:16px; flex: 0 0 200px; }
-.led {
-  width: 24px; height: 24px;
-  border-radius: 50%;
   flex-shrink: 0;
-  box-shadow: 0 0 10px currentColor;
 }
-.led-running { background: var(--andon-running); color: var(--andon-running); animation: pulse 1.5s ease-in-out infinite; }
-.led-setup   { background: var(--andon-setup);   color: var(--andon-setup); }
-.led-idle    { background: var(--andon-idle);    color: var(--andon-idle); }
-.led-down    { background: var(--andon-down);    color: var(--andon-down); }
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 10px currentColor; }
-  50%      { opacity: 0.7; transform: scale(1.15); box-shadow: 0 0 20px currentColor; }
+.board-title { font-size: 16px; font-weight: 900; letter-spacing: 1.5px; }
+.board-actions { display: flex; align-items: center; gap: 12px; }
+.btn-refresh-all {
+  background: var(--bg-card-alt);
+  color: var(--text-primary);
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
 }
-
-.status-mc-name { display: none; } /* Disembunyikan karena ada big switch */
-
-/* Tampilan Status Seragam dengan Counter Pill */
-.status-state {
-  font-size: 14px; font-weight: 900;
-  padding: 6px 16px; border-radius: 6px;
-  display: inline-flex; align-items: center; justify-content: center;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+.btn-refresh-all:hover { background: #334155; border-color: #64748b; }
+.btn-refresh-all svg { width: 14px; height: 14px; }
+.clock {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--accent-yellow);
+  padding: 6px 12px;
   background: var(--bg-card-alt);
   border: 1px solid var(--border-soft);
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-  margin-bottom: 6px;
+  border-radius: 6px;
+  min-width: 100px;
+  text-align: center;
 }
-.status-state.s-running { border-color: var(--andon-running); color: var(--andon-running); }
-.status-state.s-setup   { border-color: var(--andon-setup); color: var(--andon-setup); }
-.status-state.s-idle    { border-color: var(--andon-idle); color: var(--andon-idle); }
 
-.status-spk { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+/* ===== 3-COLUMN WRAP ===== */
+.columns-wrap {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  flex-grow: 1;
+  min-height: 0;
+}
 
-/* BIG TOGGLE SWITCH (POKA-YOKE) */
-.btn-huge-switch {
-  background: var(--accent-machine);
-  color: var(--accent-text);
-  border: 2px solid var(--accent-machine-glow);
+/* ===== KOLOM MESIN ===== */
+.mc-column {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--mc-color);
   border-radius: 8px;
-  font-size: 26px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+/* Watermark raksasa per kolom */
+.mc-column::before {
+  content: attr(data-watermark);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 140px;
   font-weight: 900;
-  cursor: pointer;
+  color: var(--mc-watermark);
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+  letter-spacing: 4px;
+  line-height: 1;
+}
+
+/* ===== HEAD KOLOM MESIN ===== */
+.mc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg-card-alt);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  z-index: 1;
+  gap: 8px;
+}
+.mc-name-wrap { display: flex; align-items: center; gap: 8px; }
+.mc-name {
+  font-size: 15px;
+  font-weight: 900;
+  color: var(--mc-color);
+  letter-spacing: 0.5px;
+}
+.mc-badge {
+  font-size: 9px;
+  font-weight: 900;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--mc-color);
+  color: var(--mc-text-on);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.mc-status { display: flex; align-items: center; gap: 6px; }
+.led {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 8px currentColor;
+}
+.led-running { background: var(--andon-running); color: var(--andon-running); animation: pulse 1.5s ease-in-out infinite; }
+.led-idle    { background: var(--andon-idle);    color: var(--andon-idle); }
+.led-setup   { background: var(--andon-setup);   color: var(--andon-setup); }
+.led-down    { background: var(--andon-down);    color: var(--andon-down); }
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 8px currentColor; }
+  50%      { opacity: 0.7; transform: scale(1.15); box-shadow: 0 0 16px currentColor; }
+}
+.mc-state {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--border-soft);
+  background: var(--bg-card);
+}
+.mc-state.s-running { color: var(--andon-running); border-color: var(--andon-running); }
+.mc-state.s-idle    { color: var(--andon-idle);    border-color: var(--andon-idle); }
+
+/* ===== BODY KOLOM (ACTIVE CARD) ===== */
+.mc-body {
+  flex-grow: 1;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  position: relative;
+  z-index: 1;
+  min-height: 0;
+}
+.active-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 8px;
+  padding: 30px 12px;
+  color: var(--text-muted);
+  font-style: italic;
   flex-grow: 1;
-  margin: 0 20px;
-  text-transform: uppercase;
-  box-shadow: 0 4px 15px var(--accent-machine-glow);
-  transition: transform 0.2s, filter 0.2s, background-color 0.3s;
 }
-.btn-huge-switch:hover {
-  transform: scale(1.01);
-  filter: brightness(1.1);
-}
-.btn-huge-switch:active {
-  transform: scale(0.98);
-}
-.switch-label {
-  font-size: 12px;
-  opacity: 0.8;
-  letter-spacing: 3px;
-  margin-bottom: 4px;
-}
+.active-empty-icon { font-size: 42px; opacity: 0.5; }
+.active-empty-title { font-size: 13px; font-weight: 700; color: var(--text-secondary); font-style: normal; }
+.active-empty-hint { font-size: 11px; }
 
-/* KANAN: STACK BERTINGKAT (REFRESH, ANTREAN, SELESAI) */
-.counter-pills { 
-  display: flex; 
-  flex-direction: column; 
-  gap: 8px; 
-  flex: 0 0 160px; /* Lebar tetap seragam */
-  justify-content: center;
+.active-content { display: flex; flex-direction: column; gap: 10px; }
+
+/* SPK header block */
+.spk-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
 }
-.counter-pill {
+.spk-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.spk-no {
+  font-size: 15px;
+  font-weight: 900;
+  color: var(--mc-color);
+  font-family: 'Consolas', 'Courier New', monospace;
+}
+.spk-status-badge {
+  font-size: 9px;
+  font-weight: 900;
+  padding: 3px 8px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+}
+.spk-status-badge.st-running { background: var(--andon-running); color: #052e16; }
+.spk-status-badge.st-antrian { background: var(--andon-idle); color: #ffffff; }
+.spk-batch { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+.spk-batch b { color: var(--text-secondary); font-weight: 800; font-family: 'Consolas', monospace; }
+
+/* Timing bar */
+.timing-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
   background: var(--bg-card-alt);
   border: 1px solid var(--border-soft);
-  border-radius: 6px;
-  padding: 8px 12px;
+  border-radius: 5px;
+  font-size: 11px;
+  flex-wrap: wrap;
+}
+.tim-item { color: var(--text-muted); font-weight: 600; }
+.tim-item b { color: var(--text-primary); font-weight: 800; font-family: 'Consolas', monospace; }
+.tim-over {
+  font-size: 10px;
+  font-weight: 900;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--andon-over);
+  color: #ffffff;
+  letter-spacing: 0.5px;
+  animation: pulse-over 1s ease-in-out infinite;
+}
+@keyframes pulse-over {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.6; }
+}
+
+/* Proses dari (Input) */
+.proses-block {
+  padding: 8px 10px;
+  background: rgba(59, 130, 246, 0.06);
+  border-left: 3px solid var(--mc-color);
+  border-radius: 4px;
+}
+.proses-lbl { font-size: 10px; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 2px; }
+.proses-val {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--accent-yellow);
+  font-family: 'Consolas', monospace;
+  line-height: 1.35;
+}
+.proses-val .qty-tail { color: var(--text-primary); font-family: 'Segoe UI', sans-serif; font-size: 12px; margin-left: 4px; }
+
+/* Cut Ke (Output list) */
+.cut-block {
+  padding: 8px 10px;
+  background: rgba(34, 197, 94, 0.06);
+  border-left: 3px solid var(--andon-running);
+  border-radius: 4px;
+}
+.cut-lbl { font-size: 10px; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 4px; }
+.cut-list { display: flex; flex-direction: column; gap: 4px; }
+.cut-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+  font-family: 'Consolas', monospace;
+  line-height: 1.3;
+}
+.cut-arrow { color: var(--andon-running); font-weight: 900; }
+.cut-spec { color: var(--text-primary); font-weight: 800; flex-grow: 1; word-break: break-word; }
+.cut-qty { color: var(--accent-yellow); font-weight: 900; white-space: nowrap; }
+.cut-item.done .cut-spec, .cut-item.done .cut-qty { opacity: 0.5; text-decoration: line-through; }
+.cut-item.cancelled .cut-spec, .cut-item.cancelled .cut-qty { opacity: 0.4; color: var(--andon-down); text-decoration: line-through; }
+
+/* Action buttons */
+.btn-wrap {
+  display: flex;
+  gap: 6px;
+  margin-top: auto;
+}
+.btn {
+  border: none;
+  border-radius: 5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  letter-spacing: 0.3px;
+  font-size: 12px;
+  padding: 8px 10px;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:hover:not(:disabled) { transform: translateY(-1px); }
+
+.btn-detail {
+  background: var(--bg-card-alt);
+  color: var(--text-primary);
+  border: 1px solid var(--border-soft);
+  flex-grow: 1;
+}
+.btn-detail:hover { background: #334155; border-color: var(--mc-color); color: var(--mc-color); }
+
+.btn-mulai {
+  background: linear-gradient(135deg, var(--andon-running), #16a34a);
+  color: #fff;
+  padding: 10px 12px;
+  box-shadow: 0 3px 8px rgba(34, 197, 94, 0.35);
+  flex-grow: 2;
+  font-size: 13px;
+}
+.btn-mulai:hover { box-shadow: 0 4px 12px rgba(34, 197, 94, 0.5); }
+
+.btn-finalize {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  color: #fff;
+  padding: 10px 12px;
+  box-shadow: 0 3px 8px rgba(217, 119, 6, 0.35);
+  flex-grow: 2;
+  font-size: 13px;
+}
+.btn-finalize:hover { box-shadow: 0 4px 12px rgba(217, 119, 6, 0.5); }
+
+.btn-clear-active {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-soft);
+  padding: 8px 10px;
+  font-size: 12px;
+}
+.btn-clear-active:hover { color: var(--andon-down); border-color: var(--andon-down); }
+
+/* ===== NEXT ANTRIAN PREVIEW ===== */
+.next-antrian {
+  padding: 8px 10px;
+  background: rgba(148, 163, 184, 0.06);
+  border-left: 3px solid #64748b;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+.next-title {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.next-list { display: flex; flex-direction: column; gap: 3px; }
+.next-item {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 4px 6px;
+  font-size: 11px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'Consolas', 'Courier New', monospace;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid transparent;
+}
+.next-item:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: var(--mc-color);
+  transform: translateX(2px);
+}
+.next-num { color: var(--text-muted); font-weight: 700; width: 14px; flex-shrink: 0; }
+.next-spk { color: var(--text-secondary); font-weight: 800; flex-shrink: 0; }
+.next-spec { color: var(--accent-yellow); flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.next-qty { color: var(--text-primary); font-weight: 800; white-space: nowrap; flex-shrink: 0; }
+.next-prio {
+  font-size: 8px; font-weight: 900; padding: 1px 4px; border-radius: 2px;
+  letter-spacing: 0.3px; flex-shrink: 0;
+}
+.next-prio.Urgent { background: #dc2626; color: #fff; }
+.next-prio.High   { background: #f59e0b; color: #422006; }
+.next-prio.Normal { background: transparent; color: var(--text-muted); border: 1px solid var(--border-soft); }
+
+/* ===== FOOTER KOLOM (COUNTERS) ===== */
+.mc-footer {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-card-alt);
+  border-top: 1px solid var(--border);
+  position: relative;
+  z-index: 1;
+}
+.counter-pill {
+  flex-grow: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: 5px;
+  padding: 8px 10px;
   cursor: pointer;
   transition: all 0.2s;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-primary);
-  font-weight: 600;
+  font-weight: 700;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  font-family: inherit;
+  letter-spacing: 0.3px;
 }
-.counter-pill:hover { background: #334155; border-color: var(--accent-machine); transform: translateY(-1px); }
-.counter-pill .counter-num { font-size: 16px; font-weight: 900; }
-.counter-pill.pill-antrian .counter-num { color: var(--accent-yellow); }
-.counter-pill.pill-done    .counter-num { color: var(--andon-running); }
+.counter-pill:hover { background: #1e293b; border-color: var(--mc-color); transform: translateY(-1px); }
+.counter-pill b { font-size: 15px; font-weight: 900; }
+.pill-antrian b { color: var(--accent-yellow); }
+.pill-done b { color: var(--andon-running); }
 
-.btn-refresh {
-  background: var(--bg-card-alt);
-  border: 1px solid var(--border-soft);
-  border-radius: 6px;
-  padding: 8px 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-  color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 10px;
-  font-weight: 600;
-  font-size: 12px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-}
-.btn-refresh:hover { background: #334155; border-color: var(--accent-machine); transform: translateY(-1px); color: var(--accent-machine); }
-.btn-refresh svg { width: 16px; height: 16px; }
-
-/* ===== LOADING OVERLAY (DULU FLASH EFFECT) ===== */
-@keyframes pulse-loading-text {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
+/* ===== LOADING OVERLAY ===== */
+@keyframes pulse-loading-text { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 .flash-active::after {
   content: "Update data, Mohon Tunggu...";
-  position: fixed; 
+  position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(2, 6, 23, 0.85); /* Overlay gelap transparan */
+  background-color: rgba(2, 6, 23, 0.85);
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
-  z-index: 999999; 
-  pointer-events: auto; 
+  z-index: 999999;
+  pointer-events: auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--accent-machine);
-  font-size: 22px;
+  color: var(--accent-yellow);
+  font-size: 20px;
   font-weight: 900;
   letter-spacing: 2px;
   text-transform: uppercase;
   animation: pulse-loading-text 1.5s infinite ease-in-out;
 }
 
-/* ===== ZONE 2: ACTIVE CARD & POKA-YOKE WATERMARK ===== */
-.zone-active {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+/* ===== MODAL OVERLAY & BOX ===== */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(2, 6, 23, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 99999;
+  align-items: center;
+  justify-content: center;
   padding: 20px;
+}
+.modal-overlay.show { display: flex; }
+.modal-box {
+  background: var(--bg-card);
+  border: 2px solid var(--border-soft);
+  border-radius: 10px;
+  max-width: 95vw;
+  max-height: 90vh;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  flex-grow: 1;
-  min-height: 280px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  position: relative;
-  overflow: hidden; 
+  box-shadow: 0 25px 70px rgba(0,0,0,0.85);
+  color: var(--text-primary);
 }
-
-/* WATERMARK RAKSASA */
-.zone-active::before {
-  content: var(--watermark-text);
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 280px;
-  font-weight: 900;
-  color: var(--watermark-color);
-  z-index: 0;
-  pointer-events: none;
-  user-select: none;
-  white-space: nowrap;
-  line-height: 1;
-}
-
-.active-empty, #active-area {
-  position: relative;
-  z-index: 1;
-}
-
-.active-empty {
-  display: flex; align-items: center; justify-content: center;
-  flex-direction: column; gap: 12px;
-  padding: 40px 20px;
-  color: var(--text-muted);
-  font-style: italic;
-}
-.active-empty-icon { font-size: 48px; opacity: 0.4; }
-
-.active-head {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 20px;
+.modal-box.mc-styled { border-color: var(--mc-glow); }
+.modal-head {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  padding-bottom: 16px;
+  padding: 14px 20px;
   border-bottom: 2px solid var(--border);
+  background: var(--bg-base);
+  border-radius: 8px 8px 0 0;
 }
-.active-spkno {
-  font-size: 26px; font-weight: 900;
-  color: var(--accent-machine);
-  font-family: 'Consolas', 'Courier New', monospace;
-  margin-bottom: 4px;
-}
-.active-meta-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 6px 16px;
-  font-size: 13px;
-}
-.meta-label { color: var(--text-muted); font-weight: 600; }
-.meta-val   { color: var(--text-primary); font-weight: 700; }
-.meta-val.hl-yellow { color: var(--accent-yellow); font-size: 14px; }
-
-.badge {
-  font-size: 11px; font-weight: 800;
-  padding: 4px 10px;
-  border-radius: 4px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+.modal-box.mc-styled .modal-head { border-bottom-color: var(--mc-color); }
+.modal-title { font-weight: 900; font-size: 15px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text-primary); }
+.modal-box.mc-styled .modal-title { color: var(--mc-color); }
+.modal-close {
+  background: none;
   border: none;
+  color: var(--text-primary);
+  font-size: 26px;
+  cursor: pointer;
+  padding: 0 6px;
+  line-height: 1;
+  font-weight: bold;
+  opacity: 0.8;
 }
-.badge-running { background: var(--andon-running); color: #052e16; }
-.badge-antrian { background: var(--andon-idle); color: #ffffff; }
-.badge-done    { background: #64748b; color: #ffffff; }
+.modal-close:hover { opacity: 1; }
+.modal-body { padding: 18px 20px; overflow-y: auto; flex-grow: 1; background: var(--bg-card); }
+.modal-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-base);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-radius: 0 0 8px 8px;
+}
+
+/* ===== DETAIL MODAL ===== */
+.det-section {
+  background: var(--bg-card-alt);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.det-section-title {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--accent-yellow);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.det-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px 16px;
+  font-size: 12px;
+}
+.det-info-row { display: flex; flex-direction: column; gap: 2px; }
+.det-lbl { font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+.det-val { font-size: 12px; color: var(--text-primary); font-weight: 700; word-break: break-word; }
+.det-val.mono { font-family: 'Consolas', monospace; }
+.det-val.hl-yellow { color: var(--accent-yellow); }
+.det-val.hl-green  { color: var(--andon-running); }
+.det-val.hl-orange { color: var(--accent-orange); }
 
 .badge-owner {
   background: #0c4a6e;
   color: #7dd3fc;
   border: 1px solid #38bdf8;
-  padding: 3px 10px;
-  font-size: 11px;
+  padding: 2px 8px;
+  font-size: 10px;
   font-weight: 800;
-  border-radius: 4px;
+  border-radius: 3px;
   display: inline-block;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
+}
+.badge-cross {
+  background: #7f1d1d;
+  color: #fecaca;
+  border: 1px solid #ef4444;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 3px;
+  display: inline-block;
+  letter-spacing: 0.3px;
+  margin-left: 4px;
 }
 
-/* PROGRESS BAR */
-.progress-section { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
-.progress-bar-bg {
-  width: 100%; height: 22px;
-  background: var(--bg-card-alt);
-  border: 1px solid var(--border-soft);
-  border-radius: 11px;
-  overflow: hidden;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
-}
-.progress-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--andon-running), #4ade80);
-  transition: width 0.4s ease;
-  border-radius: 11px 0 0 11px;
-  position: relative;
-}
-.progress-bar-fill::after {
-  content: "";
-  position: absolute; top: 0; left: 0; bottom: 0; right: 0;
-  background: linear-gradient(45deg, rgba(255,255,255,0.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.15) 75%, transparent 75%, transparent);
-  background-size: 20px 20px;
-  animation: stripemove 1s linear infinite;
-}
-@keyframes stripemove { 0% { background-position: 0 0; } 100% { background-position: 20px 0; } }
-.progress-text { font-size: 14px; font-weight: 700; color: var(--text-primary); display: flex; justify-content: space-between; }
-
-/* ===== OUT TABLE ===== */
-.out-table-wrap { flex-grow: 1; overflow: auto; border-radius: 6px; border: 1px solid var(--border); }
-.out-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.out-table thead th {
-  background: #020617;
-  color: var(--accent-machine);
-  padding: 12px 10px;
+.det-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.det-table thead th {
+  background: var(--bg-base);
+  color: var(--text-secondary);
+  padding: 8px 10px;
   text-align: left;
   font-weight: 800;
   text-transform: uppercase;
-  font-size: 11px;
-  letter-spacing: 1px;
-  border-bottom: 2px solid var(--accent-machine);
-  position: sticky; top: 0; z-index: 1;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--border-soft);
 }
-.out-table tbody td {
-  padding: 10px;
-  border-bottom: 1px solid var(--border-soft);
+.det-table tbody td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
   color: var(--text-primary);
-  background: var(--bg-card);
-  font-weight: 500;
+  vertical-align: top;
 }
-.out-table tbody tr:nth-child(even) td { background: var(--bg-card-alt); }
-.out-table tbody tr:hover td { background: rgba(255, 255, 255, 0.05); }
-.out-table tbody tr:last-child td { border-bottom: none; }
+.det-table tbody tr:last-child td { border-bottom: none; }
+.det-td-spk { font-family: 'Consolas', monospace; font-weight: 800; color: var(--text-primary); }
+.det-td-spec { color: var(--accent-yellow); font-weight: 700; }
+.det-td-cust { font-size: 11px; color: var(--text-muted); }
+.det-td-cut { font-size: 11px; color: var(--andon-down); font-weight: 700; }
+.status-pill {
+  font-size: 9px;
+  font-weight: 900;
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+}
+.status-pill.st-running   { background: var(--andon-running); color: #052e16; }
+.status-pill.st-antrian   { background: var(--andon-idle); color: #fff; }
+.status-pill.st-done      { background: #64748b; color: #fff; }
+.status-pill.st-cancelled { background: var(--andon-down); color: #fff; }
 
-.td-spkno  { font-weight: 800; color: var(--accent-machine); font-family: 'Consolas', monospace; font-size: 14px; }
-.td-spec   { color: var(--accent-yellow); font-weight: 800; font-size: 14px; }
-.td-cust   { font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
-
-/* SPESIFIK SHR: Note Cut_P Cut_L styling */
-.note-cut-wrapper { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
-.note-cut-lbl { color: var(--text-muted); font-size: 11px; font-weight: 600; }
-.note-cut-val { color: var(--andon-down); font-weight: 900; font-size: 13px; margin: 0 8px 0 4px; }
-.note-cut-type { color: #64748b; font-size: 11px; font-style: italic; }
-
-/* ===== BUTTONS ===== */
-.btn {
-  border: none; border-radius: 6px; font-weight: 800; cursor: pointer; transition: all 0.15s;
-  font-family: inherit; display: inline-flex; align-items: center; justify-content: center;
-  gap: 6px; letter-spacing: 0.5px;
-}
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn:hover:not(:disabled) { transform: translateY(-1px); }
-
-.btn-mulai {
-  background: linear-gradient(135deg, var(--andon-running), #16a34a);
-  color: white; padding: 16px 24px; font-size: 18px; width: 100%;
-  letter-spacing: 1.5px; box-shadow: 0 4px 15px rgba(34,197,94,0.4);
-}
-.btn-mulai:hover:not(:disabled) { box-shadow: 0 6px 20px rgba(34,197,94,0.6); }
-
-.btn-finish { background: var(--andon-running); color: white; padding: 6px 14px; font-size: 11px; box-shadow: 0 2px 8px rgba(34,197,94,0.3); white-space: nowrap; }
-.btn-finish:hover { background: #16a34a; box-shadow: 0 4px 12px rgba(34,197,94,0.5); }
-.btn-cancel-out {
-  background: transparent;
-  color: var(--andon-down);
-  border: 1.5px solid var(--andon-down);
-  padding: 6px 12px;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 1px;
-  box-shadow: none;
-  min-width: 32px;
-}
-.btn-cancel-out:hover {
-  background: rgba(239,68,68,0.12);
-  color: #f87171;
-  border-color: #f87171;
-  box-shadow: 0 2px 8px rgba(239,68,68,0.25);
-}
-.badge-cancelled { background: var(--andon-down); color: #ffffff; }
-
-.btn-pick { background: var(--accent-machine); color: var(--accent-text); padding: 8px 16px; font-size: 12px; box-shadow: 0 2px 8px var(--accent-machine-glow); }
-.btn-pick:hover { opacity: 0.85; transform: translateY(-1px); }
-
-.btn-secondary { background: var(--bg-card-alt); color: var(--text-primary); border: 1px solid var(--border-soft); padding: 8px 16px; font-size: 12px; }
-.btn-secondary:hover { background: #334155; border-color: var(--accent-machine); }
-
-/* ===== ZONE 3: QUEUE ===== */
-.zone-queue {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 16px;
-  flex-shrink: 0;
-  max-height: 30vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-}
-.queue-head {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 12px; font-weight: 800; font-size: 14px;
-  color: var(--accent-machine); text-transform: uppercase; letter-spacing: 0.7px;
-}
-.queue-list { overflow-y: auto; flex-grow: 1; padding-right: 4px; }
-.queue-item {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 10px 14px; background: var(--bg-card-alt);
-  border: 1px solid var(--border-soft); border-radius: 6px;
-  margin-bottom: 8px; transition: all 0.2s;
-}
-.queue-item:hover { border-color: var(--accent-machine); }
-
-/* Unified Monochrome styling untuk antrean berikutnya (Fokus Kognitif) */
-.queue-info { flex-grow: 1; display: flex; gap: 12px; align-items: center; font-size: 13px; }
-
-/* Keep Priority Badges for the POPUP table, but they are NOT used in the mini queue list anymore */
-.prio-Urgent { background: #dc2626; color: white; }
-.prio-High   { background: #f59e0b; color: #422006; }
-.prio-Normal { background: #3b82f6; color: white; }
-
-.queue-empty { text-align: center; padding: 24px; color: var(--text-muted); font-style: italic; font-weight: 600; }
-.queue-more {
-  text-align: center; padding: 12px; color: var(--accent-machine);
-  font-size: 13px; cursor: pointer; background: var(--bg-card-alt);
-  border: 1px dashed var(--border-soft); border-radius: 6px;
-  margin-top: 8px; font-weight: 700; transition: all 0.15s;
-}
-.queue-more:hover { background: #334155; border-color: var(--accent-machine); border-style: solid; }
-
-/* ===== MODAL OVERLAY & BOX ===== */
-.modal-overlay {
-  display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px); z-index: 99999;
-  align-items: center; justify-content: center; padding: 20px;
-}
-.modal-overlay.show { display: flex; }
-.modal-box {
-  background: var(--bg-card); border: 2px solid var(--accent-machine-glow);
-  border-radius: 10px; max-width: 95vw; max-height: 90vh;
-  display: flex; flex-direction: column;
-  box-shadow: 0 25px 70px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.05);
-  color: var(--text-primary); position: relative;
-}
-.modal-head {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 16px 20px; border-bottom: 2px solid var(--accent-machine);
-  background: var(--bg-base); border-radius: 8px 8px 0 0;
-}
-.modal-title { font-weight: 900; font-size: 16px; color: var(--accent-machine); letter-spacing: 0.5px; text-transform: uppercase; }
-.modal-close {
-  background: none; border: none; color: var(--text-primary);
-  font-size: 26px; cursor: pointer; padding: 0 6px;
-  line-height: 1; font-weight: bold; opacity: 0.8; transition: color 0.2s;
-}
-.modal-close:hover { color: var(--accent-machine); opacity: 1; }
-.modal-body { padding: 20px; overflow-y: auto; flex-grow: 1; background: var(--bg-card); }
-.modal-footer {
-  padding: 16px 20px; border-top: 1px solid var(--border);
-  background: var(--bg-base); border-radius: 0 0 8px 8px;
-  display: flex; gap: 12px; justify-content: flex-end;
-}
-
-/* ===== FINISH MODAL FORM (SHR SPECIFIC) ===== */
-#finish-modal .modal-box { width: 550px; }
-.form-row { margin-bottom: 16px; }
-.form-row label {
-  display: block; font-size: 12px; font-weight: 800;
-  color: var(--text-secondary); text-transform: uppercase;
-  margin-bottom: 6px; letter-spacing: 0.5px;
-}
-.form-row input[type="number"] {
-  width: 100%; background: #020617; color: var(--text-primary);
-  border: 1px solid var(--border-soft); border-radius: 6px;
-  padding: 12px; font-size: 20px; font-weight: 800;
-  font-family: 'Consolas', monospace; transition: all 0.2s;
-}
-.form-row input[type="number"]:focus {
-  outline: none; border-color: var(--accent-machine); box-shadow: 0 0 0 3px var(--accent-machine-glow); background: #0f172a;
-}
-.form-row input[readonly] {
-  background: #082f49 !important; color: var(--accent-machine) !important;
-  border-color: var(--accent-machine-glow) !important; cursor: not-allowed;
-}
-/* ===== NG SECTION (Grade 2 Cutting) ===== */
-/* 🟢 BUG-FIX #2 — Finalize Header Section */
-.finalize-section {
-  margin-top: 16px; padding: 14px;
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  border: 2px solid #f59e0b; border-radius: 10px;
-}
-.finalize-title { font-weight: 800; font-size: 14px; color: #92400e; margin-bottom: 6px; }
-.finalize-hint  { font-size: 11px; color: #78350f; margin-bottom: 10px; font-style: italic; }
-.finalize-info  { display: flex; gap: 8px; font-size: 12px; margin-bottom: 8px; }
-.finalize-info .lbl { font-weight: 700; color: #92400e; }
-.finalize-info .val { color: #1f2937; font-family: monospace; }
-.finalize-input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.finalize-input-row label { font-weight: 700; font-size: 13px; min-width: 120px; color: #92400e; }
-.finalize-input-row input {
-  flex: 1; padding: 8px 12px; border: 2px solid #f59e0b; border-radius: 6px;
-  font-size: 14px; font-weight: 700; background: white;
-}
-.finalize-preview {
-  background: white; padding: 10px; border-radius: 6px; margin-top: 8px;
-  border: 1px dashed #f59e0b;
-}
-.prv-title { font-size: 11px; font-weight: 700; color: #92400e; margin-bottom: 6px; }
-#fin-preview-list { font-size: 12px; line-height: 1.6; color: #1f2937; font-family: monospace; }
-.prv-loss { font-size: 12px; margin-top: 6px; padding-top: 6px; border-top: 1px dashed #d1d5db; color: #b45309; font-weight: 700; }
-
-.ng-section {
-  display: none; margin-top: 20px; padding: 16px; background: rgba(234, 88, 12, 0.08);
-  border: 2px solid rgba(234, 88, 12, 0.4); border-radius: 8px;
-}
-.ng-section.show { display: block; }
-.ng-title { color: var(--accent-orange); font-weight: 900; font-size: 14px; margin-bottom: 6px; }
-.ng-hint  { color: #fed7aa; font-size: 12px; margin-bottom: 12px; font-weight: 500; }
-.ng-table { width: 100%; font-size: 13px; color: #fef3c7; border-collapse: collapse; }
-.ng-table th, .ng-table td { border: 1px solid var(--border-soft); padding: 6px 8px; }
-.ng-table thead tr { background: var(--bg-base); }
-.ng-table th { font-size: 11px; text-transform: uppercase; color: var(--accent-orange); font-weight: 800; }
-.ng-input {
-  width: 100%; background: #020617; color: #fef3c7; border: 1px solid var(--border-soft);
-  border-radius: 4px; padding: 6px; font-size: 13px; font-weight: 700; font-family: 'Consolas', monospace;
-}
-.ng-input:focus { border-color: var(--accent-orange); outline: none; }
-.ng-cell-t { text-align: center; background: var(--bg-base); color: var(--accent-machine); font-weight: 800; font-family: 'Consolas', monospace; }
-.ng-cell-kg { text-align: right; background: var(--bg-base); }
-.ng-kg { color: var(--accent-yellow); font-weight: 800; font-family: 'Consolas', monospace; }
-.btn-ng-add {
-  margin-top: 12px; background: var(--accent-orange); color: white; padding: 8px 14px; font-size: 12px; font-weight: 800;
-  border: none; border-radius: 6px; cursor: pointer; box-shadow: 0 2px 8px rgba(234, 88, 12, 0.3);
-}
-.btn-ng-add:hover { background: #c2410c; }
-.btn-ng-del { background: var(--andon-down); color: white; padding: 4px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }
-.ng-total { margin-top: 12px; text-align: right; color: var(--accent-orange); font-weight: 900; font-size: 15px; }
-/* ===== POPUP TABLES ===== */
-#popup-antrian .modal-box { width: 900px; }
-#popup-antrian .modal-body { padding: 0; max-height: 70vh; } 
-.popup-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 0; }
+/* ===== POPUP ANTRIAN & SELESAI ===== */
+.popup-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .popup-table thead th {
-  background: #020617; color: var(--accent-machine); padding: 14px 10px;
-  text-align: left; font-weight: 900; font-size: 11px;
-  text-transform: uppercase; letter-spacing: 1px;
-  border-bottom: 2px solid var(--accent-machine); position: sticky; top: 0; z-index: 10;
+  background: var(--bg-base);
+  color: var(--accent-yellow);
+  padding: 10px;
+  text-align: left;
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.6px;
+  border-bottom: 2px solid var(--border-soft);
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 .popup-table tbody td {
-  padding: 10px; border-bottom: 1px solid var(--border-soft);
-  color: var(--text-primary); background: var(--bg-card); font-weight: 600;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+  background: var(--bg-card);
 }
-.popup-table th:first-child, .popup-table td:first-child { padding-left: 20px; }
-.popup-table th:last-child, .popup-table td:last-child { padding-right: 20px; }
 .popup-table tbody tr:nth-child(even) td { background: var(--bg-card-alt); }
 .popup-table tbody tr:hover td { background: rgba(255, 255, 255, 0.05); }
-.popup-table tbody tr:last-child td { border-bottom: none; }
-.popup-table .td-spkno { color: var(--accent-machine); font-weight: 900; font-family: 'Consolas', monospace; font-size: 14px; }
-.popup-table .td-spec { color: var(--accent-yellow); font-weight: 800; font-size: 14px; }
-.popup-table tbody td:nth-child(3) { color: var(--text-secondary); font-family: 'Consolas', monospace; font-size: 12.5px; } 
-.popup-table tbody td:nth-child(5), .popup-table tbody td:nth-child(6) { font-family: 'Consolas', monospace; font-size: 14px; font-weight: 800; } 
+.td-spkno   { font-weight: 800; font-family: 'Consolas', monospace; }
+.td-batch   { font-family: 'Consolas', monospace; font-size: 11px; color: var(--text-secondary); font-weight: 700; }
+.td-spec    { color: var(--accent-yellow); font-weight: 700; }
+.td-item    { font-size: 11px; color: var(--text-muted); }
+.queue-prio { font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.5px; }
+.prio-Urgent { background: #dc2626; color: #fff; }
+.prio-High   { background: #f59e0b; color: #422006; }
+.prio-Normal { background: #3b82f6; color: #fff; }
 
-/* ===== POPUP SELESAI KANBAN ===== */
-#popup-selesai .modal-box { width: 90vw; }
-#popup-selesai .modal-body { max-height: 75vh; }
-.kanban-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
-.kanban-card {
-  background: var(--bg-card-alt); border: 1px solid var(--border-soft);
-  border-left: 4px solid var(--andon-running); border-radius: 6px;
-  padding: 14px; font-size: 13px; box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-}
-.kanban-card .kc-spk { font-weight: 900; color: var(--accent-machine); font-family: 'Consolas', monospace; font-size: 15px; margin-bottom: 4px; }
-.kanban-card .kc-item { color: var(--accent-yellow); font-weight: 800; margin: 6px 0; font-size: 14px; }
-.kanban-card .kc-meta { color: var(--text-secondary); font-size: 12px; margin-bottom: 4px; }
-.kanban-card .kc-qty { font-weight: 900; color: var(--text-primary); font-size: 16px; margin: 8px 0; }
-.kanban-card .kc-time {
-  color: var(--text-muted); font-size: 11px; font-weight: 600;
-  margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-soft);
-}
-/* 🟢 BUG-FIX #2 — Finalize SHR Modal (Komprehensif) */
-.btn-finalize-shr {
-  width: 100%;
-  background: linear-gradient(135deg, #16a34a, #15803d);
-  color: white;
-  padding: 14px 20px;
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
+.btn-pick {
+  background: var(--andon-running);
+  color: #fff;
+  padding: 6px 12px;
+  font-size: 11px;
   border: none;
-  border-radius: 10px;
+  border-radius: 4px;
+  font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(34,197,94,0.4);
-  transition: all 0.2s;
+  letter-spacing: 0.5px;
+  transition: all 0.15s;
 }
-.btn-finalize-shr:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(34,197,94,0.55); }
-.btn-finalize-shr:active { transform: translateY(0); }
-.btn-finalize-shr:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn-pick:hover { background: #16a34a; transform: translateY(-1px); }
 
-#finalize-modal .modal-box { width: 720px; max-width: 95vw; }
-.fin-section {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 12px 14px;
-  margin-bottom: 12px;
+.btn-secondary { background: var(--bg-card-alt); color: var(--text-primary); border: 1px solid var(--border-soft); padding: 9px 16px; font-size: 12px; }
+.btn-secondary:hover { background: #334155; }
+
+/* ===== MODAL FINALIZE (KEEP AS-IS STRUCTURE) ===== */
+.form-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.form-row label { font-size: 12px; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.3px; }
+.form-row input {
+  padding: 10px 12px;
+  border-radius: 5px;
+  border: 1px solid var(--border-soft);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 700;
 }
-.fin-section.fin-highlight {
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  border: 2px solid #f59e0b;
+.form-row input:focus { outline: none; border-color: var(--accent-yellow); box-shadow: 0 0 0 2px rgba(253, 224, 71, 0.2); }
+.form-row input[readonly] { background: var(--bg-card-alt); color: var(--text-muted); }
+
+.fin-section { background: var(--bg-card-alt); border: 1px solid var(--border); border-radius: 6px; padding: 12px 14px; margin-bottom: 12px; }
+.fin-section-title { font-size: 11px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; color: var(--accent-yellow); padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
+.fin-info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 16px; font-size: 12px; }
+.fin-info-grid .lbl { color: var(--text-muted); font-weight: 600; }
+.fin-info-grid .val { color: var(--text-primary); font-weight: 800; }
+.fin-highlight { background: rgba(253, 224, 71, 0.05); border: 2px solid var(--accent-yellow); }
+.fin-input-row { display: flex; flex-direction: column; gap: 6px; }
+.fin-input-row label { font-size: 12px; font-weight: 700; color: var(--text-secondary); }
+.fin-input-row input { padding: 12px; border-radius: 5px; border: 2px solid var(--accent-yellow); background: var(--bg-base); color: #fff; font-size: 18px; font-weight: 900; font-family: 'Consolas', monospace; }
+.fin-input-row input:focus { outline: none; box-shadow: 0 0 0 3px rgba(253, 224, 71, 0.3); }
+.fin-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 4px; }
+.fin-table thead th { background: var(--bg-base); color: var(--accent-yellow); padding: 8px; text-align: left; font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-soft); }
+.fin-table tbody td { padding: 8px; border-bottom: 1px solid var(--border); color: var(--text-primary); font-size: 12px; }
+.fin-table .fin-actual { width: 100%; padding: 6px; background: var(--bg-base); color: #fff; border: 1px solid var(--border-soft); border-radius: 4px; font-size: 13px; font-weight: 800; font-family: 'Consolas', monospace; text-align: right; }
+.fin-table .fin-actual:focus { outline: none; border-color: var(--accent-yellow); }
+.fin-plan-cell { text-align: right; font-family: 'Consolas', monospace; color: var(--text-muted); }
+.fin-summary { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; padding: 8px 12px; background: var(--bg-base); border-radius: 5px; font-size: 12px; font-weight: 700; }
+.fin-summary .delta { color: var(--accent-orange); }
+
+/* NG Section (dipakai di Finalize) */
+.ng-section {
+  border: 2px dashed var(--andon-down);
+  background: rgba(239, 68, 68, 0.06);
+  border-radius: 6px;
+  padding: 12px;
 }
-.fin-section-title { font-weight: 800; font-size: 13px; color: #1f2937; margin-bottom: 8px; }
-.fin-section.fin-highlight .fin-section-title { color: #92400e; }
-.fin-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 12px; }
-.fin-info-grid .lbl { font-weight: 700; color: #6b7280; }
-.fin-info-grid .val { color: #1f2937; font-family: monospace; }
-.fin-input-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
-.fin-input-row label { font-weight: 700; font-size: 13px; min-width: 160px; color: #92400e; }
-.fin-input-row input {
-  flex: 1; padding: 8px 12px; border: 2px solid #f59e0b; border-radius: 6px;
-  font-size: 16px; font-weight: 700; background: white;
+.ng-title { font-size: 12px; font-weight: 900; color: var(--andon-down); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 4px; }
+.ng-hint { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
+.ng-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 8px; }
+.ng-table thead th { background: var(--bg-base); color: var(--text-secondary); padding: 6px 8px; text-align: left; font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-soft); }
+.ng-table tbody td { padding: 4px 6px; border-bottom: 1px solid var(--border); color: var(--text-primary); }
+.ng-input { width: 100%; padding: 6px 8px; background: var(--bg-base); color: #fff; border: 1px solid var(--border-soft); border-radius: 3px; font-size: 12px; font-weight: 700; font-family: 'Consolas', monospace; text-align: right; }
+.ng-input:focus { outline: none; border-color: var(--andon-down); }
+.ng-cell-t { text-align: center; font-family: 'Consolas', monospace; font-weight: 800; color: var(--accent-yellow); background: rgba(0,0,0,0.15); }
+.ng-kg-cell { text-align: right; font-family: 'Consolas', monospace; font-weight: 800; color: var(--accent-orange); }
+.ng-remove { background: transparent; color: var(--andon-down); border: 1px solid var(--andon-down); border-radius: 3px; padding: 4px 8px; font-size: 12px; font-weight: 800; cursor: pointer; }
+.ng-remove:hover { background: rgba(239, 68, 68, 0.15); }
+.btn-ng-add { background: rgba(239, 68, 68, 0.12); color: var(--andon-down); border: 1px dashed var(--andon-down); padding: 6px 10px; font-size: 11px; font-weight: 700; border-radius: 4px; cursor: pointer; }
+.btn-ng-add:hover { background: rgba(239, 68, 68, 0.2); }
+.ng-total { text-align: right; font-size: 12px; font-weight: 800; color: var(--accent-orange); margin-top: 4px; }
+
+/* ===== KANBAN GRID for Popup Selesai ===== */
+.kanban-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+.kanban-card {
+  background: var(--bg-card-alt);
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
-.fin-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.fin-table th {
-  background: #1f2937; color: white;
-  padding: 8px 10px; text-align: left; font-size: 11px; letter-spacing: 0.5px;
-}
-.fin-table td { padding: 8px 10px; border-bottom: 1px solid #e5e7eb; vertical-align: middle; }
-.fin-table tr:last-child td { border-bottom: none; }
-.fin-table .col-plan { color: #2563eb; font-weight: 700; text-align: right; font-family: monospace; }
-.fin-table input.fin-actual {
-  width: 80px; padding: 5px 8px; border: 1px solid #d1d5db; border-radius: 4px;
-  text-align: right; font-weight: 700; font-size: 13px;
-}
-.fin-summary {
-  display: flex; justify-content: space-between; gap: 8px;
-  margin-top: 10px; padding-top: 10px; border-top: 1px dashed #d1d5db; font-size: 12px;
-}
-.fin-summary span { font-weight: 700; }
-.fin-summary .delta { color: #b45309; }
+.kc-spk  { font-family: 'Consolas', monospace; font-weight: 900; color: var(--andon-running); font-size: 13px; }
+.kc-batch { font-family: 'Consolas', monospace; font-size: 11px; color: var(--text-secondary); font-weight: 700; }
+.kc-item { font-size: 11px; color: var(--text-muted); }
+.kc-meta { font-size: 12px; color: var(--accent-yellow); font-weight: 700; font-family: 'Consolas', monospace; }
+.kc-qty  { font-size: 12px; color: var(--text-primary); font-weight: 800; }
+.kc-time { font-size: 10px; color: var(--text-muted); font-style: italic; }
+
+/* Scroll bar dark */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-base); }
+::-webkit-scrollbar-thumb { background: var(--border-soft); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #64748b; }
 </style>
-
 </head>
 <body>
 
-<!-- DEFAULT THEME ACL -->
-<div class="board-shell theme-acl">
-  <!-- ZONE 1: STATUS BAR -->
-  <div class="zone-status">
-    <!-- Bagian Kiri: Status & SPK -->
-    <div class="machine-status">
-      <div class="led led-idle" id="status-led"></div>
-      <div style="display: flex; flex-direction: column; justify-content: center;">
-        <div>
-          <!-- POKA-YOKE: Tampilan border seragam dengan Counter Pill -->
-          <span class="status-state s-idle" id="status-state">IDLE</span>
-        </div>
-        <div class="status-spk" id="status-spk">— tidak ada job —</div>
-      </div>
-    </div>
+<div class="board-shell">
 
-    <!-- Bagian Tengah: BIG TOGGLE SWITCH POKA-YOKE -->
-    <button class="btn-huge-switch" id="btn-big-switch" onclick="window.toggleMachine()">
-      <span class="switch-label">MESIN AKTIF</span>
-      <span id="switch-btn-text">SHR-01 (ACL)</span>
-    </button>
-
-    <!-- Bagian Kanan: Counters Bertingkat & Refresh -->
-    <div class="counter-pills">
-      <button class="btn-refresh" onclick="window.refreshBoard()" title="Muat Ulang Data">
+  <!-- ============================================================
+       HEADER BOARD
+       ============================================================ -->
+  <div class="board-header">
+    <div class="board-title">🏭 SHR MONITORING BOARD</div>
+    <div class="board-actions">
+      <button class="btn-refresh-all" onclick="window.refreshAll()" title="Muat ulang seluruh data mesin">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 2v6h-6"></path>
           <path d="M3 12a9 9 0 1 0 2.63-6.37L21 8"></path>
         </svg>
-        <span>Refresh</span>
+        <span>Refresh All</span>
       </button>
-      <div class="counter-pill pill-antrian" onclick="window.openPopupAntrian()">
-        <span>📋 Antrian:</span> <span class="counter-num" id="cnt-antrian">0</span>
-      </div>
-      <div class="counter-pill pill-done" onclick="window.openPopupSelesai()">
-        <span>✅ Selesai:</span> <span class="counter-num" id="cnt-done">0</span>
-      </div>
+      <div class="clock" id="clock">--:--</div>
     </div>
   </div>
 
-  <!-- ZONE 2: ACTIVE CARD -->
-  <div class="zone-active">
-    <div id="active-empty" class="active-empty">
-      <div class="active-empty-icon">📭</div>
-      <div style="font-size: 16px; font-weight: 600;">Tidak ada job aktif</div>
-      <div style="font-size:13px;">Pilih dari antrian di bawah</div>
-    </div>
-    <div id="active-area" style="display:none; flex-direction:column; gap:16px; height:100%;">
-      <div class="active-head">
-        <div>
-          <div class="active-spkno" id="a-spkno">—</div>
-          <span class="badge badge-antrian" id="a-status">ANTRIAN</span>
+  <!-- ============================================================
+       3-KOLOM MESIN
+       ============================================================ -->
+  <div class="columns-wrap">
+
+    <!-- === KOLOM SHR-01 === -->
+    <div class="mc-column theme-acl" data-mc="SHR-01" data-watermark="ACL">
+      <div class="mc-head">
+        <div class="mc-name-wrap">
+          <span class="mc-name">SHR-01 (ACL)</span>
         </div>
-        <div class="active-meta-grid">
-          <div><span class="meta-label">Batch:</span> <span class="meta-val" id="a-batch">—</span></div>
-          <div><span class="meta-label">Spec:</span> <span class="meta-val hl-yellow" id="a-spec">—</span></div>
-          <div><span class="meta-label">Cust:</span> <span class="meta-val" id="a-cust">—</span></div>
-          <div><span class="meta-label">Owner:</span> <span class="badge-owner" id="a-owner">FC</span></div>
-          <div><span class="meta-label">Target (Lbr):</span> <span class="meta-val" id="a-qtyt">0</span></div>
-          <div><span class="meta-label">Target (Kg):</span> <span class="meta-val" id="a-kgt">0</span></div>
-          <div><span class="meta-label">Priority:</span> <span class="meta-val" id="a-prio">Normal</span></div>
-        </div>
-        <div>
-          <button class="btn-secondary btn" onclick="window.clearActive()" style="font-size:12px; padding:8px 12px;">⟲ Ganti Job</button>
+        <div class="mc-status">
+          <span class="led led-idle" id="led-SHR-01"></span>
+          <span class="mc-state s-idle" id="state-SHR-01">IDLE</span>
         </div>
       </div>
-
-      <div class="progress-section" id="progress-area" style="display:none;">
-        <div class="progress-bar-bg">
-          <div class="progress-bar-fill" id="progress-fill" style="width:0%;"></div>
+      <div class="mc-body">
+        <div class="active-empty" id="empty-SHR-01">
+          <div class="active-empty-icon">📭</div>
+          <div class="active-empty-title">Tidak ada job aktif</div>
+          <div class="active-empty-hint">Pilih dari antrian ↓</div>
         </div>
-        <div class="progress-text">
-          <span>Progress Pemotongan</span>
-          <span id="progress-text">0% (0 / 0 lbr)</span>
+        <div class="active-content" id="active-SHR-01" style="display:none;">
+          <div class="spk-block">
+            <div class="spk-topline">
+              <div class="spk-no" id="spkno-SHR-01">—</div>
+              <div class="spk-status-badge st-antrian" id="stbadge-SHR-01">ANTRIAN</div>
+            </div>
+            <div class="spk-batch">Batch: <b id="batch-SHR-01">—</b></div>
+          </div>
+          <div class="timing-bar" id="timing-SHR-01" style="display:none;">
+            <span class="tim-item">⏰ Mulai <b id="mulai-SHR-01">—</b> → Target <b id="target-SHR-01">—</b></span>
+            <span class="tim-item">⏱ <b id="durasi-SHR-01">—</b></span>
+            <span class="tim-over" id="over-SHR-01" style="display:none;"></span>
+          </div>
+          <div class="proses-block">
+            <div class="proses-lbl">Proses dari:</div>
+            <div class="proses-val" id="input-SHR-01">—</div>
+          </div>
+          <div class="cut-block">
+            <div class="cut-lbl">Cut Ke:</div>
+            <div class="cut-list" id="cut-SHR-01">
+              <div style="font-size:11px; color:var(--text-muted); font-style:italic;">Belum ada data OUT</div>
+            </div>
+          </div>
+          <div class="btn-wrap">
+            <button class="btn btn-detail" onclick="window.openDetailModal('SHR-01')">👁 Detail</button>
+            <button class="btn btn-mulai" id="btnmulai-SHR-01" onclick="window.triggerStartJob('SHR-01')" style="display:none;">▶ Mulai</button>
+            <button class="btn btn-finalize" id="btnfinal-SHR-01" onclick="window.openFinalizeModal('SHR-01')" style="display:none;">🎯 Finalize</button>
+            <button class="btn btn-clear-active" onclick="window.clearActive('SHR-01')" title="Ganti Job">⟲</button>
+          </div>
+          <div class="next-antrian" id="next-SHR-01" style="display:none;">
+            <div class="next-title">📋 Next Antrian <span id="nextcnt-SHR-01" style="color:var(--text-secondary);"></span></div>
+            <div class="next-list" id="nextlist-SHR-01"></div>
+          </div>
         </div>
       </div>
-
-      <div id="btn-mulai-wrap">
-        <button class="btn btn-mulai" id="btn-mulai" onclick="window.triggerStartJob()">▶ MULAI PROSES</button>
-      </div>
-
-      <div class="out-table-wrap" id="out-area" style="display:none;">
-        <table class="out-table">
-          <thead>
-            <tr>
-              <th style="width:130px;">SPK OUT</th>
-              <th>SO / Cust</th>
-              <th>Target Size & Pola</th>
-              <th style="width:120px;">Target Loc</th>
-              <th style="width:90px;">Target (Qty)</th>
-              <th style="width:160px;">Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="out-tbody">
-            <tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:24px; font-style:italic;">Memuat...</td></tr>
-          </tbody>
-        </table>
-      </table>
-      </div>
-
-      <!-- 🟢 BUG-FIX #2 — Tombol Finalize (muncul saat RUNNING) -->
-      <div id="btn-finalize-wrap" style="display:none; margin-top:8px;">
-        <button class="btn-finalize-shr" onclick="window.openFinalizeModal()">
-          🎯 SELESAIKAN SHR (FINALIZE BATCH)
+      <div class="mc-footer">
+        <button class="counter-pill pill-antrian" onclick="window.openPopupAntrian('SHR-01')">
+          <span>📋 Antrian:</span> <b id="cnt-antrian-SHR-01">0</b>
+        </button>
+        <button class="counter-pill pill-done" onclick="window.openPopupSelesai('SHR-01')">
+          <span>✅ Selesai:</span> <b id="cnt-done-SHR-01">0</b>
         </button>
       </div>
     </div>
 
-    <!-- ZONE 3: NEXT QUEUE -->
-  <div class="zone-queue">
-    <div class="queue-head">
-      <span>📋 ANTRIAN BERIKUTNYA</span>
-      <span style="color:var(--text-secondary); font-weight:600; font-size:12px;" id="queue-count">0 jobs</span>
+    <!-- === KOLOM SHR-02 === -->
+    <div class="mc-column theme-lvd" data-mc="SHR-02" data-watermark="LVD">
+      <div class="mc-head">
+        <div class="mc-name-wrap">
+          <span class="mc-name">SHR-02 (LVD)</span>
+        </div>
+        <div class="mc-status">
+          <span class="led led-idle" id="led-SHR-02"></span>
+          <span class="mc-state s-idle" id="state-SHR-02">IDLE</span>
+        </div>
+      </div>
+      <div class="mc-body">
+        <div class="active-empty" id="empty-SHR-02">
+          <div class="active-empty-icon">📭</div>
+          <div class="active-empty-title">Tidak ada job aktif</div>
+          <div class="active-empty-hint">Pilih dari antrian ↓</div>
+        </div>
+        <div class="active-content" id="active-SHR-02" style="display:none;">
+          <div class="spk-block">
+            <div class="spk-topline">
+              <div class="spk-no" id="spkno-SHR-02">—</div>
+              <div class="spk-status-badge st-antrian" id="stbadge-SHR-02">ANTRIAN</div>
+            </div>
+            <div class="spk-batch">Batch: <b id="batch-SHR-02">—</b></div>
+          </div>
+          <div class="timing-bar" id="timing-SHR-02" style="display:none;">
+            <span class="tim-item">⏰ Mulai <b id="mulai-SHR-02">—</b> → Target <b id="target-SHR-02">—</b></span>
+            <span class="tim-item">⏱ <b id="durasi-SHR-02">—</b></span>
+            <span class="tim-over" id="over-SHR-02" style="display:none;"></span>
+          </div>
+          <div class="proses-block">
+            <div class="proses-lbl">Proses dari:</div>
+            <div class="proses-val" id="input-SHR-02">—</div>
+          </div>
+          <div class="cut-block">
+            <div class="cut-lbl">Cut Ke:</div>
+            <div class="cut-list" id="cut-SHR-02">
+              <div style="font-size:11px; color:var(--text-muted); font-style:italic;">Belum ada data OUT</div>
+            </div>
+          </div>
+          <div class="btn-wrap">
+            <button class="btn btn-detail" onclick="window.openDetailModal('SHR-02')">👁 Detail</button>
+            <button class="btn btn-mulai" id="btnmulai-SHR-02" onclick="window.triggerStartJob('SHR-02')" style="display:none;">▶ Mulai</button>
+            <button class="btn btn-finalize" id="btnfinal-SHR-02" onclick="window.openFinalizeModal('SHR-02')" style="display:none;">🎯 Finalize</button>
+            <button class="btn btn-clear-active" onclick="window.clearActive('SHR-02')" title="Ganti Job">⟲</button>
+          </div>
+          <div class="next-antrian" id="next-SHR-02" style="display:none;">
+            <div class="next-title">📋 Next Antrian <span id="nextcnt-SHR-02" style="color:var(--text-secondary);"></span></div>
+            <div class="next-list" id="nextlist-SHR-02"></div>
+          </div>
+        </div>
+      </div>
+      <div class="mc-footer">
+        <button class="counter-pill pill-antrian" onclick="window.openPopupAntrian('SHR-02')">
+          <span>📋 Antrian:</span> <b id="cnt-antrian-SHR-02">0</b>
+        </button>
+        <button class="counter-pill pill-done" onclick="window.openPopupSelesai('SHR-02')">
+          <span>✅ Selesai:</span> <b id="cnt-done-SHR-02">0</b>
+        </button>
+      </div>
     </div>
-    <div class="queue-list" id="queue-list">
-      <div class="queue-empty">Memuat antrian...</div>
-    </div>
-  </div>
-</div>
 
-<!-- MODAL: FINISH OUT (SHR) -->
-<div id="finish-modal" class="modal-overlay">
-  <div class="modal-box">
+    <!-- === KOLOM SHR-03 (Cutting Press / Stage 2) === -->
+    <div class="mc-column theme-cutpress" data-mc="SHR-03" data-watermark="CUT-PRESS">
+      <div class="mc-head">
+        <div class="mc-name-wrap">
+          <span class="mc-name">SHR-03</span>
+          <span class="mc-badge">STAGE 2</span>
+        </div>
+        <div class="mc-status">
+          <span class="led led-idle" id="led-SHR-03"></span>
+          <span class="mc-state s-idle" id="state-SHR-03">IDLE</span>
+        </div>
+      </div>
+      <div class="mc-body">
+        <div class="active-empty" id="empty-SHR-03">
+          <div class="active-empty-icon">📭</div>
+          <div class="active-empty-title">Tidak ada job aktif</div>
+          <div class="active-empty-hint">Pilih dari antrian ↓</div>
+        </div>
+        <div class="active-content" id="active-SHR-03" style="display:none;">
+          <div class="spk-block">
+            <div class="spk-topline">
+              <div class="spk-no" id="spkno-SHR-03">—</div>
+              <div class="spk-status-badge st-antrian" id="stbadge-SHR-03">ANTRIAN</div>
+            </div>
+            <div class="spk-batch">Batch: <b id="batch-SHR-03">—</b></div>
+          </div>
+          <div class="timing-bar" id="timing-SHR-03" style="display:none;">
+            <span class="tim-item">⏰ Mulai <b id="mulai-SHR-03">—</b> → Target <b id="target-SHR-03">—</b></span>
+            <span class="tim-item">⏱ <b id="durasi-SHR-03">—</b></span>
+            <span class="tim-over" id="over-SHR-03" style="display:none;"></span>
+          </div>
+          <div class="proses-block">
+            <div class="proses-lbl">Proses dari:</div>
+            <div class="proses-val" id="input-SHR-03">—</div>
+          </div>
+          <div class="cut-block">
+            <div class="cut-lbl">Cut Ke:</div>
+            <div class="cut-list" id="cut-SHR-03">
+              <div style="font-size:11px; color:var(--text-muted); font-style:italic;">Belum ada data OUT</div>
+            </div>
+          </div>
+          <div class="btn-wrap">
+            <button class="btn btn-detail" onclick="window.openDetailModal('SHR-03')">👁 Detail</button>
+            <button class="btn btn-mulai" id="btnmulai-SHR-03" onclick="window.triggerStartJob('SHR-03')" style="display:none;">▶ Mulai</button>
+            <button class="btn btn-finalize" id="btnfinal-SHR-03" onclick="window.openFinalizeModal('SHR-03')" style="display:none;">🎯 Finalize</button>
+            <button class="btn btn-clear-active" onclick="window.clearActive('SHR-03')" title="Ganti Job">⟲</button>
+          </div>
+          <div class="next-antrian" id="next-SHR-03" style="display:none;">
+            <div class="next-title">📋 Next Antrian <span id="nextcnt-SHR-03" style="color:var(--text-secondary);"></span></div>
+            <div class="next-list" id="nextlist-SHR-03"></div>
+          </div>
+        </div>
+      </div>
+      <div class="mc-footer">
+        <button class="counter-pill pill-antrian" onclick="window.openPopupAntrian('SHR-03')">
+          <span>📋 Antrian:</span> <b id="cnt-antrian-SHR-03">0</b>
+        </button>
+        <button class="counter-pill pill-done" onclick="window.openPopupSelesai('SHR-03')">
+          <span>✅ Selesai:</span> <b id="cnt-done-SHR-03">0</b>
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /.columns-wrap -->
+</div><!-- /.board-shell -->
+
+
+<!-- ============================================================
+     MODAL: DETAIL (READ-ONLY) — 3 SECTION
+     ============================================================ -->
+<div id="detail-modal" class="modal-overlay">
+  <div class="modal-box mc-styled" id="det-box" style="width: 900px;">
     <div class="modal-head">
-      <div class="modal-title" id="m-title">INPUT AKTUAL SHR</div>
-      <button class="modal-close" onclick="window.closeFinishModal()">×</button>
+      <div class="modal-title" id="det-title">👁 DETAIL SPK —</div>
+      <button class="modal-close" onclick="window.closeDetailModal()">×</button>
     </div>
     <div class="modal-body">
-      <input type="hidden" id="m-spkno"><input type="hidden" id="m-wgpce">
-      <div class="form-row">
-        <label>Qty Actual (Pcs) <span style="color:var(--andon-down);">*</span></label>
-        <input type="number" id="m-qty" oninput="window.autoCalcKgActual()">
-      </div>
-      <div class="form-row">
-        <label>KG Actual (Kg) — AUTO</label>
-        <input type="number" id="m-kg" readonly>
+
+      <!-- Section 1: Info Batch -->
+      <div class="det-section">
+        <div class="det-section-title">📦 Info Batch</div>
+        <div class="det-info-grid" id="det-info-grid"></div>
       </div>
 
-      <!-- 🟢 BATCH 2 — NG Cutting Section (mirror CTL) -->
-      <div class="ng-section" id="ng-section">
-        <div class="ng-title">⚠️ NG CUTTING (Sisa Potongan Sheet)</div>
-        <div class="ng-hint">Ini OUT terakhir — input sisa potongan NG. Kosongkan kalau tidak ada.</div>
-        <table class="ng-table">
+      <!-- Section 2: List OUT -->
+      <div class="det-section">
+        <div class="det-section-title">✂️ Daftar SHR-OUT (Hasil Potongan)</div>
+        <table class="det-table">
           <thead>
             <tr>
-              <th style="width:55px;">T</th>
-              <th>P (mm)</th>
-              <th>L (mm)</th>
-              <th style="width:70px;">Qty</th>
-              <th style="width:85px;">KG</th>
-              <th style="width:40px;">⨯</th>
+              <th style="width:32px;">#</th>
+              <th>SPK OUT</th>
+              <th>SO / Cust</th>
+              <th>Target Size</th>
+              <th>Cut Pattern</th>
+              <th>Target Loc</th>
+              <th style="width:80px; text-align:right;">Qty Target</th>
+              <th style="width:80px; text-align:right;">Qty Aktual</th>
+              <th style="width:80px;">Status</th>
             </tr>
           </thead>
-          <tbody id="ng-tbody"></tbody>
+          <tbody id="det-out-tbody">
+            <tr><td colspan="9" style="text-align:center; color:var(--text-muted); font-style:italic;">—</td></tr>
+          </tbody>
         </table>
-        <button class="btn-ng-add" type="button" onclick="window.addNgRow()">➕ Tambah NG Item</button>
-        <div class="ng-total">Total NG: <span id="ng-total-kg">0</span> kg</div>
       </div>
+
+      <!-- Section 3: Timing -->
+      <div class="det-section">
+        <div class="det-section-title">⏱ Ringkasan Waktu</div>
+        <div class="det-info-grid" id="det-timing-grid"></div>
+      </div>
+
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="window.closeFinishModal()">Batal</button>
-      <button class="btn" id="m-btn-save" onclick="window.submitActualData()" style="background:var(--andon-running); color:white; padding:12px 20px; font-weight:800; font-size:14px; box-shadow:0 4px 10px rgba(34,197,94,0.3);">💾 SIMPAN & CETAK</button>
+      <button class="btn btn-secondary" onclick="window.closeDetailModal()">Tutup</button>
     </div>
   </div>
 </div>
 
-<!-- 🟢 BUG-FIX #2 — MODAL: FINALIZE SHR (Komprehensif, all-OUT one-shot) -->
+
+<!-- ============================================================
+     MODAL: FINALIZE SHR (KEEP AS-IS — struktur + logic sama)
+     ============================================================ -->
 <div id="finalize-modal" class="modal-overlay">
-  <div class="modal-box">
+  <div class="modal-box" style="width: 780px;">
     <div class="modal-head">
       <div class="modal-title" id="fin-title">🎯 FINALIZE SHR</div>
       <button class="modal-close" onclick="window.closeFinalizeModal()">×</button>
@@ -895,7 +1098,7 @@ body { margin: 0; padding: 0; background: var(--bg-base); }
         </div>
       </div>
 
-      <div class="ng-section show" id="fin-ng-section" style="margin-top:12px;">
+      <div class="ng-section" id="fin-ng-section" style="margin-top:12px;">
         <div class="ng-title">⚠️ NG CUTTING (Sisa Potongan / Off-size)</div>
         <div class="ng-hint">Input manual NG ukuran berapa pun. Kosongkan kalau tidak ada NG.</div>
         <table class="ng-table">
@@ -923,79 +1126,30 @@ body { margin: 0; padding: 0; background: var(--bg-base); }
   </div>
 </div>
 
-<!-- MODAL: CANCEL SHR-OUT (per-OUT cancel dengan password PPIC) -->
-<div id="cancel-out-modal" class="modal-overlay">
-  <div class="modal-box">
-    <div class="modal-head" style="background: rgba(239,68,68,0.1); border-bottom: 2px solid var(--andon-down);">
-      <div class="modal-title" id="co-title" style="color: #fca5a5;">❌ CANCEL SHR-OUT</div>
-      <button class="modal-close" onclick="window.closeCancelOutModal()">×</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="co-spkno">
-      <div class="form-row">
-        <label>SPK OUT</label>
-        <div id="co-spkno-display" style="font-size: 18px; font-weight: 800; color: #fca5a5; font-family: 'Consolas', monospace;"></div>
-      </div>
-      <div class="form-row">
-        <label>Spec</label>
-        <div id="co-spec-display" style="font-size: 14px; color: var(--text-muted);"></div>
-      </div>
-      <div class="form-row">
-        <label>Qty Target</label>
-        <div id="co-qty-display" style="font-size: 14px;"></div>
-      </div>
 
-      <div class="ng-section" id="cng-section">
-        <div class="ng-title">⚠️ NG CUTTING (Sisa Potongan Sheet)</div>
-        <div class="ng-hint">Ini OUT terakhir — input sisa potongan NG. Boleh kosong kalau tidak ada NG.</div>
-        <table class="ng-table">
-          <thead>
-            <tr>
-              <th style="width:55px;">T</th>
-              <th>P (mm)</th>
-              <th>L (mm)</th>
-              <th style="width:70px;">Qty</th>
-              <th style="width:85px;">KG</th>
-              <th style="width:40px;">⨯</th>
-            </tr>
-          </thead>
-          <tbody id="cng-tbody"></tbody>
-        </table>
-        <button class="btn-ng-add" type="button" onclick="window.addCngRow()">➕ Tambah NG Item</button>
-        <div class="ng-total">Total NG: <span id="cng-total-kg">0</span> kg</div>
-      </div>
-
-      <div class="form-row" style="margin-top: 16px;">
-        <label>Password PPIC <span style="color: var(--andon-down);">*</span></label>
-        <input type="password" id="co-password" placeholder="Masukkan password PPIC" autocomplete="off">
-      </div>
-      <div id="co-error" style="display:none; color: #fca5a5; font-size: 12px; margin-top: 8px; padding: 8px; background: rgba(239,68,68,0.1); border-left: 3px solid var(--andon-down); border-radius: 4px;"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="window.closeCancelOutModal()">Batal</button>
-      <button class="btn" id="co-btn-submit" onclick="window.submitCancelOut()" style="background: var(--andon-down); color: white; padding: 12px 20px; font-weight: 800; font-size: 14px; box-shadow: 0 4px 10px rgba(239,68,68,0.3);">❌ CANCEL OUT</button>
-    </div>
-  </div>
-</div>
-<!-- POPUP: ANTRIAN (Berwarna) -->
+<!-- ============================================================
+     POPUP: ANTRIAN (per-mesin, klik counter)
+     ============================================================ -->
 <div id="popup-antrian" class="modal-overlay">
-  <div class="modal-box">
+  <div class="modal-box" style="width: 1100px;">
     <div class="modal-head">
-      <div class="modal-title" id="popup-antrian-title">📋 ANTRIAN SHR-01 (ACL)</div>
+      <div class="modal-title" id="popup-antrian-title">📋 ANTRIAN</div>
       <button class="modal-close" onclick="window.closePopupAntrian()">×</button>
     </div>
     <div class="modal-body">
       <table class="popup-table">
         <thead>
           <tr>
-            <th style="width:90px;">Priority</th>
-            <th>SPK No</th>
-            <th>Item Input</th>
-            <th>Spec Input</th>
-            <th style="text-align:right;">Qty</th>
-            <th style="text-align:right;">KG</th>
-            <th>Owner</th>
-            <th style="width:100px;">Action</th>
+            <th style="width:70px;">Priority</th>
+            <th style="width:130px;">SPK No</th>
+            <th style="width:130px;">Batch ID</th>
+            <th>Item Code</th>
+            <th>Input Spec</th>
+            <th style="width:110px;">Source Loc</th>
+            <th style="width:80px; text-align:right;">Qty (Lbr)</th>
+            <th style="width:80px; text-align:right;">KG</th>
+            <th style="width:60px;">Owner</th>
+            <th style="width:80px;">Aksi</th>
           </tr>
         </thead>
         <tbody id="popup-antrian-tbody"></tbody>
@@ -1004,9 +1158,12 @@ body { margin: 0; padding: 0; background: var(--bg-base); }
   </div>
 </div>
 
-<!-- POPUP: SELESAI HARI INI -->
+
+<!-- ============================================================
+     POPUP: SELESAI HARI INI (per-mesin, klik counter)
+     ============================================================ -->
 <div id="popup-selesai" class="modal-overlay">
-  <div class="modal-box">
+  <div class="modal-box" style="width: 1100px;">
     <div class="modal-head">
       <div class="modal-title" id="popup-selesai-title">✅ SELESAI HARI INI</div>
       <button class="modal-close" onclick="window.closePopupSelesai()">×</button>
@@ -1017,8 +1174,11 @@ body { margin: 0; padding: 0; background: var(--bg-base); }
   </div>
 </div>
 
+
 <script>
-// ===== INJECT MOCK UNTUK PREVIEW DI LUAR GOOGLE APPS SCRIPT =====
+// ============================================================
+// MOCK PREVIEW (kalau dibuka di luar Google Apps Script)
+// ============================================================
 if (typeof google === 'undefined') {
   console.warn("Google Apps Script API tidak ditemukan. Menggunakan mock data untuk preview.");
   window.google = {
@@ -1026,832 +1186,673 @@ if (typeof google === 'undefined') {
       run: {
         withSuccessHandler: function(cb) { this._success = cb; return this; },
         withFailureHandler: function(cb) { this._failure = cb; return this; },
-        fetchBoardQueueDataSHR: function(mc) {
+        fetchBoardBundleSHR: function(mc) {
           var cb = this._success;
-          setTimeout(function(){ cb && cb([
-            { SPK_No: 'SHR-260001', Status: 'RUNNING', Parent_SPK: 'BATCH-001', Input_Spec: 'SPCC 2.0 x 1219', Target_Loc: 'WIP', Qty_Target: 50, KG_Target: 500, Priority: 'High', Owner: 'FC', Plan_Seq: 1 },
-            { SPK_No: 'SHR-260002', Status: 'ANTRIAN', Parent_SPK: 'BATCH-002', Input_Spec: 'SPHC 1.2 x 1000', Target_Loc: 'Stok_Sheet', Qty_Target: 200, KG_Target: 2000, Priority: 'Normal', Owner: 'DRC', Plan_Seq: 2 },
-            { SPK_No: 'SHR-260003', Status: 'ANTRIAN', Parent_SPK: 'BATCH-003', Input_Spec: 'SGCC 0.8 x 914', Target_Loc: 'FG_Cust', Qty_Target: 150, KG_Target: 1500, Priority: 'Normal', Owner: 'FC', Plan_Seq: 3 },
-            { SPK_No: 'SHR-260004', Status: 'ANTRIAN', Parent_SPK: 'BATCH-004', Input_Spec: 'SPCC 1.0 x 1219', Target_Loc: 'WIP', Qty_Target: 300, KG_Target: 2500, Priority: 'Urgent', Owner: 'FC', Plan_Seq: 4 },
-            { SPK_No: 'SHR-260005', Status: 'ANTRIAN', Parent_SPK: 'BATCH-005', Input_Spec: 'SPHC 2.0 x 1219', Target_Loc: 'FG_Cust', Qty_Target: 100, KG_Target: 1200, Priority: 'Normal', Owner: 'DRC', Plan_Seq: 5 },
-            { SPK_No: 'SHR-260006', Status: 'ANTRIAN', Parent_SPK: 'BATCH-006', Input_Spec: 'SGCC 0.5 x 914', Target_Loc: 'Stok_Sheet', Qty_Target: 500, KG_Target: 1800, Priority: 'High', Owner: 'FC', Plan_Seq: 6 },
-            { SPK_No: 'SHR-260007', Status: 'ANTRIAN', Parent_SPK: 'BATCH-007', Input_Spec: 'SPCC 0.8 x 1219', Target_Loc: 'WIP', Qty_Target: 250, KG_Target: 1600, Priority: 'Normal', Owner: 'FC', Plan_Seq: 7 },
-            { SPK_No: 'SHR-260008', Status: 'ANTRIAN', Parent_SPK: 'BATCH-008', Input_Spec: 'SPHC 3.0 x 1219', Target_Loc: 'FG_Cust', Qty_Target: 80, KG_Target: 2400, Priority: 'Normal', Owner: 'DRC', Plan_Seq: 8 },
-            { SPK_No: 'SHR-260009', Status: 'ANTRIAN', Parent_SPK: 'BATCH-009', Input_Spec: 'SGCC 1.2 x 1219', Target_Loc: 'WIP', Qty_Target: 120, KG_Target: 1000, Priority: 'Normal', Owner: 'FC', Plan_Seq: 9 },
-            { SPK_No: 'SHR-260010', Status: 'ANTRIAN', Parent_SPK: 'BATCH-010', Input_Spec: 'SPCC 2.5 x 1219', Target_Loc: 'Stok_Sheet', Qty_Target: 60, KG_Target: 1500, Priority: 'Normal', Owner: 'FC', Plan_Seq: 10 }
-          ]); }, 200);
-        },
-        fetchTodayDoneJobs: function(mc) {
-          var cb = this._success;
-          setTimeout(function(){ cb && cb([
-            { SPK_No: 'SHR-260000', Item_Code: 'SHT-00', Input_Spec: 'SPCC 1.0 x 1219', Qty_Actual: 100, Qty_Target: 100, KG_Actual: 800, Owner: 'FC', Selesai_DT: '12:30 WIB' }
-          ]); }, 200);
+          var makeOuts = function(parentSpk, arr) {
+            return arr.map(function(o, i){
+              return {
+                SPK_No: parentSpk + '-' + String(i+1).padStart(2,'0'),
+                SO_Ref: o.so || 'SO-100',
+                Cust: o.cust || 'PT ALPHA',
+                Input_Spec: o.spec,
+                NOTE: o.note || 'Cut_P:2 Cut_L:1 Single',
+                Target_Loc: o.loc || 'WIP_Cust',
+                Qty_Target: o.qtyT, Qty_Actual: o.qtyA || 0,
+                BQ: 8, Status: o.st || 'ANTRIAN', Item_Code: 'SHT-01' + i
+              };
+            });
+          };
+          var bundles = {
+            'SHR-01': {
+              queue: [
+                Object.assign({ SPK_No:'SHR-260001', Status:'RUNNING', Parent_SPK:'CTL-260015', Input_Spec:'SPHC-PO 2.0 x 1219 x 2438', Target_Loc:'WIP_Cust', Qty_Target:30, KG_Target:500, Priority:'High', Owner:'FC', Owner_Used:'FC', Plan_Seq:1, Item_Code:'SHT-001', MC_No:'SHR-01', Mulai_DT:'07-07-2026 08:30:00', Estimasi_Jam_Selesai:'07-07-2026 10:15:00', Total_Durasi_Menit:105, T:2.0, Source_Loc:'Stok_Sheet', OP:'Andi', Leader:'Budi', Plan_Setup_Menit:15, Plan_Run_Menit:90, NOTE:'', Qty_Actual:0, KG_Actual:0 },
+                  { _outs: makeOuts('SHR-260001', [
+                    { spec:'SPHC-PO 2.0 x 1219 x 1219', qtyT:60, so:'SO-101' },
+                    { spec:'SPHC-PO 2.0 x 1219 x 1000', qtyT:30, so:'SO-102' }
+                  ]) }),
+                Object.assign({ SPK_No:'SHR-260002', Status:'ANTRIAN', Parent_SPK:'CTL-260016', Input_Spec:'SPHC 1.2 x 1000 x 2000', Target_Loc:'Stok_Sheet', Qty_Target:200, KG_Target:2000, Priority:'Normal', Owner:'DRC', Owner_Used:'DRC', Plan_Seq:2, Item_Code:'SHT-002', MC_No:'SHR-01', Total_Durasi_Menit:120 },
+                  { _outs: makeOuts('SHR-260002', [
+                    { spec:'SPHC 1.2 x 1000 x 1000', qtyT:400 },
+                    { spec:'SPHC 1.2 x 1000 x 500',  qtyT:100 }
+                  ]) }),
+                Object.assign({ SPK_No:'SHR-260003', Status:'ANTRIAN', Parent_SPK:'CTL-260017', Input_Spec:'SGCC 0.8 x 914 x 1829', Target_Loc:'FG_Cust', Qty_Target:150, KG_Target:1500, Priority:'Normal', Owner:'FC', Owner_Used:'FC', Plan_Seq:3, Item_Code:'SHT-003', MC_No:'SHR-01', Total_Durasi_Menit:80 },
+                  { _outs: makeOuts('SHR-260003', [
+                    { spec:'SGCC 0.8 x 914 x 914', qtyT:300 }
+                  ]) }),
+                Object.assign({ SPK_No:'SHR-260004', Status:'ANTRIAN', Parent_SPK:'CTL-260018', Input_Spec:'SPCC 1.5 x 1219 x 2438', Target_Loc:'WIP_Cust', Qty_Target:80, KG_Target:900, Priority:'Urgent', Owner:'FC', Owner_Used:'FC', Plan_Seq:4, Item_Code:'SHT-004', MC_No:'SHR-01', Total_Durasi_Menit:60 },
+                  { _outs: makeOuts('SHR-260004', [
+                    { spec:'SPCC 1.5 x 1219 x 812',  qtyT:240 }
+                  ]) })
+              ],
+              done: [
+                Object.assign({ SPK_No:'SHR-260000', Item_Code:'SHT-000', Parent_SPK:'CTL-260010', Input_Spec:'SPCC 1.0 x 1219 x 2438', Qty_Actual:100, Qty_Target:100, KG_Actual:800, Owner:'FC', Owner_Used:'FC', Selesai_DT:'07-07-2026 07:45:00' },
+                  { _outs: makeOuts('SHR-260000', [
+                    { spec:'SPCC 1.0 x 1219 x 1219', qtyT:200, qtyA:200, st:'DONE' },
+                    { spec:'SPCC 1.0 x 1219 x 1000', qtyT:100, qtyA:98,  st:'DONE' }
+                  ]) })
+              ]
+            },
+            'SHR-02': {
+              queue: [
+                Object.assign({ SPK_No:'SHR-260010', Status:'ANTRIAN', Parent_SPK:'CTL-260020', Input_Spec:'SPCC 1.0 x 1219 x 2438', Target_Loc:'WIP_Cust', Qty_Target:300, KG_Target:2500, Priority:'Urgent', Owner:'FC', Owner_Used:'FC', Plan_Seq:4, Item_Code:'SHT-010', MC_No:'SHR-02', Total_Durasi_Menit:150 },
+                  { _outs: makeOuts('SHR-260010', [
+                    { spec:'SPCC 1.0 x 1219 x 1219', qtyT:600 }
+                  ]) }),
+                Object.assign({ SPK_No:'SHR-260011', Status:'ANTRIAN', Parent_SPK:'CTL-260021', Input_Spec:'SPHC 2.0 x 1219 x 2438', Target_Loc:'FG_Cust', Qty_Target:100, KG_Target:1200, Priority:'Normal', Owner:'DRC', Owner_Used:'DRC', Plan_Seq:5, Item_Code:'SHT-011', MC_No:'SHR-02', Total_Durasi_Menit:90 },
+                  { _outs: makeOuts('SHR-260011', [
+                    { spec:'SPHC 2.0 x 1219 x 1219', qtyT:200 }
+                  ]) })
+              ],
+              done: []
+            },
+            'SHR-03': {
+              queue: [
+                Object.assign({ SPK_No:'SHR-260020', Status:'RUNNING', Parent_SPK:'SHR-260015-01', Input_Spec:'SPCC 1.2 x 914 x 2000', Target_Loc:'FG_Cust', Qty_Target:20, KG_Target:200, Priority:'Normal', Owner:'FC', Owner_Used:'FC', Plan_Seq:6, Item_Code:'SHT-020', MC_No:'SHR-03', Mulai_DT:'07-07-2026 07:00:00', Estimasi_Jam_Selesai:'07-07-2026 08:00:00', Total_Durasi_Menit:60, T:1.2, Source_Loc:'SHR-02', OP:'Cici', Leader:'Dedi', Plan_Setup_Menit:10, Plan_Run_Menit:50, NOTE:'STAGE2-PARENT', Qty_Actual:0, KG_Actual:0 },
+                  { _outs: makeOuts('SHR-260020', [
+                    { spec:'SPCC 1.2 x 914 x 250', qtyT:80, note:'Cut_P:1 Cut_L:8 Multy Stage2' }
+                  ]) }),
+                Object.assign({ SPK_No:'SHR-260021', Status:'ANTRIAN', Parent_SPK:'SHR-260016-01', Input_Spec:'SGCC 1.0 x 914 x 1829', Target_Loc:'WIP_Cust', Qty_Target:40, KG_Target:350, Priority:'Normal', Owner:'FC', Owner_Used:'FC', Plan_Seq:7, Item_Code:'SHT-021', MC_No:'SHR-03', Total_Durasi_Menit:75, NOTE:'STAGE2-PARENT' },
+                  { _outs: makeOuts('SHR-260021', [
+                    { spec:'SGCC 1.0 x 914 x 200', qtyT:360, note:'Stage2' }
+                  ]) })
+              ],
+              done: [
+                Object.assign({ SPK_No:'SHR-259999', Item_Code:'SHT-099', Parent_SPK:'SHR-260014-01', Input_Spec:'SPCC 1.5 x 914 x 1000', Qty_Actual:50, Qty_Target:50, KG_Actual:400, Owner:'DRC', Owner_Used:'DRC', Selesai_DT:'07-07-2026 06:30:00' },
+                  { _outs: makeOuts('SHR-259999', [
+                    { spec:'SPCC 1.5 x 914 x 250', qtyT:200, qtyA:200, st:'DONE' }
+                  ]) })
+              ]
+            }
+          };
+          setTimeout(function(){ cb && cb(bundles[mc] || { queue:[], done:[] }); }, 200);
         },
         fetchBoardChildData: function(spk, type) {
           var cb = this._success;
           setTimeout(function(){ cb && cb([
-            { SPK_No: spk+'-01', SO_Ref: 'SO-101', Cust: 'PT ALPHA', Input_Spec: 'SPCC 2.0 x 1219 x 1000', NOTE: 'Cut_P: 2 Cut_L: 1 Single', Target_Loc: 'WIP', Qty_Target: 30, BQ: 10, Status: 'DONE' },
-            { SPK_No: spk+'-02', SO_Ref: 'SO-102', Cust: 'PT ALPHA', Input_Spec: 'SPCC 2.0 x 1219 x 219', NOTE: 'Cut_P: 1 Cut_L: 2 Multy', Target_Loc: 'FG_Cust', Qty_Target: 20, BQ: 10, Status: 'ANTRIAN' }
+            { SPK_No:spk+'-01', SO_Ref:'SO-101', Cust:'PT ALPHA', Input_Spec:'SPHC-PO 2.0 x 1219 x 1219', NOTE:'Cut_P:2 Cut_L:1 Single', Target_Loc:'WIP_Cust', Qty_Target:60, Qty_Actual:0, BQ:8, Status:'ANTRIAN', Item_Code:'SHT-001' },
+            { SPK_No:spk+'-02', SO_Ref:'SO-102', Cust:'PT ALPHA', Input_Spec:'SPHC-PO 2.0 x 1219 x 1000', NOTE:'Cut_P:1 Cut_L:2 Multy', Target_Loc:'FG_Cust', Qty_Target:30, Qty_Actual:0, BQ:6, Status:'ANTRIAN', Item_Code:'SHT-002' }
           ]); }, 200);
         },
         updateStatusToRunning: function(spk) {
           var cb = this._success;
           setTimeout(function(){ cb && cb({success:true}); }, 200);
         },
-        saveBoardActualData: function(payload) {
-          var cb = this._success;
-          setTimeout(function(){ cb && cb({success:true}); }, 200);
-        },
         checkHeaderFinishedStatus: function(spk) {
           var cb = this._success;
-          setTimeout(function(){ cb && cb(false); }, 200);
+          setTimeout(function(){ cb && cb(true); }, 200);
+        },
+        finalizeShrBatch: function(payload, mc) {
+          var cb = this._success;
+          setTimeout(function(){ cb && cb({ success:true, queue:[], doneToday:[], headerDone:true, ng_created:[] }); }, 300);
         }
       }
     }
   };
 }
-// ================================================================
 
+
+// ============================================================
+// MAIN — SHR MONITORING BOARD (3-Kolom, no auto-refresh)
+// ============================================================
 (function() {
+  'use strict';
+
   // ============================================================
-  // STATE
+  // KONSTANTA & STATE
   // ============================================================
-  var _currentMachine = 'SHR-01'; // Default machine
-  var _queueList = [];
-  var _doneToday = [];
-  var _activeHeader = null;
-  var _activeChildRows = [];
-  var _suggestedSpkNo = null;
-  var _modalChildIdx = -1;
-  var _activeRequests = 0; // State Loading Tracker
+  var MACHINES = ['SHR-01', 'SHR-02', 'SHR-03'];
+  var MC_META = {
+    'SHR-01': { theme:'acl',      name:'ACL',           isStage2:false },
+    'SHR-02': { theme:'lvd',      name:'LVD',           isStage2:false },
+    'SHR-03': { theme:'cutpress', name:'Cutting Press', isStage2:true }
+  };
+
+  // State per mesin
+  var _state = {};
+  MACHINES.forEach(function(mc) {
+    _state[mc] = {
+      queue: [],           // [SHR-HEADER] ANTRIAN + RUNNING
+      done: [],            // SHR-HEADER DONE hari ini
+      activeHeader: null,  // header yang sedang dipilih user
+      activeChildren: [],  // rows SHR-OUT dari active header
+      suggestedSpkNo: null // saran next SPK (dipakai setelah header DONE)
+    };
+  });
+
+  // Konteks yang lagi diaksi (untuk modal Finalize & Detail)
+  var _currentActionMachine = null;
+  var _finCachedOuts = [];
+  var _finNgRowSeq = 0;
+
+  // Loading tracker + safety timeout
+  var _activeRequests = 0;
+  var _loadingTimeoutId = null;
+  var LOADING_TIMEOUT_MS = 60000;
+
+  // Timing update interval (LOKAL, tidak fetch backend)
+  var _timingInterval = null;
 
   function $(id) { return document.getElementById(id); }
-  function esc(s) { return String(s == null ? '' : s).replace(/[<>&"]/g, function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c];}); }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[<>&"]/g, function(c){
+      return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c];
+    });
+  }
+
   function formatSpecSpacing(text) {
     if (!text) return '--';
-    return text.replace(/(\d)\s*[xX]\s*(?=\d)/g, '$1 X ');
+    return String(text).replace(/(\d)\s*[xX]\s*(?=\d)/g, '$1 X ');
   }
 
   // ============================================================
-  // LOADING OVERLAY CONTROLLER
+  // LOADING OVERLAY
   // ============================================================
-  // 🟢 BUG-FIX #11 — Safety timeout: kalau hideLoadingScreen tidak dipanggil
-  // dalam 60 detik (anomali GAS / koneksi drop), paksa hide overlay + refresh
-  // state via loadAll(), supaya operator tidak perlu refresh browser.
-  var _loadingTimeoutId = null;
-  var LOADING_TIMEOUT_MS = 60000; // 60 detik
-
   function _forceHideLoading() {
     _activeRequests = 0;
-    var shell = document.querySelector('.board-shell');
-    if (shell) shell.classList.remove('flash-active');
+    document.body.classList.remove('flash-active');
     _loadingTimeoutId = null;
-    // Auto-refresh state setelah force-hide, supaya data sync dengan sheet
-    if (typeof loadAll === 'function') {
-      try { loadAll(); } catch(e) { console.error('Force-refresh failed:', e); }
-    }
   }
-
   function showLoadingScreen() {
     _activeRequests++;
-    var shell = document.querySelector('.board-shell');
-    if (shell) shell.classList.add('flash-active');
-    // Reset & start safety timer (cuma 1 timer aktif untuk seluruh overlay)
+    document.body.classList.add('flash-active');
     if (_loadingTimeoutId) clearTimeout(_loadingTimeoutId);
     _loadingTimeoutId = setTimeout(_forceHideLoading, LOADING_TIMEOUT_MS);
   }
-
   function hideLoadingScreen() {
     _activeRequests--;
     if (_activeRequests <= 0) {
       _activeRequests = 0;
-      var shell = document.querySelector('.board-shell');
-      if (shell) shell.classList.remove('flash-active');
-      // Counter sudah balik 0 → cancel safety timer
-      if (_loadingTimeoutId) {
-        clearTimeout(_loadingTimeoutId);
-        _loadingTimeoutId = null;
-      }
+      document.body.classList.remove('flash-active');
+      if (_loadingTimeoutId) { clearTimeout(_loadingTimeoutId); _loadingTimeoutId = null; }
     }
   }
 
   // ============================================================
-  // SWITCH MACHINE LOGIC (POKA-YOKE)
+  // CLOCK (LOKAL, tidak fetch backend)
   // ============================================================
-  window.toggleMachine = function() {
-    if (_currentMachine === 'SHR-01') {
-      window.switchMachine('SHR-02');
-    } else {
-      window.switchMachine('SHR-01');
+  function updateClock() {
+    var d = new Date();
+    var hh = String(d.getHours()).padStart(2, '0');
+    var mm = String(d.getMinutes()).padStart(2, '0');
+    var el = $('clock');
+    if (el) el.textContent = hh + ':' + mm + ' WIB';
+  }
+
+  // ============================================================
+  // DATE HELPER — parse "dd-MM-yyyy HH:mm:ss" ke Date object
+  // ============================================================
+  function parseSpkDate(s) {
+    if (!s) return null;
+    var str = String(s).trim();
+    if (!str) return null;
+    // Format standar dari backend: "dd-MM-yyyy HH:mm:ss"
+    var m = str.match(/^(\d{2})-(\d{2})-(\d{4})\s+(\d{2}):(\d{2}):(\d{2})$/);
+    if (m) {
+      return new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5], +m[6]);
     }
-  };
+    // Fallback: ISO / native
+    var d = new Date(str);
+    return isNaN(d.getTime()) ? null : d;
+  }
 
-  window.switchMachine = function(machineId) {
-    if (_currentMachine === machineId) return;
-    
-    _currentMachine = machineId;
-    var shell = document.querySelector('.board-shell');
-    
-    if(machineId === 'SHR-01') {
-      $('switch-btn-text').textContent = 'SHR-01 (ACL)';
-      shell.classList.remove('theme-lvd');
-      shell.classList.add('theme-acl');
-    } else {
-      $('switch-btn-text').textContent = 'SHR-02 (LVD)';
-      shell.classList.remove('theme-acl');
-      shell.classList.add('theme-lvd');
-    }
+  function fmtTime(d) {
+    if (!d) return '—';
+    return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  }
 
-    _activeHeader = null;
-    _activeChildRows = [];
-    _suggestedSpkNo = null;
-
-    window.refreshBoard();
-  };
+  function fmtDurasi(mnt) {
+    var n = parseFloat(mnt);
+    if (!n || n <= 0) return '—';
+    if (n < 60) return Math.round(n) + ' mnt';
+    var h = Math.floor(n / 60);
+    var m = Math.round(n % 60);
+    return h + 'j ' + (m > 0 ? m + 'mnt' : '');
+  }
 
   // ============================================================
-  // FETCH (event-driven)
+  // FETCH: load 1 mesin — pakai fetchBoardBundleSHR (1 call, preload _outs)
   // ============================================================
-  function loadAll() {
-    showLoadingScreen();
+  function loadMachine(mc, silent) {
+    if (!silent) showLoadingScreen();
+
     google.script.run
-      .withFailureHandler(function(err){ console.error(err); hideLoadingScreen(); })
-      .withSuccessHandler(function(rows) {
-        _queueList = rows || [];
-        var run = _queueList.find(function(j){ return j.Status === 'RUNNING'; });
+      .withFailureHandler(function(err){
+        console.error('fetchBoardBundleSHR:', err);
+        if (!silent) hideLoadingScreen();
+      })
+      .withSuccessHandler(function(bundle) {
+        bundle = bundle || {};
+        _state[mc].queue = bundle.queue || [];
+        _state[mc].done  = bundle.done  || [];
+
+        // Auto-set active kalau ada RUNNING
+        var run = _state[mc].queue.find(function(j){ return j.Status === 'RUNNING'; });
         if (run) {
-          setActive(run);
-        } else if (_suggestedSpkNo) {
-          var sugg = _queueList.find(function(j){ return j.SPK_No === _suggestedSpkNo; });
+          _state[mc].activeHeader = run;
+          _state[mc].activeChildren = run._outs || [];
+        } else if (_state[mc].suggestedSpkNo) {
+          var sugg = _state[mc].queue.find(function(j){ return j.SPK_No === _state[mc].suggestedSpkNo; });
           if (sugg) {
-            setActive(sugg);
-            _suggestedSpkNo = null;
+            _state[mc].activeHeader = sugg;
+            _state[mc].activeChildren = sugg._outs || [];
+            _state[mc].suggestedSpkNo = null;
+          }
+        } else if (_state[mc].activeHeader) {
+          // Refresh reference dari list terbaru
+          var still = _state[mc].queue.find(function(j){ return j.SPK_No === _state[mc].activeHeader.SPK_No; });
+          if (still) {
+            _state[mc].activeHeader = still;
+            _state[mc].activeChildren = still._outs || [];
           } else {
-            _suggestedSpkNo = null;
-            if (!_activeHeader) renderAll();
+            _state[mc].activeHeader = null;
+            _state[mc].activeChildren = [];
           }
-        } else {
-          if (_activeHeader) {
-            var stillThere = _queueList.find(function(j){ return j.SPK_No === _activeHeader.SPK_No; });
-            if (stillThere) _activeHeader = stillThere;
-            else { _activeHeader = null; _activeChildRows = []; }
-          }
-          renderAll();
         }
-        hideLoadingScreen();
-      }).fetchBoardQueueDataSHR(_currentMachine);
 
-    showLoadingScreen();
-    google.script.run
-      .withFailureHandler(function(err){ console.error(err); hideLoadingScreen(); })
-      .withSuccessHandler(function(rows) {
-        _doneToday = rows || [];
-        $('cnt-done').textContent = _doneToday.length;
-        hideLoadingScreen();
-      }).fetchTodayDoneJobs(_currentMachine);
+        renderColumn(mc);
+        if (!silent) hideLoadingScreen();
+      })
+      .fetchBoardBundleSHR(mc);
   }
 
-  window.refreshBoard = function() {
-    var btn = document.querySelector('.btn-refresh');
-    if (btn) {
-      var svg = btn.querySelector('svg');
-      if (svg) {
-        svg.style.transition = 'transform 0.5s';
-        svg.style.transform = 'rotate(360deg)';
-        setTimeout(function(){
-          svg.style.transition = 'none';
-          svg.style.transform = 'rotate(0deg)';
-        }, 500);
-      }
-    }
-    loadAll();
+  function loadChildren(mc, spkNo, silent) {
+    if (!silent) showLoadingScreen();
+    google.script.run
+      .withFailureHandler(function(err){ console.error('fetchBoardChildData:', err); if (!silent) hideLoadingScreen(); })
+      .withSuccessHandler(function(rows) {
+        _state[mc].activeChildren = rows || [];
+        renderColumn(mc);
+        if (!silent) hideLoadingScreen();
+      })
+      .fetchBoardChildData(spkNo, 'SHR-OUT');
+  }
+
+  // ============================================================
+  // REFRESH: manual only, no auto-polling
+  // ============================================================
+  window.refreshAll = function() {
+    MACHINES.forEach(function(mc) { loadMachine(mc, false); });
   };
 
-  function setActive(header) {
-    _activeHeader = header;
-    if (header.Status === 'RUNNING') {
-      loadChildren(header.SPK_No);
-    } else {
-      _activeChildRows = [];
-      renderAll();
-    }
-  }
-
-  function loadChildren(spkNo) {
-    showLoadingScreen();
-    google.script.run
-      .withFailureHandler(function(err){ console.error(err); hideLoadingScreen(); })
-      .withSuccessHandler(function(rows) {
-        _activeChildRows = rows || [];
-        renderAll();
-        hideLoadingScreen();
-      }).fetchBoardChildData(spkNo, 'SHR-OUT');
+  function refreshColumn(mc) {
+    loadMachine(mc, false);
   }
 
   // ============================================================
-  // RENDER
+  // RENDER: kolom mesin
   // ============================================================
-  function renderAll() {
-    renderStatusBar();
-    renderActiveCard();
-    renderQueue();
-  }
+  function renderColumn(mc) {
+    var st = _state[mc];
+    var hdr = st.activeHeader;
+    var emptyEl = $('empty-' + mc);
+    var activeEl = $('active-' + mc);
 
-  function renderStatusBar() {
-    var state = _activeHeader ? _activeHeader.Status : 'IDLE';
-    var ledCls = 'led ';
-    var stateCls = 'status-state ';
-    if (state === 'RUNNING') { ledCls += 'led-running'; stateCls += 's-running'; }
-    else if (state === 'ANTRIAN') { ledCls += 'led-idle'; stateCls += 's-idle'; }
-    else { ledCls += 'led-idle'; stateCls += 's-idle'; }
-    
-    $('status-led').className = ledCls;
-    $('status-state').className = stateCls;
-    $('status-state').textContent = state;
-
-    var spkInfo = '';
-    if (_activeHeader) {
-      spkInfo = _activeHeader.SPK_No;
-      if (state === 'RUNNING') {
-        var p = computeProgress();
-        spkInfo += ' · ' + p.pct + '% (' + p.actQty + '/' + p.tgtQty + ' lbr)';
-      } else {
-        spkInfo += ' · siap mulai';
-      }
-    } else {
-      spkInfo = _queueList.length > 0 ? '— antri ' + _queueList.length + ' job —' : '— tidak ada job —';
-    }
-    $('status-spk').textContent = spkInfo;
-
-    var antrianCount = _queueList.filter(function(j){ return j.Status === 'ANTRIAN'; }).length;
-    $('cnt-antrian').textContent = antrianCount;
-  }
-
-  function renderActiveCard() {
-    if (!_activeHeader) {
-      $('active-area').style.display = 'none';
-      $('active-empty').style.display = 'flex';
+    // Toggle empty vs active
+    if (!hdr) {
+      emptyEl.style.display = 'flex';
+      activeEl.style.display = 'none';
+      setLedState(mc, 'idle', 'IDLE');
+      renderCounters(mc);
       return;
     }
-    $('active-area').style.display = 'flex';
-    $('active-empty').style.display = 'none';
 
-    var h = _activeHeader;
-    $('a-spkno').textContent = h.SPK_No || '—';
-    $('a-status').textContent = h.Status;
-    $('a-status').className = 'badge ' + (h.Status === 'RUNNING' ? 'badge-running' : 'badge-antrian');
-    $('a-batch').textContent = h.Parent_SPK || '—';
-    $('a-spec').textContent = formatSpecSpacing(h.Input_Spec || h.Mat_Spec);
-    $('a-cust').textContent = h.Cust || '—';
-    $('a-owner').textContent = h.Owner_Used || h.Owner || 'FC';
-    $('a-qtyt').textContent = (Math.round(h.Qty_Target || 0)).toLocaleString('id-ID');
-    $('a-kgt').textContent = (Math.round(h.KG_Target || 0)).toLocaleString('id-ID') + ' kg';
-    $('a-prio').textContent = h.Priority || 'Normal';
+    emptyEl.style.display = 'none';
+    activeEl.style.display = 'flex';
+    activeEl.style.flexDirection = 'column';
+    activeEl.style.gap = '10px';
 
-    if (h.Status === 'RUNNING') {
-      $('btn-mulai-wrap').style.display = 'none';
-      $('out-area').style.display = 'block';
-      $('progress-area').style.display = 'flex';
-      $('btn-finalize-wrap').style.display = 'block';   // 🟢 BUG-FIX #2
-      renderOutRows();
-      updateProgressBar();
+    // LED + state text
+    if (hdr.Status === 'RUNNING') {
+      setLedState(mc, 'running', 'RUNNING');
     } else {
-      $('btn-mulai-wrap').style.display = 'block';
-      $('out-area').style.display = 'none';
-      $('progress-area').style.display = 'none';
-      $('btn-finalize-wrap').style.display = 'none';    // 🟢 BUG-FIX #2
+      setLedState(mc, 'idle', 'ANTRIAN');
     }
+
+    // SPK No + Batch
+    $('spkno-' + mc).textContent = hdr.SPK_No || '—';
+    $('batch-' + mc).textContent = hdr.Parent_SPK || '—';
+
+    var stBadge = $('stbadge-' + mc);
+    stBadge.textContent = hdr.Status || '—';
+    stBadge.className = 'spk-status-badge ' + (hdr.Status === 'RUNNING' ? 'st-running' : 'st-antrian');
+
+    // Timing bar (hanya RUNNING)
+    var tim = $('timing-' + mc);
+    if (hdr.Status === 'RUNNING' && hdr.Mulai_DT) {
+      tim.style.display = 'flex';
+      var mulaiD  = parseSpkDate(hdr.Mulai_DT);
+      var targetD = parseSpkDate(hdr.Estimasi_Jam_Selesai);
+      $('mulai-'  + mc).textContent = fmtTime(mulaiD);
+      $('target-' + mc).textContent = fmtTime(targetD);
+      $('durasi-' + mc).textContent = fmtDurasi(hdr.Total_Durasi_Menit);
+      // OVER badge di-refresh terpisah oleh updateAllTimingOver()
+    } else {
+      tim.style.display = 'none';
+    }
+
+    // Input Spec (Proses dari)
+    var inputStr = formatSpecSpacing(hdr.Input_Spec || '');
+    var qtyTgt = Math.round(hdr.Qty_Target || 0);
+    $('input-' + mc).innerHTML = esc(inputStr) + ' <span class="qty-tail">= ' + qtyTgt + ' Lbr</span>';
+
+    // Cut Ke (list SHR-OUT)
+    renderCutList(mc);
+
+    // Buttons: Mulai / Finalize
+    var btnMulai = $('btnmulai-' + mc);
+    var btnFinal = $('btnfinal-' + mc);
+    if (hdr.Status === 'RUNNING') {
+      btnMulai.style.display = 'none';
+      btnFinal.style.display = 'inline-flex';
+    } else {
+      btnMulai.style.display = 'inline-flex';
+      btnFinal.style.display = 'none';
+    }
+
+    // Next Antrian preview (max 3 SPK berikutnya)
+    renderNextAntrian(mc);
+
+    renderCounters(mc);
   }
 
-  function renderOutRows() {
-    var tbody = $('out-tbody');
-    if (!_activeChildRows.length) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">Memuat detail OUT…</td></tr>';
+  function renderCutList(mc) {
+    var st = _state[mc];
+    var listEl = $('cut-' + mc);
+    var rows = st.activeChildren || [];
+    if (!rows.length) {
+      listEl.innerHTML = '<div style="font-size:11px; color:var(--text-muted); font-style:italic;">Tidak ada SHR-OUT untuk batch ini</div>';
       return;
     }
     var html = '';
-    _activeChildRows.forEach(function(r, idx) {
-      var stUp = String(r.Status).toUpperCase();
-      var isDone      = stUp === 'DONE';
-      var isCancelled = stUp === 'CANCELLED';
-
-      // 🟢 BATCH 3 — Build action buttons:
-      // - DONE       → badge ✓ DONE
-      // - CANCELLED  → badge ✗ CANCELLED
-      // - RUNNING/ANTRIAN → SELESAI + X (horizontal flex wrapper)
-      var btn = '';
-      if (isDone) {
-        btn = '<span class="badge badge-done">✓ DONE</span>';
-      } else if (isCancelled) {
-        btn = '<span class="badge badge-cancelled">✗ CANCELLED</span>';
-      } else {
-        btn  = '<div style="display:flex; gap:6px; justify-content:flex-start; align-items:center; flex-wrap:nowrap;">';
-        btn += '<button class="btn btn-finish" onclick="window.openFinishModal(' + idx + ')">⏹ SELESAI</button>';
-        btn += '<button class="btn btn-cancel-out" onclick="window.openCancelOutModal(' + idx + ')" title="Cancel OUT ini (perlu password PPIC)">X</button>';
-        btn += '</div>';
-      }
-
-      // Parsing Note (Cut_P, Cut_L, Type) gaya SHR — preserve dari versi sebelumnya
-      let originalNote = (r.NOTE || '').trim();
-      let formattedNoteHtml = '';
-      if (originalNote) {
-        let pMatch = originalNote.match(/Cut_P:\s*(\d+)/i);
-        let lMatch = originalNote.match(/Cut_L:\s*(\d+)/i);
-        let typeMatch = originalNote.match(/\s*(Multy|Single)\b/i);
-
-        if(pMatch && lMatch) {
-          formattedNoteHtml = '<div class="note-cut-wrapper">' +
-            '<div>' +
-              '<span class="note-cut-lbl">Pola:</span>' +
-              '<span class="note-cut-val">' + pMatch[1] + '×' + lMatch[1] + '</span>' +
-            '</div>' +
-            '<span class="note-cut-type">' + (typeMatch ? typeMatch[1].toUpperCase() : '') + '</span>' +
-            '</div>';
-        } else {
-          formattedNoteHtml = '<div style="color:var(--text-muted); font-size:11px; margin-top:4px;">' + esc(originalNote) + '</div>';
-        }
-      }
-
-      html += '<tr>';
-      html += '<td class="td-spkno">' + esc(r.SPK_No) + '</td>';
-      html += '<td><b>' + esc(r.SO_Ref || '—') + '</b><div class="td-cust">' + esc(r.Cust || '—') + '</div></td>';
-      html += '<td><div class="td-spec">' + formatSpecSpacing(r.Input_Spec) + '</div>' + formattedNoteHtml + '</td>';
-      html += '<td style="font-weight:600; color:var(--accent-machine);">' + esc(r.Target_Loc || '—') + '</td>';
-      html += '<td style="font-weight:900; font-size:14px; font-family:\'Consolas\', monospace;">' + Math.round(r.Qty_Target || 0) + '</td>';
-      html += '<td>' + btn + '</td>';
-      html += '</tr>';
+    rows.forEach(function(r) {
+      var status = String(r.Status || '').toUpperCase();
+      var cls = 'cut-item';
+      if (status === 'DONE')      cls += ' done';
+      if (status === 'CANCELLED') cls += ' cancelled';
+      var spec = formatSpecSpacing(r.Input_Spec || '');
+      var qty  = Math.round(r.Qty_Target || 0);
+      html += '<div class="' + cls + '">';
+      html += '  <span class="cut-arrow">→</span>';
+      html += '  <span class="cut-spec">' + esc(spec) + '</span>';
+      html += '  <span class="cut-qty">' + qty + ' Lbr</span>';
+      html += '</div>';
     });
-    tbody.innerHTML = html;
+    listEl.innerHTML = html;
   }
 
-  function renderQueue() {
-    var listEl = $('queue-list');
-    var queue = _queueList.filter(function(j){
-      return !_activeHeader || j.SPK_No !== _activeHeader.SPK_No;
+  function renderNextAntrian(mc) {
+    var st = _state[mc];
+    var hdr = st.activeHeader;
+    var wrap = $('next-' + mc);
+    var list = $('nextlist-' + mc);
+    var cntEl = $('nextcnt-' + mc);
+    if (!wrap || !list) return;
+
+    // Ambil semua ANTRIAN kecuali activeHeader (biar tidak duplikat)
+    var others = st.queue.filter(function(j){
+      return j.Status === 'ANTRIAN' && (!hdr || j.SPK_No !== hdr.SPK_No);
     });
-    
+    if (!others.length) { wrap.style.display = 'none'; return; }
+
+    // Sort by priority + Plan_Seq (queue sudah sorted dari backend, safe re-sort)
     var prioWeight = { 'Urgent': 3, 'High': 2, 'Normal': 1 };
-    queue.sort(function(a, b) {
+    others.sort(function(a, b) {
       var d = (prioWeight[b.Priority]||1) - (prioWeight[a.Priority]||1);
       if (d !== 0) return d;
       return (parseFloat(a.Plan_Seq) || 999) - (parseFloat(b.Plan_Seq) || 999);
     });
-    
-    var totalQueue = queue.length;
-    $('queue-count').textContent = totalQueue + ' jobs';
+    var top3 = others.slice(0, 3);
 
-    if (!totalQueue) {
-      listEl.innerHTML = '<div class="queue-empty">Tidak ada antrian</div>';
-      return;
+    wrap.style.display = 'block';
+    if (cntEl) {
+      var moreCount = others.length - top3.length;
+      cntEl.textContent = moreCount > 0
+        ? '(top 3, +' + moreCount + ' di popup)'
+        : '(' + top3.length + ')';
     }
-    
-    var displayQueue = totalQueue > 4 ? queue.slice(0, 4) : queue;
-    var hasMore = totalQueue > 4;
+
     var html = '';
-    
-    displayQueue.forEach(function(j, idx) {
-      var suggested = (j.SPK_No === _suggestedSpkNo) ? ' suggested' : '';
-      html += '<div class="queue-item' + suggested + '">';
-      
-      // POKA-YOKE: Warna teks disamakan menjadi putih/abu agar tidak mengambil fokus mata
-      html += '<div class="queue-info">';
-      html += '<span style="font-family:Consolas,monospace; font-weight:700; color:var(--text-primary); font-size:14px;">' + esc(j.SPK_No) + '</span>';
-      html += '<span style="color:var(--text-secondary); font-weight:600; font-size:13px;">' + formatSpecSpacing(j.Input_Spec || j.Mat_Spec) + '</span>';
-      html += '<span style="color:var(--text-muted); font-weight:500; font-size:12px;">' + Math.round(j.Qty_Target||0) + ' lbr</span>';
-      html += '</div>';
-      
-      html += '<button class="btn btn-pick" onclick="window.pickJob(\'' + j.SPK_No.replace(/'/g, "\\'") + '\')">PILIH</button>';
+    top3.forEach(function(j, i){
+      var spec = formatSpecSpacing(j.Input_Spec || '');
+      var qty = Math.round(j.Qty_Target || 0);
+      var prio = j.Priority || 'Normal';
+      var prioBadge = prio !== 'Normal'
+        ? '<span class="next-prio ' + prio + '">' + prio + '</span>' : '';
+      html += '<div class="next-item" onclick="window.pickJob(\'' + mc + '\', \'' + String(j.SPK_No).replace(/\'/g, "\\\'") + '\')" title="Klik untuk pilih SPK ini">';
+      html += '  <span class="next-num">' + (i+1) + '.</span>';
+      html += '  <span class="next-spk">' + esc(j.SPK_No) + '</span>';
+      html += prioBadge;
+      html += '  <span class="next-spec">' + esc(spec) + '</span>';
+      html += '  <span class="next-qty">' + qty + ' Lbr</span>';
       html += '</div>';
     });
-    
-    if (hasMore) {
-      html += '<div class="queue-more" onclick="window.openPopupAntrian()">' +
-              '↗ Klik untuk lihat semua ' + totalQueue + ' antrian' +
-              '</div>';
-    }
-    listEl.innerHTML = html;
+    list.innerHTML = html;
   }
 
-  function computeProgress() {
-    var tgt = _activeChildRows.reduce(function(s,r){ return s + (parseFloat(r.Qty_Target)||0); }, 0);
-    var act = _activeChildRows.reduce(function(s,r){ return s + (parseFloat(r.Qty_Actual)||0); }, 0);
-    return {
-      tgtQty: Math.round(tgt),
-      actQty: Math.round(act),
-      pct: tgt > 0 ? Math.round((act/tgt)*100) : 0
-    };
+  function renderCounters(mc) {
+    var st = _state[mc];
+    var antrianCount = st.queue.filter(function(j){ return j.Status === 'ANTRIAN'; }).length;
+    $('cnt-antrian-' + mc).textContent = antrianCount;
+    $('cnt-done-' + mc).textContent = st.done.length;
   }
 
-  function updateProgressBar() {
-    var p = computeProgress();
-    $('progress-fill').style.width = p.pct + '%';
-    $('progress-text').textContent = p.pct + '% (' + p.actQty + ' / ' + p.tgtQty + ' lbr)';
+  function setLedState(mc, state, label) {
+    var led = $('led-' + mc);
+    var st  = $('state-' + mc);
+    led.className = 'led led-' + state;
+    st.className = 'mc-state s-' + state;
+    st.textContent = label;
   }
 
   // ============================================================
-  // ACTIONS
+  // TIMING OVER — cek per 30 detik (LOKAL, tidak fetch backend)
   // ============================================================
-  window.pickJob = function(spkNo) {
-    var job = _queueList.find(function(j){ return j.SPK_No === spkNo; });
-    if (!job) { alert('Job tidak ditemukan.'); return; }
-    setActive(job);
-    $('popup-antrian').classList.remove('show');
+  function updateAllTimingOver() {
+    var now = new Date();
+    MACHINES.forEach(function(mc) {
+      var hdr = _state[mc].activeHeader;
+      var overEl = $('over-' + mc);
+      if (!overEl) return;
+      if (!hdr || hdr.Status !== 'RUNNING') { overEl.style.display = 'none'; return; }
+      var target = parseSpkDate(hdr.Estimasi_Jam_Selesai);
+      if (!target) { overEl.style.display = 'none'; return; }
+      var diffMs = now.getTime() - target.getTime();
+      if (diffMs > 0) {
+        var diffMin = Math.round(diffMs / 60000);
+        overEl.textContent = '🚨 OVER +' + diffMin + '\'';
+        overEl.style.display = 'inline-block';
+      } else {
+        overEl.style.display = 'none';
+      }
+    });
+  }
+
+  // ============================================================
+  // ACTION: PICK JOB dari popup antrian
+  // ============================================================
+  window.pickJob = function(mc, spkNo) {
+    var picked = _state[mc].queue.find(function(j){ return j.SPK_No === spkNo; });
+    if (!picked) { alert('SPK tidak ditemukan.'); return; }
+    _state[mc].activeHeader = picked;
+    _state[mc].activeChildren = picked._outs || [];
+    var popup = $('popup-antrian');
+    if (popup && popup.classList.contains('show')) popup.classList.remove('show');
+    renderColumn(mc);
   };
 
-  window.clearActive = function() {
-    if (_activeHeader && _activeHeader.Status === 'RUNNING') {
-      if (!confirm('SPK ini sedang RUNNING. Yakin mau ganti?')) return;
-    }
-    _activeHeader = null;
-    _activeChildRows = [];
-    _suggestedSpkNo = null;
-    renderAll();
+  window.clearActive = function(mc) {
+    _state[mc].activeHeader = null;
+    _state[mc].activeChildren = [];
+    _state[mc].suggestedSpkNo = null;
+    renderColumn(mc);
   };
 
-  window.triggerStartJob = function() {
-    if (!_activeHeader) return;
-    var btn = $('btn-mulai');
-    btn.disabled = true;
-    btn.textContent = '⏳ MEMPROSES...';
-    
+  // ============================================================
+  // ACTION: MULAI PROSES
+  // ============================================================
+  window.triggerStartJob = function(mc) {
+    var hdr = _state[mc].activeHeader;
+    if (!hdr) { alert('Tidak ada job aktif.'); return; }
+    if (hdr.Status === 'RUNNING') { alert('SPK sudah RUNNING.'); return; }
+
+    if (!confirm('Mulai proses SPK ' + hdr.SPK_No + ' di ' + mc + '?')) return;
+
+    showLoadingScreen();
     google.script.run
       .withFailureHandler(function(err){
-        btn.disabled = false;
-        btn.textContent = '▶ MULAI PROSES';
+        hideLoadingScreen();
         alert('❌ Gagal mulai: ' + (err && err.message ? err.message : err));
       })
       .withSuccessHandler(function(res) {
-        btn.disabled = false;
-        btn.textContent = '▶ MULAI PROSES';
-        if (res && res.success) {
-          loadAll();
-        } else {
-          alert('⚠️ Backend response: ' + (res ? JSON.stringify(res) : 'null'));
+        hideLoadingScreen();
+        if (!res || !res.success) {
+          alert('⚠️ Backend gagal: ' + (res && res.message ? res.message : 'Unknown error'));
+          return;
         }
+        // Refresh kolom mesin ini saja
+        refreshColumn(mc);
       })
-      .updateStatusToRunning(_activeHeader.SPK_No);
+      .updateStatusToRunning(hdr.SPK_No);
   };
 
   // ============================================================
-  // MODAL: FINISH (Selesai OUT) SHR
+  // MODAL: DETAIL (Read-Only)
   // ============================================================
-  window.openFinishModal = function(idx) {
-    _modalChildIdx = idx;
-    var r = _activeChildRows[idx];
+  window.openDetailModal = function(mc) {
+    _currentActionMachine = mc;
+    var hdr = _state[mc].activeHeader;
+    if (!hdr) { alert('Tidak ada job aktif untuk didetailkan.'); return; }
 
-    // Poka-yoke: Tulis nama mesin di Header Modal
-    var mcDisplay = _currentMachine === 'SHR-01' ? 'ACL' : 'LVD';
-    $('m-title').textContent = 'INPUT AKTUAL ' + mcDisplay + ' — ' + r.SPK_No;
+    // Set theme modal
+    var box = $('det-box');
+    box.classList.remove('theme-acl', 'theme-lvd', 'theme-cutpress');
+    box.classList.add('theme-' + MC_META[mc].theme);
 
-    $('m-spkno').value = r.SPK_No;
-    $('m-wgpce').value = r.BQ || 0;
-    $('m-qty').value = Math.round(r.Qty_Target || 0);
-    window.autoCalcKgActual();
+    $('det-title').textContent = '👁 DETAIL SPK — ' + mc + ' — ' + hdr.SPK_No;
 
-    // 🟢 BATCH 2 — NG section: muncul cuma kalau ini OUT terakhir tersisa
-    // (sama pattern dengan CTL, exclude DONE + CANCELLED)
-    resetNgSection();
-    var remaining = _activeChildRows.filter(function(rr, i){
-      var st = String(rr.Status).toUpperCase();
-      return i !== idx && st !== 'DONE' && st !== 'CANCELLED';
-    }).length;
-    if (remaining === 0) {
-      $('ng-section').classList.add('show');
+    // Section 1: Info Batch
+    var ownerBadge = '<span class="badge-owner">' + esc(hdr.Owner_Used || hdr.Owner || 'FC') + '</span>';
+    if (hdr.Owner && hdr.Owner_Used && String(hdr.Owner) !== String(hdr.Owner_Used)) {
+      ownerBadge += '<span class="badge-cross">CROSS-USE (dari ' + esc(hdr.Owner) + ')</span>';
     }
-
-    $('finish-modal').classList.add('show');
-    setTimeout(function(){ $('m-qty').focus(); $('m-qty').select(); }, 100);
-  };
-
-  window.closeFinishModal = function() {
-    $('finish-modal').classList.remove('show');
-    resetNgSection();
-  };
-
-  window.autoCalcKgActual = function() {
-    var qty = parseFloat($('m-qty').value) || 0;
-    var wg  = parseFloat($('m-wgpce').value) || 0;
-    $('m-kg').value = Math.round(qty * wg);
-  };
-  // ============================================================
-  // NG CUTTING — Grade 2 Handling (mirror CTL pattern)
-  // ============================================================
-  var _ngRowSeq = 0;
-
-  window.addNgRow = function() {
-    _ngRowSeq++;
-    var t = parseFloat(_activeHeader && _activeHeader.T) || 0;
-    var rowId = 'ng-row-' + _ngRowSeq;
-    var tr = document.createElement('tr');
-    tr.id = rowId;
-    tr.innerHTML =
-      '<td class="ng-cell-t">' + t + '</td>' +
-      '<td><input type="number" class="ng-input ng-p" oninput="window.calcNgRow(this)"></td>' +
-      '<td><input type="number" class="ng-input ng-l" oninput="window.calcNgRow(this)"></td>' +
-      '<td><input type="number" class="ng-input ng-q" oninput="window.calcNgRow(this)"></td>' +
-      '<td class="ng-cell-kg"><span class="ng-kg">0</span></td>' +
-      '<td style="text-align:center;"><button type="button" class="btn-ng-del" onclick="window.removeNgRow(\'' + rowId + '\')">🗑</button></td>';
-    $('ng-tbody').appendChild(tr);
-  };
-
-  window.removeNgRow = function(rowId) {
-    var row = document.getElementById(rowId);
-    if (row) row.remove();
-    updateNgTotal();
-  };
-
-  window.calcNgRow = function(inp) {
-    var tr = inp.closest('tr');
-    var t = parseFloat(tr.querySelector('.ng-cell-t').textContent) || 0;
-    var p = parseFloat(tr.querySelector('.ng-p').value) || 0;
-    var l = parseFloat(tr.querySelector('.ng-l').value) || 0;
-    var q = parseFloat(tr.querySelector('.ng-q').value) || 0;
-    var kg = Math.round(t*p*l*q*7.85/1000000);
-    tr.querySelector('.ng-kg').textContent = kg;
-    updateNgTotal();
-  };
-
-  function updateNgTotal() {
-    var rows = document.querySelectorAll('#ng-tbody tr');
-    var total = 0;
-    rows.forEach(function(r){ total += parseFloat(r.querySelector('.ng-kg').textContent) || 0; });
-    $('ng-total-kg').textContent = Math.round(total);
-  }
-
-  function collectNgItems() {
-    var items = [];
-    document.querySelectorAll('#ng-tbody tr').forEach(function(r){
-      var t = parseFloat(r.querySelector('.ng-cell-t').textContent) || 0;
-      var p = parseFloat(r.querySelector('.ng-p').value) || 0;
-      var l = parseFloat(r.querySelector('.ng-l').value) || 0;
-      var q = parseFloat(r.querySelector('.ng-q').value) || 0;
-      var kg = parseFloat(r.querySelector('.ng-kg').textContent) || 0;
-      if (p > 0 && l > 0 && q > 0) {
-        items.push({ t: t, p: p, l: l, qty: q, kg: kg });
-      }
+    var infoGrid = [
+      ['SPK No',       '<span class="mono">' + esc(hdr.SPK_No || '—') + '</span>'],
+      ['Batch ID',     '<span class="mono hl-yellow">' + esc(hdr.Parent_SPK || '—') + '</span>'],
+      ['Item Code',    '<span class="mono">' + esc(hdr.Item_Code || '—') + '</span>'],
+      ['Priority',     esc(hdr.Priority || 'Normal')],
+      ['Owner',        ownerBadge],
+      ['Source Loc',   esc(hdr.Source_Loc || '—')],
+      ['Input Spec',   '<span class="hl-yellow">' + esc(formatSpecSpacing(hdr.Input_Spec || '—')) + '</span>'],
+      ['Plan Input',   '<span class="hl-green">' + Math.round(hdr.Qty_Target || 0) + ' Lbr / ' + Math.round(hdr.KG_Target || 0) + ' Kg</span>'],
+      ['Aktual Input', Math.round(hdr.Qty_Actual || 0) + ' Lbr / ' + Math.round(hdr.KG_Actual || 0) + ' Kg'],
+      ['MC / OP',      esc((hdr.MC_No || '—') + ' / ' + (hdr.OP || '—'))],
+      ['Leader',       esc(hdr.Leader || '—')],
+      ['NOTE',         esc(hdr.NOTE || '—')]
+    ];
+    var gridHtml = '';
+    infoGrid.forEach(function(pair) {
+      gridHtml += '<div class="det-info-row"><span class="det-lbl">' + pair[0] + '</span><span class="det-val">' + pair[1] + '</span></div>';
     });
-    return items;
-  }
+    $('det-info-grid').innerHTML = gridHtml;
 
-  function resetNgSection() {
-    var tbody = $('ng-tbody');
-    if (tbody) tbody.innerHTML = '';
-    var totalEl = $('ng-total-kg');
-    if (totalEl) totalEl.textContent = '0';
-    var section = $('ng-section');
-    if (section) section.classList.remove('show');
-    _ngRowSeq = 0;
-  }
-  // ============================================================
-  // CANCEL-OUT MODAL (per-OUT cancel dengan password PPIC)
-  // ============================================================
-  var _cngRowSeq = 0;
-
-  window.openCancelOutModal = function(idx) {
-    _modalChildIdx = idx;
-    var r = _activeChildRows[idx];
-    if (!r) return;
-
-    $('co-title').textContent = '❌ CANCEL OUT — ' + r.SPK_No;
-    $('co-spkno').value = r.SPK_No;
-    $('co-spkno-display').textContent = r.SPK_No;
-    $('co-spec-display').textContent = r.Input_Spec || '—';
-    $('co-qty-display').textContent = Math.round(r.Qty_Target || 0) + ' Pcs';
-    $('co-password').value = '';
-    $('co-error').style.display = 'none';
-
-    // NG section muncul kalau ini OUT terakhir tersisa (semua lain sudah final)
-    resetCngSection();
-    var remaining = _activeChildRows.filter(function(rr, i){
-      var st = String(rr.Status).toUpperCase();
-      return i !== idx && st !== 'DONE' && st !== 'CANCELLED';
-    }).length;
-    if (remaining === 0) {
-      $('cng-section').classList.add('show');
-    }
-
-    $('cancel-out-modal').classList.add('show');
-    setTimeout(function(){ $('co-password').focus(); }, 100);
-  };
-
-  window.closeCancelOutModal = function() {
-    $('cancel-out-modal').classList.remove('show');
-    resetCngSection();
-  };
-
-  window.addCngRow = function() {
-    _cngRowSeq++;
-    var t = parseFloat(_activeHeader && _activeHeader.T) || 0;
-    var rowId = 'cng-row-' + _cngRowSeq;
-    var tr = document.createElement('tr');
-    tr.id = rowId;
-    tr.innerHTML =
-      '<td class="ng-cell-t">' + t + '</td>' +
-      '<td><input type="number" class="ng-input cng-p" oninput="window.calcCngRow(this)"></td>' +
-      '<td><input type="number" class="ng-input cng-l" oninput="window.calcCngRow(this)"></td>' +
-      '<td><input type="number" class="ng-input cng-q" oninput="window.calcCngRow(this)"></td>' +
-      '<td class="ng-cell-kg"><span class="cng-kg">0</span></td>' +
-      '<td style="text-align:center;"><button type="button" class="btn-ng-del" onclick="window.removeCngRow(\'' + rowId + '\')">🗑</button></td>';
-    $('cng-tbody').appendChild(tr);
-  };
-
-  window.removeCngRow = function(rowId) {
-    var row = document.getElementById(rowId);
-    if (row) row.remove();
-    updateCngTotal();
-  };
-
-  window.calcCngRow = function(inp) {
-    var tr = inp.closest('tr');
-    var t = parseFloat(tr.querySelector('.ng-cell-t').textContent) || 0;
-    var p = parseFloat(tr.querySelector('.cng-p').value) || 0;
-    var l = parseFloat(tr.querySelector('.cng-l').value) || 0;
-    var q = parseFloat(tr.querySelector('.cng-q').value) || 0;
-    var kg = Math.round(t*p*l*q*7.85/1000000);
-    tr.querySelector('.cng-kg').textContent = kg;
-    updateCngTotal();
-  };
-
-  function updateCngTotal() {
-    var rows = document.querySelectorAll('#cng-tbody tr');
-    var total = 0;
-    rows.forEach(function(r){ total += parseFloat(r.querySelector('.cng-kg').textContent) || 0; });
-    $('cng-total-kg').textContent = Math.round(total);
-  }
-
-  function collectCngItems() {
-    var items = [];
-    document.querySelectorAll('#cng-tbody tr').forEach(function(r){
-      var t = parseFloat(r.querySelector('.ng-cell-t').textContent) || 0;
-      var p = parseFloat(r.querySelector('.cng-p').value) || 0;
-      var l = parseFloat(r.querySelector('.cng-l').value) || 0;
-      var q = parseFloat(r.querySelector('.cng-q').value) || 0;
-      var kg = parseFloat(r.querySelector('.cng-kg').textContent) || 0;
-      if (p > 0 && l > 0 && q > 0) {
-        items.push({ t: t, p: p, l: l, qty: q, kg: kg });
-      }
-    });
-    return items;
-  }
-
-  function resetCngSection() {
-    var tbody = $('cng-tbody');
-    if (tbody) tbody.innerHTML = '';
-    var totalEl = $('cng-total-kg');
-    if (totalEl) totalEl.textContent = '0';
-    var section = $('cng-section');
-    if (section) section.classList.remove('show');
-    _cngRowSeq = 0;
-  }
-
-  function showCancelOutError(msg) {
-    var el = $('co-error');
-    el.textContent = '❌ ' + msg;
-    el.style.display = 'block';
-  }
-
-  // ─── SUBMIT CANCEL OUT (1 round-trip) ───────────────────────────────────────
-window.submitCancelOut = function() {
-  var spkOutNo = $('co-spkno').value;
-  var password = $('co-password').value;
-  if (!password) { showCancelOutError('Password harus diisi.'); return; }
-  if (!spkOutNo) { showCancelOutError('SPK OUT No kosong.'); return; }
-
-  var ngItems   = collectCngItems();
-  var ngVisible = $('cng-section').classList.contains('show');
-  var parentHeaderSpkNo = _activeHeader ? _activeHeader.SPK_No : '';
-
-  var btn = $('co-btn-submit');
-  btn.disabled = true;
-  btn.textContent = '⏳ Memproses...';
-
-  google.script.run
-    .withFailureHandler(function(err){
-      btn.disabled = false;
-      btn.textContent = '❌ CANCEL OUT';
-      showCancelOutError('Error backend: ' + (err && err.message ? err.message : err));
-    })
-    .withSuccessHandler(function(res){
-      btn.disabled = false;
-      btn.textContent = '❌ CANCEL OUT';
-      if (!res || !res.success) {
-        showCancelOutError(res && res.message ? res.message : 'Gagal cancel OUT');
-        return;
-      }
-      window.closeCancelOutModal();
-
-      if (res.ng_created && res.ng_created.length > 0) {
-        res.ng_created.forEach(function(ng, idx){
-          setTimeout(function(){
-            window.printLabelNG({
-              spkNo:     ng.spk_no,
-              sourceSpk: _activeHeader && _activeHeader.SPK_No,
-              spec:      ng.spec,
-              t: ng.t, p: ng.p, l: ng.l,
-              qty: ng.qty, kg: ng.kg,
-              owner: ng.owner, mc: ng.mc_no
-            });
-          }, 800 + (idx*500));
-        });
-      }
-
-      applyBoardRefresh(res);
-    })
-    .cancelOutAndRefresh(spkOutNo, password, ngVisible ? ngItems : null, _currentMachine, parentHeaderSpkNo);
-};
-
-  // ESC + Enter handler untuk cancel-out modal
-  document.addEventListener('keydown', function(e) {
-    var modal = document.getElementById('cancel-out-modal');
-    if (!modal || !modal.classList.contains('show')) return;
-    if (e.key === 'Escape') window.closeCancelOutModal();
-    if (e.key === 'Enter' && document.activeElement && document.activeElement.id === 'co-password') {
-      e.preventDefault();
-      window.submitCancelOut();
-    }
-  });
-  // ─── SUBMIT SELESAI (1 round-trip) ───────────────────────────────────────────
-window.submitActualData = function() {
-  var childSpkNo = $('m-spkno').value;
-  var qtyAct = parseFloat($('m-qty').value) || 0;
-  var kgAct  = parseFloat($('m-kg').value)  || 0;
-  if (qtyAct <= 0) { alert('Qty Actual harus > 0!'); return; }
-
-  var btn = $('m-btn-save');
-  btn.disabled = true;
-  btn.textContent = '⏳ Menyimpan...';
-
-  google.script.run
-    .withFailureHandler(function(err){
-      btn.disabled = false;
-      btn.textContent = '💾 SIMPAN & CETAK';
-      alert('❌ Error backend:\n' + (err && err.message ? err.message : err));
-    })
-    .withSuccessHandler(function(res) {
-      btn.disabled = false;
-      btn.textContent = '💾 SIMPAN & CETAK';
-      if (!res || !res.success) {
-        alert('⚠️ Backend gagal:\n' + (res && res.message ? res.message : 'Unknown error'));
-        return;
-      }
-      window.closeFinishModal();
-
-      // Print FG label SHR
-      var childRow = _activeChildRows.find(function(r){
-        return String(r.SPK_No).trim() === String(childSpkNo).trim();
+    // Section 2: List OUT
+    var outHtml = '';
+    var rows = _state[mc].activeChildren || [];
+    if (!rows.length) {
+      outHtml = '<tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding:20px; font-style:italic;">Tidak ada SHR-OUT untuk batch ini</td></tr>';
+    } else {
+      rows.forEach(function(r, i) {
+        var status = String(r.Status || 'ANTRIAN').toUpperCase();
+        var stCls  = 'st-antrian';
+        if (status === 'RUNNING')   stCls = 'st-running';
+        if (status === 'DONE')      stCls = 'st-done';
+        if (status === 'CANCELLED') stCls = 'st-cancelled';
+        var cutInfo = esc(r.NOTE || '—');
+        outHtml += '<tr>';
+        outHtml += '<td>' + (i+1) + '</td>';
+        outHtml += '<td class="det-td-spk">' + esc(r.SPK_No || '—') + '</td>';
+        outHtml += '<td>' + esc(r.SO_Ref || '—') + '<div class="det-td-cust">' + esc(r.Cust || '') + '</div></td>';
+        outHtml += '<td class="det-td-spec">' + esc(formatSpecSpacing(r.Input_Spec || '—')) + '</td>';
+        outHtml += '<td class="det-td-cut">' + cutInfo + '</td>';
+        outHtml += '<td>' + esc(r.Target_Loc || '—') + '</td>';
+        outHtml += '<td style="text-align:right; font-family:Consolas,monospace; font-weight:800;">' + Math.round(r.Qty_Target || 0) + '</td>';
+        outHtml += '<td style="text-align:right; font-family:Consolas,monospace; font-weight:800; color:var(--andon-running);">' + Math.round(r.Qty_Actual || 0) + '</td>';
+        outHtml += '<td><span class="status-pill ' + stCls + '">' + status + '</span></td>';
+        outHtml += '</tr>';
       });
-      if (childRow) {
-        var parsed = window.parseInputSpec(childRow.Input_Spec);
-        window.printLabelChild({
-          itemCode: childRow.Item_Code || '--',
-          cust    : childRow.Cust || '--',
-          spek    : parsed.spek,
-          size    : parsed.size,
-          qtyLbr  : qtyAct,
-          lotProd : childRow.SPK_No || childSpkNo,
-          tglProd : new Date().toLocaleDateString('id-ID', {day:'2-digit', month:'short', year:'2-digit'})
-        });
-      }
+    }
+    $('det-out-tbody').innerHTML = outHtml;
 
-      // Print NG labels (kalau ada)
-      if (res.ng_created && res.ng_created.length > 0) {
-        res.ng_created.forEach(function(ng, idx){
-          setTimeout(function(){
-            window.printLabelNG({
-              spkNo:     ng.spk_no,
-              sourceSpk: _activeHeader && _activeHeader.SPK_No,
-              spec:      ng.spec,
-              t: ng.t, p: ng.p, l: ng.l,
-              qty: ng.qty, kg: ng.kg,
-              owner: ng.owner, mc: ng.mc_no
-            });
-          }, 800 + (idx*500));
-        });
-      }
+    // Section 3: Timing
+    var mulaiD  = parseSpkDate(hdr.Mulai_DT);
+    var targetD = parseSpkDate(hdr.Estimasi_Jam_Selesai);
+    var estMulaiD = parseSpkDate(hdr.Estimasi_Jam_Mulai);
+    var elapsedTxt = '—';
+    if (mulaiD && hdr.Status === 'RUNNING') {
+      var elapsedMin = Math.round((new Date().getTime() - mulaiD.getTime()) / 60000);
+      elapsedTxt = fmtDurasi(elapsedMin);
+    } else if (mulaiD && hdr.Selesai_DT) {
+      var selD = parseSpkDate(hdr.Selesai_DT);
+      if (selD) elapsedTxt = fmtDurasi(Math.round((selD.getTime() - mulaiD.getTime()) / 60000));
+    }
+    var timingGrid = [
+      ['Plan Setup',       fmtDurasi(hdr.Plan_Setup_Menit)],
+      ['Plan Run',         fmtDurasi(hdr.Plan_Run_Menit)],
+      ['Total Durasi',     '<span class="hl-yellow">' + fmtDurasi(hdr.Total_Durasi_Menit) + '</span>'],
+      ['Estimasi Mulai',   estMulaiD ? fmtTime(estMulaiD) : '—'],
+      ['Aktual Mulai',     mulaiD ? fmtTime(mulaiD) : '—'],
+      ['Estimasi Selesai', targetD ? fmtTime(targetD) : '—'],
+      ['Elapsed',          '<span class="hl-green">' + elapsedTxt + '</span>'],
+      ['Selesai DT',       esc(hdr.Selesai_DT || '—')],
+      ['Duration',         esc(hdr.Duration || '—')]
+    ];
+    var timingHtml = '';
+    timingGrid.forEach(function(pair) {
+      timingHtml += '<div class="det-info-row"><span class="det-lbl">' + pair[0] + '</span><span class="det-val">' + pair[1] + '</span></div>';
+    });
+    $('det-timing-grid').innerHTML = timingHtml;
 
-      applyBoardRefresh(res);
-    })
-    .saveAndRefreshBoard({
-      spk_no    : childSpkNo,
-      qty_actual: qtyAct,
-      kg_actual : kgAct,
-      ng_items  : collectNgItems(),
-      created_by: 'operator'
-    }, _currentMachine);
-};
+    $('detail-modal').classList.add('show');
+  };
+
+  window.closeDetailModal = function() {
+    $('detail-modal').classList.remove('show');
+  };
 
   // ============================================================
-  // 🟢 BUG-FIX #2 — MODAL FINALIZE SHR (Komprehensif All-OUT)
+  // MODAL: FINALIZE (LOGIC & FLOW KEEP AS-IS)
   // ============================================================
-  var _finNgRowSeq = 0;
-  var _finCachedOuts = [];
-
-  window.openFinalizeModal = function() {
-    if (!_activeHeader || _activeHeader.Status !== 'RUNNING') {
+  window.openFinalizeModal = function(mc) {
+    _currentActionMachine = mc;
+    var hdr = _state[mc].activeHeader;
+    if (!hdr || hdr.Status !== 'RUNNING') {
       alert('SHR-HEADER harus dalam status RUNNING untuk finalize.');
       return;
     }
-    _finCachedOuts = _activeChildRows.filter(function(r) {
+
+    // Kalau children belum ke-load, load dulu lalu buka
+    if (!_state[mc].activeChildren || _state[mc].activeChildren.length === 0) {
+      showLoadingScreen();
+      google.script.run
+        .withFailureHandler(function(err){
+          hideLoadingScreen();
+          alert('❌ Gagal load OUT: ' + (err && err.message ? err.message : err));
+        })
+        .withSuccessHandler(function(rows) {
+          hideLoadingScreen();
+          _state[mc].activeChildren = rows || [];
+          _openFinalizeModalInner(mc);
+        })
+        .fetchBoardChildData(hdr.SPK_No, 'SHR-OUT');
+      return;
+    }
+    _openFinalizeModalInner(mc);
+  };
+
+  function _openFinalizeModalInner(mc) {
+    var hdr = _state[mc].activeHeader;
+    _finCachedOuts = (_state[mc].activeChildren || []).filter(function(r) {
       var st = String(r.Status).toUpperCase();
       return st !== 'DONE' && st !== 'CANCELLED';
     });
@@ -1860,16 +1861,15 @@ window.submitActualData = function() {
       return;
     }
 
-    var h = _activeHeader;
-    var hQty = parseFloat(h.Qty_Target) || 0;
-    var hKg  = parseFloat(h.KG_Target)  || 0;
+    var hQty = parseFloat(hdr.Qty_Target) || 0;
+    var hKg  = parseFloat(hdr.KG_Target)  || 0;
     var bqH  = hQty > 0 ? (hKg / hQty) : 0;
 
-    $('fin-title').textContent    = '🎯 FINALIZE SHR — ' + h.SPK_No;
-    $('fin-spk').textContent      = h.SPK_No || '—';
-    $('fin-material').textContent = formatSpecSpacing(h.Input_Spec || '—');
+    $('fin-title').textContent    = '🎯 FINALIZE SHR (' + mc + ') — ' + hdr.SPK_No;
+    $('fin-spk').textContent      = hdr.SPK_No || '—';
+    $('fin-material').textContent = formatSpecSpacing(hdr.Input_Spec || '—');
     $('fin-plan').textContent     = hQty + ' lbr × ' + bqH.toFixed(2) + ' kg = ' + Math.round(hKg) + ' kg';
-    $('fin-owner').textContent    = h.Owner_Used || h.Owner || 'FC';
+    $('fin-owner').textContent    = hdr.Owner_Used || hdr.Owner || 'FC';
 
     $('fin-qty-used').value = '';
     $('fin-sum-plan').textContent   = '0';
@@ -1886,8 +1886,8 @@ window.submitActualData = function() {
       tr.dataset.qtyTgt = oQtyTgt;
       tr.innerHTML =
         '<td>' + (idx+1) + '</td>' +
-        '<td><strong>' + r.SPK_No + '</strong><br>' +
-        '<span style="font-size:11px; color:var(--text-muted);">' + (parsed.size || r.Input_Spec) + '</span></td>' +
+        '<td><strong>' + esc(r.SPK_No) + '</strong><br>' +
+        '<span style="font-size:11px; color:var(--text-muted);">' + esc(parsed.size || r.Input_Spec) + '</span></td>' +
         '<td class="col-plan fin-plan-cell">—</td>' +
         '<td><input type="number" class="fin-actual" min="0" oninput="window.recalcFinalizeRows()" placeholder="qty"></td>';
       tbody.appendChild(tr);
@@ -1899,16 +1899,18 @@ window.submitActualData = function() {
 
     $('finalize-modal').classList.add('show');
     setTimeout(function(){ $('fin-qty-used').focus(); }, 100);
-  };
+  }
 
   window.closeFinalizeModal = function() {
     $('finalize-modal').classList.remove('show');
   };
 
   window.recalcFinalizeRows = function() {
-    var h = _activeHeader;
-    if (!h) return;
-    var hdrQty = parseFloat(h.Qty_Target) || 0;
+    var mc = _currentActionMachine;
+    if (!mc) return;
+    var hdr = _state[mc].activeHeader;
+    if (!hdr) return;
+    var hdrQty = parseFloat(hdr.Qty_Target) || 0;
     var qtyUsed = parseFloat($('fin-qty-used').value) || 0;
     var ratio = hdrQty > 0 ? (qtyUsed / hdrQty) : 0;
 
@@ -1929,8 +1931,10 @@ window.submitActualData = function() {
   };
 
   window.addFinNgRow = function() {
+    var mc = _currentActionMachine;
+    var hdr = mc ? _state[mc].activeHeader : null;
     _finNgRowSeq++;
-    var t = parseFloat(_activeHeader && _activeHeader.T) || 0;
+    var t = parseFloat(hdr && hdr.T) || 0;
     var rowId = 'fin-ng-row-' + _finNgRowSeq;
     var tr = document.createElement('tr');
     tr.id = rowId;
@@ -1984,7 +1988,11 @@ window.submitActualData = function() {
   }
 
   window.submitFinalize = function() {
-    if (!_activeHeader) return;
+    var mc = _currentActionMachine;
+    if (!mc) return;
+    var hdr = _state[mc].activeHeader;
+    if (!hdr) return;
+
     var qtyUsed = parseFloat($('fin-qty-used').value) || 0;
     if (qtyUsed <= 0) {
       alert('🚫 Lembar Diproses (Qty Used) wajib > 0!');
@@ -1992,7 +2000,7 @@ window.submitActualData = function() {
       return;
     }
 
-    var hdrQty = parseFloat(_activeHeader.Qty_Target) || 0;
+    var hdrQty = parseFloat(hdr.Qty_Target) || 0;
     if (qtyUsed > hdrQty) {
       if (!confirm('⚠️ Qty Used (' + qtyUsed + ' lbr) MELEBIHI plan (' + hdrQty + ' lbr).\n\nYakin lanjut?')) {
         $('fin-qty-used').focus();
@@ -2056,7 +2064,7 @@ window.submitActualData = function() {
             setTimeout(function(){
               window.printLabelNG({
                 spkNo:     ng.spk_no,
-                sourceSpk: _activeHeader && _activeHeader.SPK_No,
+                sourceSpk: hdr.SPK_No,
                 spec:      ng.spec,
                 t: ng.t, p: ng.p, l: ng.l,
                 qty: ng.qty, kg: ng.kg,
@@ -2066,71 +2074,23 @@ window.submitActualData = function() {
           });
         }
 
-        applyBoardRefresh(res);
+        // Refresh kolom mesin ini saja (setelah aksi)
+        _state[mc].activeHeader = null;
+        _state[mc].activeChildren = [];
+        _state[mc].suggestedSpkNo = findNextSuggestion(mc);
+        refreshColumn(mc);
       })
       .finalizeShrBatch({
-        header_spk : _activeHeader.SPK_No,
+        header_spk : hdr.SPK_No,
         qty_used   : qtyUsed,
         outs       : outs,
         ng_items   : collectFinNgItems(),
         created_by : 'operator'
-      }, _currentMachine);
+      }, mc);
   };
 
-  // ─── HELPER: apply state refresh dari response bundle backend ───────────────
-function applyBoardRefresh(res) {
-  if (!res) return;
-
-  _queueList = res.queue || [];
-  _doneToday = res.doneToday || [];
-  $('cnt-done').textContent = _doneToday.length;
-
-  if (res.headerDone) {
-    // Header DONE → reset active card & auto-suggest next
-    _activeHeader = null;
-    _activeChildRows = [];
-    _suggestedSpkNo = findNextSuggestion();
-    if (_suggestedSpkNo) {
-      var sugg = _queueList.find(function(j){ return j.SPK_No === _suggestedSpkNo; });
-      if (sugg) {
-        _activeHeader = sugg;
-        _activeChildRows = [];
-      }
-    }
-  } else {
-    _activeChildRows = res.activeChildren || [];
-    if (_activeHeader) {
-      var stillThere = _queueList.find(function(j){ return j.SPK_No === _activeHeader.SPK_No; });
-      if (stillThere) _activeHeader = stillThere;
-    }
-  }
-  renderAll();
-}
-
-
-
-  function checkHeaderCompletion() {
-    if (!_activeHeader) return;
-    var hdrSpkNo = _activeHeader.SPK_No;
-    showLoadingScreen();
-    google.script.run
-      .withFailureHandler(function(err){ console.error(err); hideLoadingScreen(); })
-      .withSuccessHandler(function(stillRunning) {
-        if (!stillRunning) {
-          _activeHeader = null;
-          _activeChildRows = [];
-          _suggestedSpkNo = findNextSuggestion();
-          hideLoadingScreen();
-          loadAll();
-        } else {
-          hideLoadingScreen();
-          loadAll();
-        }
-      }).checkHeaderFinishedStatus(hdrSpkNo);
-  }
-
-  function findNextSuggestion() {
-    var antrian = _queueList.filter(function(j){ return j.Status === 'ANTRIAN'; });
+  function findNextSuggestion(mc) {
+    var antrian = _state[mc].queue.filter(function(j){ return j.Status === 'ANTRIAN'; });
     if (!antrian.length) return null;
     var prioWeight = { 'Urgent': 3, 'High': 2, 'Normal': 1 };
     antrian.sort(function(a, b) {
@@ -2142,37 +2102,52 @@ function applyBoardRefresh(res) {
   }
 
   // ============================================================
-  // POPUP: ANTRIAN
+  // POPUP: ANTRIAN (per-mesin)
   // ============================================================
-  window.openPopupAntrian = function() {
-    // Poka-yoke title antrian
-    var mcDisplay = _currentMachine === 'SHR-01' ? 'SHR-01 (ACL)' : 'SHR-02 (LVD)';
-    $('popup-antrian-title').textContent = '📋 ANTRIAN ' + mcDisplay;
-    
-    var queue = _queueList.filter(function(j){ return j.Status === 'ANTRIAN'; });
+  window.openPopupAntrian = function(mc) {
+    _currentActionMachine = mc;
+    var mcName = mc + ' (' + MC_META[mc].name + ')';
+    $('popup-antrian-title').textContent = '📋 ANTRIAN ' + mcName;
+
+    var queue = _state[mc].queue.filter(function(j){ return j.Status === 'ANTRIAN'; });
     var prioWeight = { 'Urgent': 3, 'High': 2, 'Normal': 1 };
     queue.sort(function(a, b) {
       var d = (prioWeight[b.Priority]||1) - (prioWeight[a.Priority]||1);
       if (d !== 0) return d;
       return (parseFloat(a.Plan_Seq) || 999) - (parseFloat(b.Plan_Seq) || 999);
     });
-    
+
     var tbody = $('popup-antrian-tbody');
     if (!queue.length) {
-      tbody.innerHTML = '<tr><td colspan=\"8\" style=\"text-align:center; padding:30px; color:var(--text-primary); font-style:italic; font-size:14px;\">Tidak ada antrian</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:30px; color:var(--text-muted); font-style:italic;">Tidak ada antrian</td></tr>';
     } else {
       var html = '';
       queue.forEach(function(j){
         var prio = j.Priority || 'Normal';
+        var outsHtml = '';
+        if (j._outs && j._outs.length) {
+          outsHtml = '<div style="margin-top:6px; padding-top:4px; border-top:1px dashed var(--border);">';
+          outsHtml += '<div style="font-size:9px; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.3px; margin-bottom:2px;">Cut Ke ' + j._outs.length + ' size:</div>';
+          j._outs.forEach(function(o){
+            var oSpec = formatSpecSpacing(o.Input_Spec || '');
+            var oQty  = Math.round(o.Qty_Target || 0);
+            outsHtml += '<div style="font-size:11px; color:var(--andon-running); font-family:Consolas,monospace; padding-left:4px; line-height:1.35;">';
+            outsHtml += '→ ' + esc(oSpec) + ' <b style="color:var(--text-primary);">= ' + oQty + ' Lbr</b>';
+            outsHtml += '</div>';
+          });
+          outsHtml += '</div>';
+        }
         html += '<tr>';
-        html += '<td><span class=\"queue-prio prio-' + prio + '\">' + prio + '</span></td>';
-        html += '<td class=\"td-spkno\">' + esc(j.SPK_No) + '</td>';
-        html += '<td>' + esc(j.Item_Code || '—') + '</td>';
-        html += '<td class=\"td-spec\">' + formatSpecSpacing(j.Input_Spec || j.Mat_Spec) + '</td>';
-        html += '<td style=\"text-align:right;\">' + Math.round(j.Qty_Target || 0) + '</td>';
-        html += '<td style=\"text-align:right;\">' + Math.round(j.KG_Target || 0) + '</td>';
-        html += '<td><span class=\"badge-owner\">' + esc(j.Owner_Used || j.Owner || 'FC') + '</span></td>';
-        html += '<td><button class=\"btn btn-pick\" onclick=\"window.pickJob(\'' + j.SPK_No.replace(/'/g, "\\'") + '\')\">PILIH</button></td>';
+        html += '<td><span class="queue-prio prio-' + prio + '">' + prio + '</span></td>';
+        html += '<td class="td-spkno">' + esc(j.SPK_No) + '</td>';
+        html += '<td class="td-batch">' + esc(j.Parent_SPK || '—') + '</td>';
+        html += '<td class="td-item">' + esc(j.Item_Code || '—') + '</td>';
+        html += '<td class="td-spec">' + esc(formatSpecSpacing(j.Input_Spec)) + outsHtml + '</td>';
+        html += '<td>' + esc(j.Source_Loc || '—') + '</td>';
+        html += '<td style="text-align:right; font-family:Consolas,monospace; font-weight:800;">' + Math.round(j.Qty_Target || 0) + '</td>';
+        html += '<td style="text-align:right; font-family:Consolas,monospace; font-weight:800;">' + Math.round(j.KG_Target || 0) + '</td>';
+        html += '<td><span class="badge-owner">' + esc(j.Owner_Used || j.Owner || 'FC') + '</span></td>';
+        html += '<td><button class="btn-pick" onclick="window.pickJob(\'' + mc + '\', \'' + String(j.SPK_No).replace(/'/g, "\\'") + '\')">PILIH</button></td>';
         html += '</tr>';
       });
       tbody.innerHTML = html;
@@ -2183,26 +2158,44 @@ function applyBoardRefresh(res) {
   window.closePopupAntrian = function() { $('popup-antrian').classList.remove('show'); };
 
   // ============================================================
-  // POPUP: SELESAI HARI INI
+  // POPUP: SELESAI HARI INI (per-mesin)
   // ============================================================
-  window.openPopupSelesai = function() {
-    var mcDisplay = _currentMachine === 'SHR-01' ? 'SHR-01 (ACL)' : 'SHR-02 (LVD)';
-    $('popup-selesai-title').textContent = '✅ SELESAI HARI INI ' + mcDisplay + ' (' + _doneToday.length + ' SPK)';
-    
+  window.openPopupSelesai = function(mc) {
+    _currentActionMachine = mc;
+    var mcName = mc + ' (' + MC_META[mc].name + ')';
+    var list = _state[mc].done || [];
+    $('popup-selesai-title').textContent = '✅ SELESAI HARI INI ' + mcName + ' (' + list.length + ' SPK)';
+
     var grid = $('popup-selesai-grid');
-    if (!_doneToday.length) {
-      grid.innerHTML = '<div style=\"grid-column:1/-1; text-align:center; padding:30px; color:var(--text-primary); font-style:italic; font-size:14px;\">Belum ada SPK selesai hari ini</div>';
+    if (!list.length) {
+      grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:30px; color:var(--text-muted); font-style:italic;">Belum ada SPK selesai hari ini</div>';
     } else {
       var html = '';
-      _doneToday.forEach(function(j){
+      list.forEach(function(j){
         var time = String(j.Selesai_DT || '').split(' ')[1] || '—';
-        html += '<div class=\"kanban-card\">';
-        html += '<div class=\"kc-spk\">' + esc(j.SPK_No) + '</div>';
-        html += '<div class=\"kc-item\">' + esc(j.Item_Code || '—') + '</div>';
-        html += '<div class=\"kc-meta\">' + formatSpecSpacing(j.Input_Spec || j.Mat_Spec) + '</div>';
-        html += '<div class=\"kc-qty\">' + Math.round(j.Qty_Actual||0) + ' / ' + Math.round(j.Qty_Target||0) + ' lbr</div>';
-        html += '<div class=\"kc-meta\"><span class=\"badge-owner\">' + esc(j.Owner_Used || j.Owner || 'FC') + '</span> · ' + Math.round(j.KG_Actual||0) + ' kg</div>';
-        html += '<div class=\"kc-time\">⏱ ' + esc(time) + ' WIB</div>';
+        var outsHtml = '';
+        if (j._outs && j._outs.length) {
+          outsHtml = '<div style="margin-top:6px; padding-top:6px; border-top:1px dashed var(--border);">';
+          outsHtml += '<div style="font-size:9px; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.3px; margin-bottom:3px;">Hasil (' + j._outs.length + ' size):</div>';
+          j._outs.forEach(function(o){
+            var oSpec = formatSpecSpacing(o.Input_Spec || '');
+            var oAct  = Math.round(o.Qty_Actual || 0);
+            var oTgt  = Math.round(o.Qty_Target || 0);
+            outsHtml += '<div style="font-size:10.5px; color:var(--andon-running); font-family:Consolas,monospace; line-height:1.35;">';
+            outsHtml += '→ ' + esc(oSpec) + ' <b style="color:var(--text-primary);">= ' + oAct + '/' + oTgt + ' Lbr</b>';
+            outsHtml += '</div>';
+          });
+          outsHtml += '</div>';
+        }
+        html += '<div class="kanban-card">';
+        html += '  <div class="kc-spk">' + esc(j.SPK_No) + '</div>';
+        html += '  <div class="kc-batch">Batch: ' + esc(j.Parent_SPK || '—') + '</div>';
+        html += '  <div class="kc-item">' + esc(j.Item_Code || '—') + '</div>';
+        html += '  <div class="kc-meta">' + esc(formatSpecSpacing(j.Input_Spec)) + '</div>';
+        html += '  <div class="kc-qty">Input: ' + Math.round(j.Qty_Actual||0) + ' / ' + Math.round(j.Qty_Target||0) + ' Lbr · ' + Math.round(j.KG_Actual||0) + ' Kg</div>';
+        html += outsHtml;
+        html += '  <div class="kc-meta" style="margin-top:6px;"><span class="badge-owner">' + esc(j.Owner_Used || j.Owner || 'FC') + '</span></div>';
+        html += '  <div class="kc-time">⏱ ' + esc(time) + '</div>';
         html += '</div>';
       });
       grid.innerHTML = html;
@@ -2213,7 +2206,7 @@ function applyBoardRefresh(res) {
   window.closePopupSelesai = function() { $('popup-selesai').classList.remove('show'); };
 
   // Close on overlay click
-  ['finish-modal', 'popup-antrian', 'popup-selesai'].forEach(function(id){
+  ['detail-modal', 'finalize-modal', 'popup-antrian', 'popup-selesai'].forEach(function(id){
     var el = document.getElementById(id);
     if (el) {
       el.addEventListener('click', function(e){
@@ -2225,15 +2218,28 @@ function applyBoardRefresh(res) {
   // ============================================================
   // INIT
   // ============================================================
-  loadAll();
+  function init() {
+    updateClock();
+    setInterval(updateClock, 30000);            // clock update tiap 30 detik (LOKAL)
+    updateAllTimingOver();
+    _timingInterval = setInterval(updateAllTimingOver, 30000); // OVER badge check (LOKAL)
+
+    // Initial load: 3 mesin sekaligus
+    window.refreshAll();
+  }
+
+  // Kick off
+  init();
 })();
 
+
 // ============================================================
-// GLOBAL HELPERS
+// GLOBAL HELPERS — parseInputSpec, printLabelChild, printLabelNG
+// (KEEP AS-IS — jangan diubah struktur/format print)
 // ============================================================
 window.parseInputSpec = function(spec) {
   if (!spec || spec === '--') return { spek: '--', size: '--' };
-  var s = spec.trim();
+  var s = String(spec).trim();
   var idx = s.search(/\d/);
   if (idx <= 0) return { spek: '--', size: s };
   return {
@@ -2271,10 +2277,55 @@ window.printLabelChild = function(opts) {
       '<td width="50%" colspan="2"><h2 style="font-size:14px; font-style:normal;">LABEL FG</h2></td>' +
     '</tr>' +
     '<tr style="height:15%;"><td width="20%" style="font-size:8px;">ITEM CODE</td><td width="35%">: ' + itemCode + '</td><td width="15%" style="font-size:8px;">CUST</td><td width="30%" class="bold" style="font-size:13px;">: ' + cust + '</td></tr>' +
-    '<tr style="height:14%;"><td style="font-size:8px;">SPEK</td><td colspan=\"3\" class=\"bold\" style=\"font-size:12px;\">: ' + spek + '</td></tr>' +
-    '<tr style="height:14%;"><td style="font-size:8px;">SIZE (TxW)</td><td colspan=\"3\" class=\"bold\" style=\"font-size:13px;\">: ' + size + '</td></tr>' +
-    '<tr style="height:17%;"><td style="font-size:8px;">QTY (LBR)</td><td colspan=\"3\" class=\"bold\" style=\"font-size:15px;\">: ' + qtyLbr + '</td></tr>' +
-    '<tr style="height:12%;"><td style="font-size:8px;">TGL PROD</td><td>: ' + tglProd + '</td><td>LOT PROD</td><td class=\"bold\">: ' + lotProd + '</td></tr>' +
+    '<tr style="height:14%;"><td style="font-size:8px;">SPEK</td><td colspan="3" class="bold" style="font-size:12px;">: ' + spek + '</td></tr>' +
+    '<tr style="height:14%;"><td style="font-size:8px;">SIZE (TxW)</td><td colspan="3" class="bold" style="font-size:13px;">: ' + size + '</td></tr>' +
+    '<tr style="height:17%;"><td style="font-size:8px;">QTY (LBR)</td><td colspan="3" class="bold" style="font-size:15px;">: ' + qtyLbr + '</td></tr>' +
+    '<tr style="height:12%;"><td style="font-size:8px;">TGL PROD</td><td>: ' + tglProd + '</td><td>LOT PROD</td><td class="bold">: ' + lotProd + '</td></tr>' +
+  '</table></div></body></html>';
+  var fr = document.createElement('iframe');
+  fr.style.cssText = 'position:fixed; right:0; bottom:0; width:0; height:0; border:0;';
+  document.body.appendChild(fr);
+  var doc = fr.contentDocument || fr.contentWindow.document;
+  doc.open(); doc.write(html); doc.close();
+  setTimeout(function(){
+    try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch(e) { console.error(e); }
+    setTimeout(function(){ if (fr.parentNode) document.body.removeChild(fr); }, 3000);
+  }, 400);
+};
+
+window.printLabelNG = function(opts) {
+  var spkNo     = opts.spkNo     || '--';
+  var sourceSpk = opts.sourceSpk || '--';
+  var t         = opts.t         || '--';
+  var p         = opts.p         || '--';
+  var l         = opts.l         || '--';
+  var qty       = (opts.qty !== undefined && opts.qty !== null) ? Math.round(opts.qty) : '--';
+  var kg        = (opts.kg  !== undefined && opts.kg  !== null) ? Math.round(opts.kg)  : '--';
+  var owner     = opts.owner     || 'FC';
+  var mc        = opts.mc        || '--';
+  var spec      = opts.spec      || '--';
+  var tglProd   = opts.tglProd   || new Date().toLocaleDateString('id-ID', {day:'2-digit',month:'short',year:'2-digit'});
+  var size = t + ' × ' + p + ' × ' + l + ' mm';
+  var html =
+  '<html><head><title>NG Label - ' + spkNo + '</title><style>' +
+    '@page { size: 70mm 70mm; margin: 0; }' +
+    'body { font-family: Arial, sans-serif; margin: 0; padding: 0; }' +
+    '.label-box { width: 7cm; height: 7cm; padding: 3px 5px; box-sizing: border-box; border: 3px solid #ea580c; }' +
+    'table { width: 100%; font-size: 13px; border-collapse: collapse; line-height: 1.3; }' +
+    'td { padding: 1px 2px; vertical-align: middle; border: 0.1px solid #f0f0f0; }' +
+    '.bold { font-weight: bold; }' +
+    'h2 { text-align: center; font-size: 12px; font-weight: bold; margin: 0; font-style: italic; }' +
+    '.ng-logo { color:#ea580c; font-size:24px; font-weight:900; border:2.5px solid #ea580c; padding:0 6px; display:inline-block; line-height:1.05; }' +
+    '.ng-title { color:#ea580c; font-weight: bold; }' +
+  '</style></head><body>' +
+  '<div class="label-box"><table>' +
+    '<tr style="height:22%;"><td width="20%" style="text-align:center;"><div class="ng-logo">NG</div></td><td width="30%"><h2>FLAMBINDO<br>CORTAMA</h2></td><td width="50%" colspan="2"><h2 class="ng-title" style="font-size:13px; font-style:normal;">LABEL NG<br>GRADE 2</h2></td></tr>' +
+    '<tr style="height:13%;"><td style="font-size:8px;">NG No</td><td colspan="3" class="bold" style="font-size:12px;">: ' + spkNo + '</td></tr>' +
+    '<tr style="height:13%;"><td style="font-size:8px;">SOURCE SPK</td><td colspan="3" style="font-size:11px;">: ' + sourceSpk + '</td></tr>' +
+    '<tr style="height:14%;"><td style="font-size:8px;">SPEK / SIZE</td><td colspan="3" class="bold" style="font-size:11px;">: ' + spec + ' | ' + size + '</td></tr>' +
+    '<tr style="height:14%;"><td style="font-size:8px;">QTY / KG</td><td colspan="3" class="bold" style="font-size:14px;">: ' + qty + ' pcs / ' + kg + ' kg</td></tr>' +
+    '<tr style="height:12%;"><td style="font-size:8px;">OWNER</td><td class="bold">: ' + owner + '</td><td style="font-size:8px;">MC</td><td>: ' + mc + '</td></tr>' +
+    '<tr style="height:12%;"><td style="font-size:8px;">TGL PROD</td><td colspan="3" class="bold">: ' + tglProd + '</td></tr>' +
   '</table></div></body></html>';
   var fr = document.createElement('iframe');
   fr.style.cssText = 'position:fixed; right:0; bottom:0; width:0; height:0; border:0;';
