@@ -59,6 +59,33 @@ function formatTglLabel(dateObj) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+// HELPER: Vendor Name/Code Resolver
+// Baca M_VENDOR (kolom A=Code, kolom B=Nama) → return map untuk konversi
+// nama full atau code (case-insensitive) menjadi Code.
+// ─────────────────────────────────────────────────────────────────────────
+function _buildVendorNameToCodeMap() {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('M_VENDOR');
+  var map = {};
+  if (!sh) return map;
+  var data = sh.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    var code = String(data[i][0] || '').trim();
+    var name = String(data[i][1] || '').trim().toUpperCase();
+    if (code) {
+      if (name) map[name] = code;             // nama full → code
+      map[code.toUpperCase()] = code;         // code (case-insensitive) → code
+    }
+  }
+  return map;
+}
+
+function _resolveVendorCode(rawValue, vMap) {
+  var v = String(rawValue || '').trim().toUpperCase();
+  if (!v) return '-';
+  return vMap[v] || rawValue; // fallback ke raw kalau tidak ditemukan (biar user aware)
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 // 1. GET INITIAL DATA (MENARIK DATA PO YANG OPEN SAJA)
 // ─────────────────────────────────────────────────────────────────────────
 function getInitData() {
@@ -160,13 +187,18 @@ function getGRDashboardData(page) {
     var iData = itemSheet.getDataRange().getValues();
     var iH = iData[0].map(function(h) { return String(h).trim(); });
     var iCodeIdx = 0; // Asumsi Item Code ada di kolom pertama
+    var specIdx = iH.indexOf('Spec');
     var tIdx = iH.indexOf('T');
     var pIdx = iH.indexOf('P');
     var lIdx = iH.indexOf('L');
+    var uomIdx = iH.indexOf('Unit of Measure');
+    if (uomIdx === -1) uomIdx = iH.indexOf('UoM'); // fallback
     
     for (var m = 1; m < iData.length; m++) {
       if (iData[m][iCodeIdx]) {
         itemMap[String(iData[m][iCodeIdx]).trim()] = {
+          spec: specIdx >= 0 ? String(iData[m][specIdx] || '').trim() : '',
+          uom: uomIdx >= 0 ? String(iData[m][uomIdx] || '').trim() : '',
           t: tIdx >= 0 ? (parseFloat(iData[m][tIdx]) || 0) : 0,
           p: pIdx >= 0 ? (parseFloat(iData[m][pIdx]) || 0) : 0,
           l: lIdx >= 0 ? (parseFloat(iData[m][lIdx]) || 0) : 0
@@ -198,6 +230,13 @@ function getGRDashboardData(page) {
   var locIdx = h.indexOf('Target_Loc');
   var noteIdx = h.indexOf('NOTE');                  // 🟢 T1.6
   if (noteIdx === -1) noteIdx = h.indexOf('Note');  // fallback nama header
+  // 🟢 Snapshot Spec/T/P/L dari sheet GR (kalau ada) — prioritas snapshot → fallback itemMap
+  var specGRIdx = h.indexOf('Spec');
+  var tGRIdx = h.indexOf('T');
+  var pGRIdx = h.indexOf('P');
+  var lGRIdx = h.indexOf('L');
+  // 🟢 Vendor code resolver map (Nama Full → V001)
+  var vendorMap = _buildVendorNameToCodeMap();
 
   for (var i = 1; i < data.length; i++) {
     if (!data[i][bIdx]) continue;
@@ -213,8 +252,21 @@ function getGRDashboardData(page) {
     var jenis = (targetLoc === 'Stok_Coil') ? 'COIL' : 'LEMBARAN';
     var itemCode = iIdx >= 0 ? String(data[i][iIdx]).trim() : '';
     
-    // 3. Ambil dimensi material berdasarkan Item Code
-    var dim = itemMap[itemCode] || { t: 0, p: 0, l: 0 };
+    // 3. Resolve Spec/UoM/dimensi — snapshot GR dulu, fallback itemMap
+    var itmRef = itemMap[itemCode] || { spec:'', uom:'', t: 0, p: 0, l: 0 };
+    var snapSpec = specGRIdx >= 0 ? String(data[i][specGRIdx] || '').trim() : '';
+    var snapT = tGRIdx >= 0 ? (parseFloat(data[i][tGRIdx]) || 0) : 0;
+    var snapP = pGRIdx >= 0 ? (parseFloat(data[i][pGRIdx]) || 0) : 0;
+    var snapL = lGRIdx >= 0 ? (parseFloat(data[i][lGRIdx]) || 0) : 0;
+    var finalSpec = snapSpec || itmRef.spec || '';
+    var finalT = snapT || itmRef.t || 0;
+    var finalP = snapP || itmRef.p || 0;
+    var finalL = snapL || itmRef.l || 0;
+    var dimStr = [finalT, finalP, finalL].filter(function(v){ return v > 0; }).join(' x ');
+    
+    // 4. Resolve Vendor Code (kolom Supplier bisa berisi nama full → convert ke V001)
+    var rawSupplier = sIdx >= 0 ? String(data[i][sIdx] || '').trim() : '';
+    var supplierCode = rawSupplier ? _resolveVendorCode(rawSupplier, vendorMap) : '-';
     
     allData.push({
       batch_id: String(data[i][bIdx]).trim(), 
@@ -225,16 +277,19 @@ function getGRDashboardData(page) {
       desc: descIdx >= 0 ? data[i][descIdx] : '-',
       no_do: doIdx >= 0 ? data[i][doIdx] : '-', 
       no_po: poIdx >= 0 ? data[i][poIdx] : '-', 
-      supplier: sIdx >= 0 ? data[i][sIdx] : '-', 
+      supplier: supplierCode, // 🟢 sekarang code (V001), bukan nama full
       qty: qIdx >= 0 ? data[i][qIdx] : null, 
       kg: kIdx >= 0 ? data[i][kIdx] : 0, 
+      uom: itmRef.uom || 'Pcs', // 🟢 fix: uom untuk label re-print
       no_coil: cIdx >= 0 ? data[i][cIdx] : '-', 
       owner: ownIdx >= 0 ? data[i][ownIdx] : '',
       note: noteIdx >= 0 ? String(data[i][noteIdx] || '') : '',   // 🟢 T1.6
       sheetName: 'GR',
-      t: dim.t, // <- DATA KRUSIAL YANG DITAMBAHKAN
-      p: dim.p, // <- DATA KRUSIAL YANG DITAMBAHKAN
-      l: dim.l  // <- DATA KRUSIAL YANG DITAMBAHKAN
+      spec: finalSpec, // 🟢 untuk Re-Print label
+      dim: dimStr,     // 🟢 untuk Re-Print label
+      t: finalT,
+      p: finalP,
+      l: finalL
     });
   }
 
@@ -267,6 +322,7 @@ function saveGR(payload) {
     var tgl = new Date(head.tgl_masuk);
     var baseBatchId = getBaseBatchId_GR(tgl);
     var savedCount = 0; var labelsToPrint = [];
+    var vendorMap = _buildVendorNameToCodeMap(); // 🟢 untuk convert nama full → code
 
     for (var i = 0; i < list.length; i++) {
       var itemData = list[i];
@@ -277,12 +333,19 @@ function saveGR(payload) {
       _saveGR_Log(itemData, finalBatchId, tgl);
       savedCount++;
 
-      var lblDim = [itemData.thick, itemData.lebar, itemData.l_dim].filter(Boolean).join('x');
-      var tipeLabel = itemData.target_loc === 'Stok_Coil' ? 'COIL' : 'LEMBARAN';
+      var lblDim = [itemData.thick, itemData.lebar, itemData.l_dim].filter(Boolean).join(' x ');
+      var isCoilLbl = String(itemData.target_loc).trim() === 'Stok_Coil';
+      var tipeLabel = isCoilLbl ? 'COIL' : 'LEMBARAN';
+      var qtyKgStr = isCoilLbl
+        ? (itemData.kg_in + ' Kg')
+        : (itemData.qty_in + ' ' + (itemData.uom||'Pcs') + ' / ' + itemData.kg_in + ' Kg');
+      var vendorCode = _resolveVendorCode(itemData.supplier, vendorMap); // 🟢 convert ke V001
       labelsToPrint.push({
-        jenis: tipeLabel, item_code: itemData.item_code, spec: itemData.spec || '-', dim: lblDim ? lblDim + ' mm' : '-',
-        qty_kg: (itemData.qty_in ? itemData.qty_in + ' ' + (itemData.uom||'Pcs') + ' / ' : '') + itemData.kg_in + ' Kg',
-        tgl_gr: formatTglLabel(tgl), no_gr: finalBatchId
+        jenis: tipeLabel, spec: itemData.spec || '-', dim: lblDim ? lblDim + ' mm' : '-',
+        qty_kg: qtyKgStr,
+        tgl_gr: formatTglLabel(tgl), no_gr: finalBatchId,
+        vendor: vendorCode || '-',
+        no_coil: itemData.no_coil || '-'
       });
     }
 

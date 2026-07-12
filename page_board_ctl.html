@@ -447,6 +447,167 @@ body { margin: 0; padding: 0; background: var(--bg-base); }
   color: var(--text-muted); font-size: 11px; font-weight: 600;
   margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-soft);
 }
+
+/* ===== PAUSE-LOSS FEATURE (STEP 3A) ===== */
+.btn-pause-loss {
+  background: var(--bg-base, #1e293b); color: var(--text-primary, #f1f5f9);
+  padding: 10px 16px; font-size: 13px; font-weight: 800;
+  border: 1px solid var(--border-soft, #334155); border-radius: 6px; cursor: pointer;
+  margin-right: 8px;
+}
+.btn-pause-loss:hover { background: #334155; border-color: #475569; }
+.btn-pause-loss.has-loss {
+  background: var(--accent-yellow, #eab308); color: #1e293b;
+  border-color: var(--accent-yellow, #eab308);
+  box-shadow: 0 2px 8px rgba(234, 179, 8, 0.4);
+}
+.btn-pause-loss.has-loss:hover { background: #ca8a04; border-color: #ca8a04; }
+
+.loss-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; background: rgba(234, 179, 8, 0.15);
+  color: var(--accent-yellow, #eab308); border-radius: 12px;
+  font-size: 11px; font-weight: 800; cursor: pointer;
+  margin-left: 10px; border: 1px solid rgba(234, 179, 8, 0.35);
+  vertical-align: middle;
+}
+.loss-badge:hover { background: rgba(234, 179, 8, 0.28); }
+.loss-badge.hidden { display: none; }
+
+.loss-detail-panel {
+  margin-top: 10px; padding: 10px 12px;
+  background: rgba(234, 179, 8, 0.05);
+  border-left: 3px solid var(--accent-yellow, #eab308);
+  border-radius: 4px; max-height: 180px; overflow-y: auto;
+}
+.loss-detail-panel.hidden { display: none; }
+.loss-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 4px; border-bottom: 1px dashed var(--border-soft);
+  font-size: 12px;
+}
+.loss-item:last-child { border-bottom: none; }
+.loss-item-info { flex: 1; }
+.loss-item-time { color: var(--text-muted); font-family: 'Consolas', monospace; font-size: 11px; margin-top: 2px; }
+.loss-item-code {
+  display: inline-block; padding: 1px 6px; border-radius: 3px;
+  font-size: 10px; font-weight: 800; margin-right: 6px; color: white;
+  font-family: 'Consolas', monospace;
+}
+.lc-MAN { background: #3b82f6; }
+.lc-MACHINE { background: #ef4444; }
+.lc-METHOD { background: #a855f7; }
+.lc-MATERIAL { background: #f97316; }
+.lc-OTHER { background: #6b7280; }
+.loss-item-durasi {
+  color: var(--accent-yellow, #eab308); font-weight: 800;
+  font-family: 'Consolas', monospace; margin-right: 12px; min-width: 55px; text-align: right;
+}
+.loss-item-del {
+  background: transparent; color: var(--andon-down, #ef4444);
+  border: none; cursor: pointer; font-size: 16px; padding: 2px 8px; font-weight: 800;
+}
+.loss-item-del:hover { color: #dc2626; }
+
+#pause-loss-modal .modal-box { width: 520px; max-width: 92vw; }
+#pause-loss-modal .modal-head { background: rgba(234, 179, 8, 0.1); border-bottom: 2px solid var(--accent-yellow, #eab308); }
+#pause-loss-modal .modal-title { color: #fde047; }
+.pl-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pl-durasi-box {
+  padding: 8px; background: var(--bg-base); border-radius: 4px;
+  color: var(--accent-yellow); font-weight: 800; font-family: 'Consolas', monospace;
+  text-align: center; font-size: 16px; border: 1px solid var(--border-soft);
+}
+.pl-warn-small {
+  color: #fbbf24; background: rgba(234, 179, 8, 0.12);
+  padding: 8px 10px; border-radius: 4px; font-size: 12px;
+  margin-top: 8px; display: none; border-left: 3px solid #fbbf24;
+}
+.pl-warn-small.show { display: block; }
+.pl-error-box {
+  display: none; color: #fca5a5; font-size: 12px; margin-top: 8px;
+  padding: 8px; background: rgba(239,68,68,0.1);
+  border-left: 3px solid var(--andon-down); border-radius: 4px;
+}
+
+/* ===== HOLD-SWITCH FEATURE (STEP 3B) ===== */
+.btn-hold {
+  background: #f97316; color: white;
+  padding: 10px 16px; font-size: 13px; font-weight: 800;
+  border: none; border-radius: 6px; cursor: pointer;
+  margin-right: 8px; box-shadow: 0 2px 6px rgba(249, 115, 22, 0.3);
+}
+.btn-hold:hover { background: #ea580c; }
+
+.zone-hold {
+  padding: 12px 20px; background: rgba(249, 115, 22, 0.04);
+  border-top: 1px solid var(--border-soft); border-bottom: 1px solid var(--border-soft);
+}
+.hold-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px; color: #fdba74; font-weight: 800; font-size: 13px;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.hold-list {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px;
+}
+.hold-empty {
+  color: var(--text-muted); font-style: italic; font-size: 12px;
+  padding: 8px 0; text-align: center;
+}
+.hold-card {
+  background: rgba(249, 115, 22, 0.08); border: 1px solid rgba(249, 115, 22, 0.3);
+  border-left: 4px solid #f97316; border-radius: 6px;
+  padding: 12px; font-size: 12px; position: relative;
+}
+.hold-card .hc-badge {
+  position: absolute; top: 8px; right: 8px;
+  background: #f97316; color: white; padding: 2px 8px; border-radius: 10px;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.5px;
+}
+.hold-card .hc-spk {
+  font-family: 'Consolas', monospace; font-weight: 900;
+  color: var(--accent-machine); font-size: 14px; margin-bottom: 4px;
+}
+.hold-card .hc-item { color: var(--accent-yellow); font-weight: 700; margin: 4px 0; }
+.hold-card .hc-since { color: var(--text-muted); font-size: 11px; margin: 6px 0; }
+.hold-card .hc-detail {
+  color: var(--text-secondary); font-size: 11px; font-style: italic;
+  margin: 6px 0; padding: 4px 6px; background: rgba(0,0,0,0.15); border-radius: 3px;
+}
+.hold-card .hc-actions {
+  display: flex; gap: 6px; margin-top: 10px;
+}
+.hold-card .btn-resume {
+  flex: 1; background: var(--andon-running); color: white;
+  border: none; padding: 8px; border-radius: 4px; font-weight: 800; font-size: 12px;
+  cursor: pointer;
+}
+.hold-card .btn-resume:hover { background: #16a34a; }
+.hold-card .btn-resume:disabled {
+  background: #4b5563; cursor: not-allowed; opacity: 0.6;
+}
+
+/* Modal HOLD */
+#hold-modal .modal-box { width: 500px; max-width: 92vw; }
+#hold-modal .modal-head { background: rgba(249, 115, 22, 0.12); border-bottom: 2px solid #f97316; }
+#hold-modal .modal-title { color: #fdba74; }
+
+/* Modal PASSWORD (utk RESUME atau HOLD-tanpa-session) */
+#password-modal .modal-box { width: 400px; max-width: 92vw; }
+#password-modal .modal-head { background: rgba(59, 130, 246, 0.1); border-bottom: 2px solid #3b82f6; }
+#password-modal .modal-title { color: #93c5fd; }
+.pw-context {
+  padding: 10px; background: var(--bg-base); border-radius: 4px;
+  color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;
+  border-left: 3px solid #3b82f6;
+}
+
+.hold-error-box {
+  display: none; color: #fca5a5; font-size: 12px; margin-top: 8px;
+  padding: 8px; background: rgba(239,68,68,0.1);
+  border-left: 3px solid var(--andon-down); border-radius: 4px;
+}
 </style>
 </head>
 <body>
@@ -495,7 +656,7 @@ body { margin: 0; padding: 0; background: var(--bg-base); }
     <div id="active-area" style="display:none;">
       <div class="active-head">
         <div>
-          <div class="active-spkno" id="a-spkno">—</div>
+          <div class="active-spkno" id="a-spkno">—<span class="loss-badge hidden" id="loss-badge" onclick="window.toggleLossDetail()">⚠ <span id="loss-count">0</span> loss (<span id="loss-total">0</span> mnt)</span></div>
         </div>
         <div class="active-meta-grid">
           <div><span class="meta-label">Item:</span> <span class="meta-val" id="a-item">—</span></div>
@@ -506,9 +667,18 @@ body { margin: 0; padding: 0; background: var(--bg-base); }
           <div><span class="meta-label">Priority:</span> <span class="meta-val" id="a-prio">Normal</span></div>
         </div>
         <div>
+          <!-- STEP 3A: Tombol Pause loss — visible hanya saat RUNNING -->
+          <button class="btn-pause-loss" id="btn-pause-loss" onclick="window.openPauseLossModal()" style="display:none;">⏸ PAUSE loss</button>
+          <!-- STEP 3B: Tombol HOLD (PPIC only, password) — visible hanya saat RUNNING & belum HOLD -->
+          <button class="btn-hold" id="btn-hold" onclick="window.openHoldModal()" style="display:none;">⏭ HOLD</button>
           <!-- POKA-YOKE: Tombol ganti job disembunyikan otomatis jika RUNNING via JS -->
           <button class="btn-secondary btn" id="btn-ganti-job" onclick="window.clearActive()">⟲ Ganti Job</button>
         </div>
+      </div>
+
+      <!-- STEP 3A: Loss detail panel (expandable, di bawah active-head) -->
+      <div id="loss-detail-panel" class="loss-detail-panel hidden">
+        <div id="loss-detail-list"></div>
       </div>
 
       <div class="progress-section" id="progress-area" style="display:none;">
@@ -543,6 +713,17 @@ body { margin: 0; padding: 0; background: var(--bg-base); }
           </tbody>
         </table>
       </div>
+    </div>
+  </div>
+
+  <!-- STEP 3B: ZONE 2.5 - ON HOLD (SPK yg di-hold, max 3 per mesin) -->
+  <div id="zone-hold" class="zone-hold" style="display:none;">
+    <div class="hold-head">
+      <span>⏭ ON HOLD <span id="hold-count-badge" style="background:#f97316;color:white;padding:1px 8px;border-radius:10px;font-size:11px;margin-left:6px;">0</span></span>
+      <span style="color:var(--text-muted); font-weight:600; font-size:11px; text-transform:none; letter-spacing:normal;">Klik RESUME utk lanjutkan (perlu password PPIC)</span>
+    </div>
+    <div class="hold-list" id="hold-list">
+      <div class="hold-empty">Tidak ada SPK di-hold</div>
     </div>
   </div>
 
@@ -602,6 +783,133 @@ body { margin: 0; padding: 0; background: var(--bg-base); }
     </div>
   </div>
 </div>
+<!-- MODAL: PAUSE-LOSS (Catat loss event tanpa ubah status SPK) STEP 3A -->
+<div id="pause-loss-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title">⏸ CATAT LOSS EVENT</div>
+      <button class="modal-close" onclick="window.closePauseLossModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pl-spkno">
+      <input type="hidden" id="pl-mcno" value="CTL-01">
+      <div class="form-row">
+        <label>SPK</label>
+        <div id="pl-spk-display" style="font-size: 15px; font-weight: 800; color: var(--accent-machine); font-family: 'Consolas', monospace;"></div>
+      </div>
+      <div class="form-row pl-two-col">
+        <div>
+          <label>Tanggal <span style="color:var(--andon-down);">*</span></label>
+          <input type="date" id="pl-tgl">
+        </div>
+        <div>
+          <label>Durasi (mnt)</label>
+          <div id="pl-durasi" class="pl-durasi-box">0</div>
+        </div>
+      </div>
+      <div class="form-row pl-two-col">
+        <div>
+          <label>Jam Mulai <span style="color:var(--andon-down);">*</span></label>
+          <input type="time" id="pl-jam-mulai" onchange="window.calcPlDurasi()">
+        </div>
+        <div>
+          <label>Jam Selesai <span style="color:var(--andon-down);">*</span></label>
+          <input type="time" id="pl-jam-selesai" onchange="window.calcPlDurasi()">
+        </div>
+      </div>
+      <div id="pl-warn" class="pl-warn-small">⚠ Loss &lt; 5 menit biasanya tidak perlu dicatat. Konfirmasi saat simpan.</div>
+      <div class="form-row">
+        <label>Kategori 4M <span style="color:var(--andon-down);">*</span></label>
+        <select id="pl-kategori" onchange="window.filterPlSubKategori()">
+          <option value="">-- pilih kategori --</option>
+          <option value="MAN">MAN — Manusia</option>
+          <option value="MACHINE">MACHINE — Mesin</option>
+          <option value="METHOD">METHOD — Metode</option>
+          <option value="MATERIAL">MATERIAL — Material</option>
+          <option value="OTHER">OTHER — Lain-lain</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Sub-Kategori <span style="color:var(--andon-down);">*</span></label>
+        <select id="pl-code" disabled onchange="window.plHandleCodeChange()">
+          <option value="">-- pilih kategori dulu --</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Detail <span id="pl-detail-req" style="color:var(--andon-down); display:none;">*</span></label>
+        <textarea id="pl-detail" rows="2" placeholder="Deskripsi tambahan (opsional, wajib utk OTH-03/OTH-04)"></textarea>
+      </div>
+      <div id="pl-error" class="pl-error-box"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="window.closePauseLossModal()">Batal</button>
+      <button class="btn" id="pl-btn-save" onclick="window.submitPauseLoss()" style="background: var(--accent-yellow, #eab308); color: #1e293b; padding: 12px 20px; font-weight: 800; font-size: 14px;">💾 SIMPAN LOSS</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: HOLD SPK (STEP 3B) — pause SPK, catat Loss_Log MTD-07 -->
+<div id="hold-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title">⏭ HOLD SPK</div>
+      <button class="modal-close" onclick="window.closeHoldModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="h-spkno">
+      <div class="form-row">
+        <label>SPK</label>
+        <div id="h-spk-display" style="font-size:16px; font-weight:800; color:var(--accent-machine); font-family:'Consolas',monospace;"></div>
+      </div>
+      <div class="form-row">
+        <label>Alasan</label>
+        <div style="padding:8px; background:var(--bg-base); border-radius:4px; color:#fdba74; font-weight:700;">
+          MTD-07 · SPK di-hold karena prioritas berubah
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Detail Tambahan <span style="color:var(--text-muted); font-size:11px;">(opsional)</span></label>
+        <textarea id="h-detail" rows="2" placeholder="Contoh: SPK Urgent PT ABC datang, harus dikerjakan dulu"></textarea>
+      </div>
+      <!-- Password field: disembunyikan kalau session valid -->
+      <div class="form-row" id="h-password-row">
+        <label>Password PPIC <span style="color:var(--andon-down);">*</span></label>
+        <input type="password" id="h-password" placeholder="Masukkan password PPIC" autocomplete="off">
+      </div>
+      <div id="h-session-info" style="display:none; padding:8px; background:rgba(59,130,246,0.1); border-left:3px solid #3b82f6; border-radius:4px; color:#93c5fd; font-size:11px; margin-top:8px;">
+        ✓ Session PPIC aktif · <span id="h-session-remain"></span>
+      </div>
+      <div id="h-error" class="hold-error-box"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="window.closeHoldModal()">Batal</button>
+      <button class="btn" id="h-btn-save" onclick="window.submitHold()" style="background:#f97316; color:white; padding:12px 20px; font-weight:800; font-size:14px;">⏭ HOLD SEKARANG</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: PASSWORD PROMPT (dipakai RESUME atau HOLD tanpa session) -->
+<div id="password-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title">🔐 PASSWORD PPIC</div>
+      <button class="modal-close" onclick="window.closePasswordModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="pw-context" id="pw-context">Masukkan password PPIC untuk melanjutkan.</div>
+      <div class="form-row">
+        <label>Password <span style="color:var(--andon-down);">*</span></label>
+        <input type="password" id="pw-input" placeholder="Password PPIC" autocomplete="off">
+      </div>
+      <div id="pw-error" class="hold-error-box"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="window.closePasswordModal()">Batal</button>
+      <button class="btn" id="pw-btn-verify" onclick="window.submitPassword()" style="background:#3b82f6; color:white; padding:12px 20px; font-weight:800; font-size:14px;">✓ VERIFIKASI</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: CANCEL CTL-OUT (per-OUT cancel dengan password PPIC) -->
 <div id="cancel-out-modal" class="modal-overlay">
   <div class="modal-box">
@@ -909,6 +1217,10 @@ if (typeof google === 'undefined') {
     renderStatusBar();
     renderActiveCard();
     renderQueue();
+    // STEP 3B: refresh section ON HOLD tiap render
+    if (typeof window.refreshHeldSection === 'function') {
+      window.refreshHeldSection();
+    }
   }
 
   function renderStatusBar() {
@@ -960,18 +1272,33 @@ if (typeof google === 'undefined') {
 
     // POKA-YOKE: Menghilangkan Tombol Ganti Job saat sudah di RUNNING
     var btnGanti = $('btn-ganti-job');
+    var btnPause = $('btn-pause-loss');
+    var btnHold  = $('btn-hold');
     if (h.Status === 'RUNNING') {
       $('btn-mulai-wrap').style.display = 'none';
       $('out-area').style.display = 'block';
       $('progress-area').style.display = 'flex';
       if(btnGanti) btnGanti.style.display = 'none';
+      if(btnPause) btnPause.style.display = 'inline-block';
+      if(btnHold)  btnHold.style.display  = 'inline-block';
       renderOutRows();
       updateProgressBar();
+      // STEP 3A: refresh loss badge tiap render RUNNING
+      if (typeof window.refreshActiveLossBadge === 'function') {
+        window.refreshActiveLossBadge();
+      }
     } else {
       $('btn-mulai-wrap').style.display = 'block';
       $('out-area').style.display = 'none';
       $('progress-area').style.display = 'none';
       if(btnGanti) btnGanti.style.display = 'inline-flex';
+      // STEP 3A: hide tombol PAUSE & badge saat ANTRIAN (belum RUNNING)
+      if(btnPause) btnPause.style.display = 'none';
+      if(btnHold)  btnHold.style.display  = 'none';
+      var badgeEl = $('loss-badge');
+      var panelEl = $('loss-detail-panel');
+      if (badgeEl) badgeEl.classList.add('hidden');
+      if (panelEl) panelEl.classList.add('hidden');
     }
   }
 
@@ -1600,6 +1927,569 @@ function applyBoardRefresh(res) {
       el.addEventListener('click', function(e){
         if (e.target === el) el.classList.remove('show');
       });
+    }
+  });
+
+  // ============================================================
+  // STEP 3A: PAUSE-LOSS FEATURE
+  // Catat loss event ke Loss_Log tanpa ubah status SPK.
+  // ============================================================
+  var _lossOptionsCache = null;  // cache dropdown
+  var _lossCurrentList  = [];    // items utk SPK aktif
+
+  function _plPad(n){ return n < 10 ? '0' + n : '' + n; }
+  function _plToday() {
+    var d = new Date();
+    return d.getFullYear() + '-' + _plPad(d.getMonth()+1) + '-' + _plPad(d.getDate());
+  }
+  function _plNowTime() {
+    var d = new Date();
+    return _plPad(d.getHours()) + ':' + _plPad(d.getMinutes());
+  }
+  function _plParseHm(s) {
+    if (!s) return null;
+    var m = String(s).match(/^(\d{2}):(\d{2})/);
+    if (!m) return null;
+    return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+  }
+  function _showPlError(msg) {
+    var el = $('pl-error');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+  function _hidePlError() {
+    $('pl-error').style.display = 'none';
+  }
+
+  function _loadLossOptions(cb) {
+    if (_lossOptionsCache) { cb(_lossOptionsCache); return; }
+    google.script.run
+      .withFailureHandler(function(err){
+        console.error('lossGetOptions err', err);
+        _showPlError('Gagal load dropdown: ' + (err && err.message ? err.message : err));
+        cb(null);
+      })
+      .withSuccessHandler(function(r){
+        if (r && r.success) { _lossOptionsCache = r.options; cb(_lossOptionsCache); }
+        else { _showPlError('Dropdown loss kosong / gagal'); cb(null); }
+      })
+      .lossGetOptions();
+  }
+
+  window.filterPlSubKategori = function() {
+    var kat = $('pl-kategori').value;
+    var sel = $('pl-code');
+    sel.innerHTML = '';
+    if (!kat) {
+      sel.innerHTML = '<option value="">-- pilih kategori dulu --</option>';
+      sel.disabled = true;
+      $('pl-detail-req').style.display = 'none';
+      return;
+    }
+    sel.disabled = false;
+    sel.innerHTML = '<option value="">-- pilih sub-kategori --</option>';
+    if (!_lossOptionsCache) return;
+    _lossOptionsCache
+      .filter(function(o){ return o.kategori === kat; })
+      .forEach(function(o){
+        var opt = document.createElement('option');
+        opt.value = o.code;
+        opt.textContent = o.subKategori + ' (' + o.code + ')';
+        sel.appendChild(opt);
+      });
+  };
+
+  window.plHandleCodeChange = function() {
+    var code = $('pl-code').value;
+    var req = (code === 'OTH-03' || code === 'OTH-04');
+    $('pl-detail-req').style.display = req ? 'inline' : 'none';
+  };
+
+  window.calcPlDurasi = function() {
+    var m1 = _plParseHm($('pl-jam-mulai').value);
+    var m2 = _plParseHm($('pl-jam-selesai').value);
+    var d = (m1 !== null && m2 !== null) ? (m2 - m1) : 0;
+    if (d < 0) d += 24 * 60;
+    $('pl-durasi').textContent = d;
+    var warn = $('pl-warn');
+    if (d > 0 && d < 5) warn.classList.add('show');
+    else warn.classList.remove('show');
+  };
+
+  window.openPauseLossModal = function() {
+    if (!_activeHeader || _activeHeader.Status !== 'RUNNING') {
+      showToast('SPK belum RUNNING, tidak bisa catat loss', 'error');
+      return;
+    }
+    _hidePlError();
+    $('pl-spkno').value = _activeHeader.SPK_No;
+    $('pl-spk-display').textContent = _activeHeader.SPK_No;
+    $('pl-tgl').value = _plToday();
+    $('pl-jam-mulai').value = _plNowTime();
+    $('pl-jam-selesai').value = '';
+    $('pl-durasi').textContent = '0';
+    $('pl-kategori').value = '';
+    $('pl-code').innerHTML = '<option value="">-- pilih kategori dulu --</option>';
+    $('pl-code').disabled = true;
+    $('pl-detail').value = '';
+    $('pl-detail-req').style.display = 'none';
+    $('pl-warn').classList.remove('show');
+
+    _loadLossOptions(function(){
+      $('pause-loss-modal').classList.add('show');
+      setTimeout(function(){ $('pl-jam-selesai').focus(); }, 100);
+    });
+  };
+
+  window.closePauseLossModal = function() {
+    $('pause-loss-modal').classList.remove('show');
+  };
+
+  window.submitPauseLoss = function() {
+    _hidePlError();
+    var spk    = $('pl-spkno').value;
+    var mc     = $('pl-mcno').value;
+    var tgl    = $('pl-tgl').value;
+    var jm     = $('pl-jam-mulai').value;
+    var js     = $('pl-jam-selesai').value;
+    var code   = $('pl-code').value;
+    var detail = $('pl-detail').value;
+
+    if (!tgl) { _showPlError('Tanggal wajib diisi'); return; }
+    if (!jm || !js) { _showPlError('Jam mulai & selesai wajib diisi'); return; }
+    if (!code) { _showPlError('Sub-kategori wajib dipilih'); return; }
+
+    var durasi = parseInt($('pl-durasi').textContent, 10) || 0;
+    if (durasi <= 0) { _showPlError('Durasi tidak valid (jam selesai harus > jam mulai)'); return; }
+    if (durasi < 5) {
+      if (!confirm('Loss ' + durasi + ' menit (< 5 mnt).\nBiasanya tidak perlu dicatat. Lanjut simpan?')) return;
+    }
+    if ((code === 'OTH-03' || code === 'OTH-04') && !detail.trim()) {
+      _showPlError('Code ' + code + ' wajib mengisi field Detail');
+      return;
+    }
+
+    var btn = $('pl-btn-save');
+    btn.disabled = true;
+    btn.textContent = '⏳ Menyimpan…';
+
+    google.script.run
+      .withFailureHandler(function(err){
+        btn.disabled = false;
+        btn.textContent = '💾 SIMPAN LOSS';
+        _showPlError('Error: ' + (err && err.message ? err.message : err));
+      })
+      .withSuccessHandler(function(r){
+        btn.disabled = false;
+        btn.textContent = '💾 SIMPAN LOSS';
+        if (!r || !r.success) {
+          _showPlError(r && r.message ? r.message : 'Gagal simpan loss');
+          return;
+        }
+        window.closePauseLossModal();
+        showToast('Loss ' + r.loss_id + ' tersimpan (' + r.durasi_menit + ' mnt)', 'success');
+        window.refreshActiveLossBadge();
+      })
+      .lossSaveEvent({
+        spk_no      : spk,
+        mc_no       : mc,
+        tgl_loss    : tgl,
+        jam_mulai   : jm,
+        jam_selesai : js,
+        code        : code,
+        detail      : detail.trim(),
+        logged_by   : (window.CURRENT_USER || 'Leader')
+      });
+  };
+
+  window.refreshActiveLossBadge = function() {
+    if (!_activeHeader) { _hideLossBadge(); return; }
+    google.script.run
+      .withFailureHandler(function(){ _hideLossBadge(); })
+      .withSuccessHandler(function(r){
+        var btnPl = $('btn-pause-loss');
+        if (!r || !r.success || r.count === 0) {
+          _hideLossBadge();
+          if (btnPl) btnPl.classList.remove('has-loss');
+          return;
+        }
+        _lossCurrentList = r.items || [];
+        $('loss-count').textContent = r.count;
+        $('loss-total').textContent = r.total_menit;
+        $('loss-badge').classList.remove('hidden');
+        if (btnPl) btnPl.classList.add('has-loss');
+      })
+      .lossGetBySpk(_activeHeader.SPK_No);
+  };
+
+  function _hideLossBadge() {
+    var badge = $('loss-badge');
+    var panel = $('loss-detail-panel');
+    if (badge) badge.classList.add('hidden');
+    if (panel) panel.classList.add('hidden');
+    _lossCurrentList = [];
+  }
+
+  window.toggleLossDetail = function() {
+    var panel = $('loss-detail-panel');
+    if (!panel) return;
+    if (panel.classList.contains('hidden')) {
+      _renderLossDetail();
+      panel.classList.remove('hidden');
+    } else {
+      panel.classList.add('hidden');
+    }
+  };
+
+  function _renderLossDetail() {
+    var box = $('loss-detail-list');
+    if (!_lossCurrentList.length) {
+      box.innerHTML = '<div style="color:var(--text-muted); font-style:italic; text-align:center; padding:8px;">Tidak ada loss</div>';
+      return;
+    }
+    var html = '';
+    _lossCurrentList.forEach(function(l){
+      var kat = String(l.kategori_4m || 'OTHER').toUpperCase();
+      var detailStr = l.detail ? ' — ' + esc(l.detail) : '';
+      html += '<div class="loss-item">'
+           +   '<div class="loss-item-info">'
+           +     '<span class="loss-item-code lc-' + kat + '">' + esc(l.code) + '</span>'
+           +     '<span>' + esc(l.sub_kategori) + '</span>'
+           +     '<span style="color:var(--text-muted); font-size:11px;">' + detailStr + '</span>'
+           +     '<div class="loss-item-time">' + esc(l.jam_mulai) + '–' + esc(l.jam_selesai) + ' · by ' + esc(l.logged_by) + '</div>'
+           +   '</div>'
+           +   '<div class="loss-item-durasi">' + l.durasi_menit + ' mnt</div>'
+           +   '<button class="loss-item-del" title="Hapus" onclick="window.deleteLossItem(\'' + esc(l.loss_id) + '\')">×</button>'
+           + '</div>';
+    });
+    box.innerHTML = html;
+  }
+
+  window.deleteLossItem = function(lossId) {
+    if (!confirm('Hapus loss ' + lossId + '?\nAksi ini tidak dapat dibatalkan.')) return;
+    google.script.run
+      .withFailureHandler(function(err){
+        showToast('Error: ' + (err && err.message ? err.message : err), 'error');
+      })
+      .withSuccessHandler(function(r){
+        if (!r || !r.success) {
+          showToast(r && r.message ? r.message : 'Gagal hapus loss', 'error');
+          return;
+        }
+        showToast('Loss ' + lossId + ' dihapus', 'success');
+        window.refreshActiveLossBadge();
+      })
+      .lossDelete(lossId, (window.CURRENT_USER || 'Leader'));
+  };
+
+  // ESC & Enter handler untuk modal pause-loss
+  document.addEventListener('keydown', function(e){
+    var m = document.getElementById('pause-loss-modal');
+    if (!m || !m.classList.contains('show')) return;
+    if (e.key === 'Escape') window.closePauseLossModal();
+    if (e.key === 'Enter' && e.ctrlKey) {
+      e.preventDefault();
+      window.submitPauseLoss();
+    }
+  });
+
+  // ============================================================
+  // STEP 3B: HOLD-SWITCH FEATURE
+  // - Password session (1 jam) di sessionStorage
+  // - Modal HOLD (dgn alasan opsional)
+  // - Modal PASSWORD (dipakai kalau session expired)
+  // - Section ON HOLD render
+  // - Handler RESUME
+  // ============================================================
+  var HOLD_TOKEN_KEY = 'HOLD_TOKEN';
+  var HOLD_MC_NO = 'CTL-01';
+  var _pwAction = null;  // pending action setelah verify password: 'HOLD' | 'RESUME'
+  var _pwPayload = null; // data pending {spkNo, detail}
+
+  function _hSetToken(token, expiresIso) {
+    try {
+      var obj = { value: token, expires_iso: expiresIso };
+      sessionStorage.setItem(HOLD_TOKEN_KEY, JSON.stringify(obj));
+    } catch (_) {}
+  }
+  function _hGetToken() {
+    try {
+      var raw = sessionStorage.getItem(HOLD_TOKEN_KEY);
+      if (!raw) return null;
+      var obj = JSON.parse(raw);
+      if (!obj || !obj.value) return null;
+      var at = obj.value.lastIndexOf('@');
+      if (at < 0) return null;
+      var exp = Number(obj.value.slice(at + 1)) || 0;
+      if (Date.now() >= exp) {
+        sessionStorage.removeItem(HOLD_TOKEN_KEY);
+        return null;
+      }
+      return obj.value;
+    } catch (_) { return null; }
+  }
+  function _hClearToken() {
+    try { sessionStorage.removeItem(HOLD_TOKEN_KEY); } catch (_) {}
+  }
+  function _hSessionRemainStr() {
+    var raw = sessionStorage.getItem(HOLD_TOKEN_KEY);
+    if (!raw) return '';
+    try {
+      var obj = JSON.parse(raw);
+      var at = obj.value.lastIndexOf('@');
+      var exp = Number(obj.value.slice(at + 1));
+      var remainMin = Math.max(0, Math.floor((exp - Date.now()) / 60000));
+      return 'expired in ' + remainMin + ' menit';
+    } catch (_) { return ''; }
+  }
+
+  function _hShowError(elId, msg) {
+    var el = $(elId);
+    if (!el) return;
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+  function _hHideError(elId) {
+    var el = $(elId);
+    if (el) el.style.display = 'none';
+  }
+
+  // ============================================================
+  // MODAL HOLD
+  // ============================================================
+  window.openHoldModal = function() {
+    if (!_activeHeader || _activeHeader.Status !== 'RUNNING') {
+      showToast('SPK belum RUNNING, tidak bisa di-HOLD', 'error');
+      return;
+    }
+    _hHideError('h-error');
+    $('h-spkno').value = _activeHeader.SPK_No;
+    $('h-spk-display').textContent = _activeHeader.SPK_No;
+    $('h-detail').value = '';
+    $('h-password').value = '';
+
+    // Cek session token
+    var tok = _hGetToken();
+    if (tok) {
+      $('h-password-row').style.display = 'none';
+      $('h-session-info').style.display = 'block';
+      $('h-session-remain').textContent = _hSessionRemainStr();
+    } else {
+      $('h-password-row').style.display = 'block';
+      $('h-session-info').style.display = 'none';
+    }
+    $('hold-modal').classList.add('show');
+    setTimeout(function(){
+      if (tok) $('h-detail').focus();
+      else $('h-password').focus();
+    }, 100);
+  };
+
+  window.closeHoldModal = function() {
+    $('hold-modal').classList.remove('show');
+  };
+
+  window.submitHold = function() {
+    _hHideError('h-error');
+    var spk = $('h-spkno').value;
+    var detail = $('h-detail').value.trim();
+
+    var tok = _hGetToken();
+    if (!tok) {
+      var pwd = $('h-password').value;
+      if (!pwd) { _hShowError('h-error', 'Password wajib diisi'); return; }
+      // Verify password dulu, baru submit HOLD
+      var btn = $('h-btn-save');
+      btn.disabled = true; btn.textContent = '⏳ Verifikasi password…';
+      google.script.run
+        .withFailureHandler(function(err){
+          btn.disabled = false; btn.textContent = '⏭ HOLD SEKARANG';
+          _hShowError('h-error', 'Error: ' + (err && err.message ? err.message : err));
+        })
+        .withSuccessHandler(function(r){
+          if (!r || !r.success) {
+            btn.disabled = false; btn.textContent = '⏭ HOLD SEKARANG';
+            _hShowError('h-error', r && r.message ? r.message : 'Verifikasi gagal');
+            return;
+          }
+          _hSetToken(r.token, r.expires_iso);
+          _executeHold(spk, detail, r.token);
+        })
+        .holdVerifyPassword(pwd);
+      return;
+    }
+    // Sudah ada session valid, langsung HOLD
+    _executeHold(spk, detail, tok);
+  };
+
+  function _executeHold(spkNo, detail, token) {
+    var btn = $('h-btn-save');
+    btn.disabled = true; btn.textContent = '⏳ Memproses HOLD…';
+    google.script.run
+      .withFailureHandler(function(err){
+        btn.disabled = false; btn.textContent = '⏭ HOLD SEKARANG';
+        _hShowError('h-error', 'Error: ' + (err && err.message ? err.message : err));
+      })
+      .withSuccessHandler(function(r){
+        btn.disabled = false; btn.textContent = '⏭ HOLD SEKARANG';
+        if (!r || !r.success) {
+          if (r && r.need_password) {
+            _hClearToken();
+            _hShowError('h-error', r.message + ' (Silakan masukkan password ulang)');
+          } else {
+            _hShowError('h-error', r && r.message ? r.message : 'HOLD gagal');
+          }
+          return;
+        }
+        window.closeHoldModal();
+        showToast(r.message, 'success');
+        // Refresh board — SPK yg baru di-hold akan pindah ke section ON HOLD
+        window.refreshBoard();
+      })
+      .spkHoldRequest(spkNo, HOLD_MC_NO, detail, token, (window.CURRENT_USER || 'PPIC'));
+  }
+
+  // ============================================================
+  // MODAL PASSWORD (dipakai RESUME kalau session expired)
+  // ============================================================
+  function _openPasswordModal(action, payload, contextMsg) {
+    _pwAction = action;
+    _pwPayload = payload;
+    _hHideError('pw-error');
+    $('pw-input').value = '';
+    $('pw-context').textContent = contextMsg || 'Masukkan password PPIC untuk melanjutkan.';
+    $('password-modal').classList.add('show');
+    setTimeout(function(){ $('pw-input').focus(); }, 100);
+  }
+  window.closePasswordModal = function() {
+    $('password-modal').classList.remove('show');
+    _pwAction = null; _pwPayload = null;
+  };
+  window.submitPassword = function() {
+    _hHideError('pw-error');
+    var pwd = $('pw-input').value;
+    if (!pwd) { _hShowError('pw-error', 'Password wajib diisi'); return; }
+    var btn = $('pw-btn-verify');
+    btn.disabled = true; btn.textContent = '⏳ Verifikasi…';
+    google.script.run
+      .withFailureHandler(function(err){
+        btn.disabled = false; btn.textContent = '✓ VERIFIKASI';
+        _hShowError('pw-error', 'Error: ' + (err && err.message ? err.message : err));
+      })
+      .withSuccessHandler(function(r){
+        btn.disabled = false; btn.textContent = '✓ VERIFIKASI';
+        if (!r || !r.success) {
+          _hShowError('pw-error', r && r.message ? r.message : 'Password salah');
+          return;
+        }
+        _hSetToken(r.token, r.expires_iso);
+        var act = _pwAction, pl = _pwPayload;
+        window.closePasswordModal();
+        // Lanjutkan action yang ditunda
+        if (act === 'RESUME' && pl && pl.spkNo) {
+          _executeResume(pl.spkNo, r.token);
+        }
+      })
+      .holdVerifyPassword(pwd);
+  };
+
+  // ============================================================
+  // RESUME SPK (dari section ON HOLD)
+  // ============================================================
+  window.resumeSpk = function(spkNo) {
+    if (!spkNo) return;
+    var tok = _hGetToken();
+    if (!tok) {
+      _openPasswordModal('RESUME', { spkNo: spkNo }, 'RESUME SPK ' + spkNo + ' butuh verifikasi PPIC.');
+      return;
+    }
+    _executeResume(spkNo, tok);
+  };
+
+  function _executeResume(spkNo, token) {
+    google.script.run
+      .withFailureHandler(function(err){
+        showToast('Error RESUME: ' + (err && err.message ? err.message : err), 'error');
+      })
+      .withSuccessHandler(function(r){
+        if (!r || !r.success) {
+          if (r && r.need_password) {
+            _hClearToken();
+            _openPasswordModal('RESUME', { spkNo: spkNo }, 'Session expired. Verifikasi ulang.');
+          } else {
+            showToast(r && r.message ? r.message : 'RESUME gagal', 'error');
+          }
+          return;
+        }
+        showToast(r.message, 'success');
+        window.refreshBoard();
+      })
+      .spkResumeRequest(spkNo, HOLD_MC_NO, token, (window.CURRENT_USER || 'PPIC'));
+  }
+
+  // ============================================================
+  // RENDER SECTION ON HOLD
+  // ============================================================
+  window.refreshHeldSection = function() {
+    google.script.run
+      .withFailureHandler(function(err){
+        console.error('spkGetHeldByMc err', err);
+      })
+      .withSuccessHandler(function(r){
+        var zone = $('zone-hold');
+        var list = $('hold-list');
+        var badge = $('hold-count-badge');
+        if (!r || !r.success || !r.count) {
+          zone.style.display = 'none';
+          if (badge) badge.textContent = '0';
+          list.innerHTML = '<div class="hold-empty">Tidak ada SPK di-hold</div>';
+          return;
+        }
+        zone.style.display = 'block';
+        badge.textContent = r.count;
+        var html = '';
+        r.items.forEach(function(it){
+          var spkNo = String(it.SPK_No || '');
+          var itemCode = String(it.Item_Code || '—');
+          var spec = String(it.Input_Spec || it.Mat_Spec || '');
+          var cust = String(it.Cust || '');
+          var since = (it._hold_tgl && it._hold_jam) ? (it._hold_tgl + ' ' + it._hold_jam) : (it._hold_logged_at || '—');
+          var by = String(it._hold_logged_by || '');
+          var detail = String(it._hold_detail || '');
+          html += '<div class="hold-card">'
+               +   '<span class="hc-badge">ON HOLD</span>'
+               +   '<div class="hc-spk">' + esc(spkNo) + '</div>'
+               +   '<div class="hc-item">' + esc(itemCode) + (spec ? ' · ' + esc(spec) : '') + '</div>'
+               +   (cust ? '<div style="color:var(--text-secondary); font-size:11px;">' + esc(cust) + '</div>' : '')
+               +   '<div class="hc-since">⏱ Sejak ' + esc(since) + (by ? ' · by ' + esc(by) : '') + '</div>'
+               +   (detail ? '<div class="hc-detail">"' + esc(detail) + '"</div>' : '')
+               +   '<div class="hc-actions">'
+               +     '<button class="btn-resume" onclick="window.resumeSpk(\'' + esc(spkNo) + '\')">▶ RESUME</button>'
+               +   '</div>'
+               + '</div>';
+        });
+        list.innerHTML = html;
+      })
+      .spkGetHeldByMc(HOLD_MC_NO);
+  };
+
+  // ============================================================
+  // ESC / Enter handlers utk 2 modal baru
+  // ============================================================
+  document.addEventListener('keydown', function(e){
+    var mHold = document.getElementById('hold-modal');
+    if (mHold && mHold.classList.contains('show')) {
+      if (e.key === 'Escape') window.closeHoldModal();
+      if (e.key === 'Enter' && document.activeElement && (document.activeElement.id === 'h-password' || document.activeElement.id === 'h-detail')) {
+        e.preventDefault(); window.submitHold();
+      }
+    }
+    var mPw = document.getElementById('password-modal');
+    if (mPw && mPw.classList.contains('show')) {
+      if (e.key === 'Escape') window.closePasswordModal();
+      if (e.key === 'Enter' && document.activeElement && document.activeElement.id === 'pw-input') {
+        e.preventDefault(); window.submitPassword();
+      }
     }
   });
 

@@ -638,16 +638,60 @@ function submitEdit() {
 }
 
 function printSingleLabel() {
-  var r = CUR.editingRow; var qk = r.jenis === 'COIL' ? r.kg + ' Kg' : r.qty + ' ' + r.uom + ' / ' + r.kg + ' Kg';
-  var lblData = [{ jenis: r.jenis, item_code: r.item_code, spec: r.spec || '-', dim: r.dim ? r.dim + ' mm' : '-', qty_kg: qk, tgl_gr: r.tgl_str, no_gr: r.batch_id }];
+  var r = CUR.editingRow;
+  var isCoil = r.jenis === 'COIL';
+  var uomStr = r.uom || 'Pcs';
+  var qk = isCoil ? (r.kg + ' Kg') : (r.qty + ' ' + uomStr + ' / ' + r.kg + ' Kg');
+  var dimStr = r.dim || [r.t, r.p, r.l].filter(function(v){ return v > 0; }).join(' x ');
+  var lblData = [{
+    jenis: r.jenis,
+    spec: r.spec || '-',
+    dim: dimStr ? dimStr + ' mm' : '-',
+    qty_kg: qk,
+    tgl_gr: r.tgl_str,
+    no_gr: r.batch_id,
+    vendor: r.supplier || '-',
+    no_coil: r.no_coil || '-'
+  }];
   printLabels(lblData);
 }
 
 function printLabels(labelsData) {
   var iframe = document.createElement('iframe'); iframe.style.display = 'none'; document.body.appendChild(iframe); var doc = iframe.contentWindow.document;
-  var html = '<html><head><style>@page{size:80mm 50mm;margin:0;} body{margin:0;padding:0;font-family:Arial,sans-serif;color:#000;} .label-box{width:80mm;height:50mm;padding:2mm;box-sizing:border-box;page-break-after:always;display:flex;flex-direction:column;} table{width:100%;height:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;} td{border:1px solid #000;padding:2px 4px;overflow:hidden;vertical-align:middle;} .logo-box{display:inline-block;border:2px solid #0265dc;color:#0265dc;font-weight:900;font-size:18px;padding:1px 4px;letter-spacing:1px;} .comp{font-weight:900;font-size:11px;text-align:center;font-style:italic;line-height:1.1;} .title{font-weight:900;font-size:14px;text-align:center;} .lbl{font-size:10px;} .val{font-size:12px;font-weight:bold;}</style></head><body>';
+  var html = '<html><head><style>'
+    + '@page{size:80mm 50mm;margin:0;}'
+    + 'body{margin:0;padding:0;font-family:Arial,sans-serif;color:#000;}'
+    + '.label-box{width:80mm;height:50mm;padding:2mm;box-sizing:border-box;page-break-after:always;display:flex;flex-direction:column;}'
+    + 'table{width:100%;height:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;}'
+    + 'td{border:1px solid #000;padding:1px 3px;overflow:hidden;vertical-align:middle;line-height:1.15;}'
+    + '.logo-box{display:inline-block;border:2px solid #0265dc;color:#0265dc;font-weight:900;font-size:16px;padding:1px 4px;letter-spacing:1px;}'
+    + '.comp{font-weight:900;font-size:10px;text-align:center;font-style:italic;line-height:1.1;}'
+    + '.title{font-weight:900;font-size:13px;text-align:center;}'
+    + '.lbl{font-size:9px;}'
+    + '.val{font-size:11px;font-weight:bold;}'
+    + '</style></head><body>';
   labelsData.forEach(function(lbl) {
-    html += '<div class="label-box"><table><tr><td width="20%" style="text-align:center;"><div class="logo-box">F/C</div></td><td width="45%" class="comp">FLAMBINDO<br>CORTAMA</td><td width="35%" class="title" colspan="2">LABEL ' + lbl.jenis + '</td></tr><tr><td class="lbl">ITEM CODE</td><td class="val">: ' + lbl.item_code + '</td><td class="lbl" width="12%">CUST</td><td class="val" width="23%">: </td></tr><tr><td class="lbl">SPEK</td><td class="val" colspan="3">: ' + lbl.spec + '</td></tr><tr><td class="lbl">SIZE (TxWxL)</td><td class="val" colspan="3">: ' + lbl.dim + '</td></tr><tr><td class="lbl">QTY/KG</td><td class="val" colspan="3">: ' + lbl.qty_kg + '</td></tr><tr><td class="lbl">TGL GR</td><td class="val">: ' + lbl.tgl_gr + '</td><td class="lbl">NO GR</td><td class="val" style="font-size:10px;">: ' + lbl.no_gr + '</td></tr></table></div>';
+    var jenisText = (lbl.jenis === 'COIL') ? 'COIL' : 'SHEET';
+    var noCoilRow = (lbl.jenis === 'COIL')
+      ? '<tr><td class="lbl">NO COIL</td><td class="val" colspan="3">: ' + (lbl.no_coil || '-') + '</td></tr>'
+      : '';
+    html += '<div class="label-box"><table>'
+      + '<colgroup><col style="width:20%"><col style="width:30%"><col style="width:15%"><col style="width:35%"></colgroup>'
+      + '<tr>'
+        + '<td style="text-align:center;"><div class="logo-box">F/C</div></td>'
+        + '<td class="comp">FLAMBINDO<br>CORTAMA</td>'
+        + '<td class="title" colspan="2">LABEL ' + jenisText + '</td>'
+      + '</tr>'
+      + '<tr>'
+        + '<td class="lbl">VEN</td><td class="val">: ' + (lbl.vendor || '-') + '</td>'
+        + '<td class="lbl">TGL GR</td><td class="val">: ' + lbl.tgl_gr + '</td>'
+      + '</tr>'
+      + noCoilRow
+      + '<tr><td class="lbl">SPEK</td><td class="val" colspan="3">: ' + lbl.spec + '</td></tr>'
+      + '<tr><td class="lbl">SIZE (TxWxL)</td><td class="val" colspan="3">: ' + lbl.dim + '</td></tr>'
+      + '<tr><td class="lbl">QTY/KG</td><td class="val" colspan="3">: ' + lbl.qty_kg + '</td></tr>'
+      + '<tr><td class="lbl">BATCH</td><td class="val" colspan="3">: ' + lbl.no_gr + '</td></tr>'
+      + '</table></div>';
   });
   html += '</body></html>'; doc.open(); doc.write(html); doc.close();
   setTimeout(function() { iframe.contentWindow.focus(); iframe.contentWindow.print(); setTimeout(function() { document.body.removeChild(iframe); }, 2000); }, 500);

@@ -209,10 +209,18 @@ td{padding:8px 12px;border-bottom:1px solid #e2e8f0;vertical-align:middle;overfl
           <tr>
             <td class="lbl">Batch Input</td>
             <td colspan="5">
-              <select id="hdr-batch" onchange="onBatchChangeShr(this)"
-                style="width:100%;border:2px solid var(--shr-green);font-weight:700;font-size:13px;padding:5px 8px;background:#fff">
-                <option value="">-- Pilih Batch --</option>
-              </select>
+              <div style="position:relative;width:100%;">
+                <input id="hdr-batch-search" type="text"
+                  placeholder="🔍 Ketik Batch / Spec / T / P / L / Owner..."
+                  autocomplete="off"
+                  oninput="onBatchSearchInputShr(this.value)"
+                  onkeydown="onBatchSearchKeyShr(event)"
+                  onfocus="onBatchSearchInputShr(this.value)"
+                  style="width:100%;border:2px solid var(--shr-green);border-radius:3px;font-weight:700;font-size:13px;padding:5px 8px;background:#fff;">
+                <div id="hdr-batch-dropdown"
+                  style="display:none;position:fixed;background:#eaf5ec;border:1px solid var(--shr-green);border-radius:0 0 4px 4px;max-height:280px;overflow-y:auto;z-index:99999;box-shadow:0 4px 16px rgba(27,107,69,0.18);min-width:400px;">
+                </div>
+              </div>
               <input type="hidden" id="hdr-batch-id">
             </td>
             <td class="lbl">SPK_Date</td>
@@ -257,8 +265,8 @@ td{padding:8px 12px;border-bottom:1px solid #e2e8f0;vertical-align:middle;overfl
             <td class="lbl">Source_Loc</td>
             <td>
               <select id="hdr-source-loc" style="font-weight:700;color:var(--shr-green);width:100%">
+                <option value="Stok_Sheet" selected>Stok_Sheet</option>
                 <option value="WIP_Transit_Shearing">WIP_Transit_Shearing</option>
-                <option value="Stok_Sheet">Stok_Sheet</option>
               </select>
             </td>
             <td class="lbl">Priority</td>
@@ -707,40 +715,115 @@ document.addEventListener('keydown', function(e) {
   var _soData   = [];
   var _sheetOwner = 'FC';
 
-  /* ── STOK SHEET ── */
-  function populateBatchDropdown() {
-    var sel = document.getElementById('hdr-batch');
-    if (!sel) return;
-    var currentBid = sel.value;
-    sel.innerHTML = '<option value="">-- Pilih Batch --</option>';
-    var seen = {};
-    _stokData.forEach(function(r) {
+  /* ── STOK SHEET — BATCH SMART SEARCH ── */
+  var _batchSearchResults = [];
+  var _batchSearchIdx = -1;
+
+  window.onBatchSearchInputShr = function(val) {
+    var inpEl = document.getElementById('hdr-batch-search');
+    var drop  = document.getElementById('hdr-batch-dropdown');
+    if (!inpEl || !drop) return;
+    var q = String(val || '').trim().toLowerCase();
+    // Jika value masih format label ("BID | desc | ..."), pakai token pertama aja
+    if (q.indexOf(' | ') > -1) q = q.split(' | ')[0].trim().toLowerCase();
+
+    var filtered = _stokData.filter(function(r) {
+      var qty = parseFloat(r.Qty_Avail || 0);
+      if (qty <= 0) return false;  // skip batch avail=0
+      if (!q) return true;
+      var bid  = String(r.Batch_ID||r.SPK_Ref||r.SPK_CTL_No||'').toLowerCase();
+      var desc = String(r.Description || '').toLowerCase();
+      var spec = String(r.Spec        || '').toLowerCase();
+      var t    = String(r.T           || '').toLowerCase();
+      var p    = String(r.P           || '').toLowerCase();
+      var l    = String(r.L           || '').toLowerCase();
+      var own  = String(r.Owner       || '').toLowerCase();
+      return bid.indexOf(q)>-1 || desc.indexOf(q)>-1 || spec.indexOf(q)>-1 ||
+             t.indexOf(q)>-1   || p.indexOf(q)>-1    || l.indexOf(q)>-1    ||
+             own.indexOf(q)>-1;
+    });
+    // Dedupe by batch id (satu batch bisa muncul multi-row di Stok_Sheet)
+    var seen = {}, deduped = [];
+    filtered.forEach(function(r) {
       var bid = String(r.Batch_ID||r.SPK_Ref||r.SPK_CTL_No||'').trim();
-      if (!bid||seen[bid]) return;
-      seen[bid] = true;
+      if (bid && !seen[bid]) { seen[bid]=true; deduped.push(r); }
+    });
+    _batchSearchResults = deduped;
+    _batchSearchIdx = -1;
+
+    if (!deduped.length) { drop.style.display='none'; return; }
+    drop.innerHTML = deduped.map(function(r,i) {
+      var bid  = String(r.Batch_ID||r.SPK_Ref||r.SPK_CTL_No||'').trim();
+      var spec = String(r.Description||r.Spec||'').trim();
       var qty  = Math.round(parseFloat(r.Qty_Avail||0));
       var kg   = Math.round(parseFloat(r.Kg_Avail||r.KG_Avail||0));
-      if (qty <= 0) return;  // ✅ Skip batch avail=0 (Bug 1)
-      var spec = r.Description||r.Spec||'';
       var own  = String(r.Owner||'FC').trim().toUpperCase();
-      var o = document.createElement('option');
-      o.value = bid;
-      o.textContent = bid+'  |  '+spec+'  |  '+qty+' Sht  |  '+kg+' kg  |  '+own;
-      sel.appendChild(o);
+      var label = bid+' | '+spec+' | '+qty+' Sht | '+kg+' kg | '+own;
+      return '<div data-idx="'+i+'" onclick="selectBatchItemShr('+i+')" '+
+        'style="padding:7px 14px;cursor:pointer;font-size:12px;color:#145236;border-bottom:1px solid #b8d8c4;white-space:nowrap;" '+
+        'onmouseover="highlightBatchShr('+i+')" onmouseout="unhighlightBatchShr('+i+')">'+label+'</div>';
+    }).join('');
+
+    var rect = inpEl.getBoundingClientRect();
+    drop.style.position = 'fixed';
+    drop.style.top      = rect.bottom + 'px';
+    drop.style.left     = rect.left + 'px';
+    drop.style.width    = Math.max(rect.width, 560) + 'px';
+    drop.style.display  = 'block';
+  };
+
+  window.onBatchSearchKeyShr = function(e) {
+    var drop  = document.getElementById('hdr-batch-dropdown');
+    var items = drop.querySelectorAll('div[data-idx]');
+    if (!items.length) return;
+    if (e.key==='ArrowDown') { e.preventDefault(); _batchSearchIdx=Math.min(_batchSearchIdx+1,items.length-1); highlightBatchShr(_batchSearchIdx); }
+    else if (e.key==='ArrowUp') { e.preventDefault(); _batchSearchIdx=Math.max(_batchSearchIdx-1,0); highlightBatchShr(_batchSearchIdx); }
+    else if (e.key==='Enter'||e.key==='Tab') { if(_batchSearchIdx>=0){e.preventDefault();selectBatchItemShr(_batchSearchIdx);} }
+    else if (e.key==='Escape') { drop.style.display='none'; }
+  };
+  window.highlightBatchShr = function(idx) {
+    document.getElementById('hdr-batch-dropdown').querySelectorAll('div[data-idx]').forEach(function(el,i){
+      el.style.background = i===idx ? 'var(--shr-green)' : 'transparent';
+      el.style.color      = i===idx ? '#fff' : '#145236';
     });
-    if (currentBid) {
-      for (var i=0; i<sel.options.length; i++) {
-        if (sel.options[i].value===currentBid) { sel.selectedIndex=i; break; }
-      }
+    _batchSearchIdx = idx;
+  };
+  window.unhighlightBatchShr = function(idx) {
+    if (_batchSearchIdx!==idx) {
+      var el = document.getElementById('hdr-batch-dropdown').querySelector('div[data-idx="'+idx+'"]');
+      if(el){ el.style.background='transparent'; el.style.color='#145236'; }
     }
-  }
+  };
+  window.selectBatchItemShr = function(idx) {
+    var r = _batchSearchResults[idx];
+    if (!r) return;
+    var bid  = String(r.Batch_ID||r.SPK_Ref||r.SPK_CTL_No||'').trim();
+    var spec = String(r.Description||r.Spec||'').trim();
+    var qty  = Math.round(parseFloat(r.Qty_Avail||0));
+    var kg   = Math.round(parseFloat(r.Kg_Avail||r.KG_Avail||0));
+    var own  = String(r.Owner||'FC').trim().toUpperCase();
+    document.getElementById('hdr-batch-search').value = bid+' | '+spec+' | '+qty+' Sht | '+kg+' kg | '+own;
+    document.getElementById('hdr-batch-dropdown').style.display = 'none';
+    document.getElementById('hdr-batch-id').value = bid;
+    // Panggil handler existing (biar logic Owner/Spec/T/qty-avail tetap jalan)
+    onBatchChangeShr({ value: bid });
+  };
+  document.addEventListener('click', function(e) {
+    var inp  = document.getElementById('hdr-batch-search');
+    var drop = document.getElementById('hdr-batch-dropdown');
+    if (inp && drop && !inp.contains(e.target) && !drop.contains(e.target)) drop.style.display='none';
+  });
 
   window.refreshStokAvail = function() {
     google.script.run.withSuccessHandler(function(stk){
       if (Array.isArray(stk)) _stokData = stk;
       else if (stk&&stk.sheet) _stokData = stk.sheet;
       else _stokData = [];
-      populateBatchDropdown();
+      // Refresh dropdown kalau lagi kebuka
+      var _drop = document.getElementById('hdr-batch-dropdown');
+      if (_drop && _drop.style.display==='block') {
+        onBatchSearchInputShr(document.getElementById('hdr-batch-search').value);
+      }
       var currentBid = document.getElementById('hdr-batch-id').value;
       if (!currentBid) return;
       var found = _stokData.find(function(r){
@@ -902,6 +985,8 @@ document.addEventListener('keydown', function(e) {
     function(item){
       var n=this.inputEl.dataset.shridx;
       var isValid=validateItemVsSo(n,item.Item_Code);if(!isValid)return false;
+      // ✅ Sprint 3: Poka-yoke Equivalent + Tebal
+      if (!enforcePokayoke(item.Item_Code)) return false;
       this.inputEl.value=item.Description||'';
       var ic=document.getElementById('shr-itemcode-'+n);if(ic)ic.value=item.Item_Code||'';
       var wgPce=parseFloat(item['Wg/Pce FC']||item['Wg/Pce_FC']||0)||0;
@@ -937,18 +1022,79 @@ document.addEventListener('keydown', function(e) {
     if (custEl&&custEl.value&&target!=='Scrap_Area') applyOwnerUsedByCust(n,custEl.value);
   };
 
+  /* ── Q3: POKA-YOKE Equivalent + Tebal (Header vs setiap OUT) ── */
+  window.checkPokayokeVsHeader = function(itemCodeOut) {
+    var itemHdr = String(document.getElementById('hdr-item').value||'').trim();
+    if (!itemHdr || !itemCodeOut) return { reject:false, rejectMsg:'', warnings:[] };
+    var mHdr = _masterItems.find(function(r){ return String(r.Item_Code||'').trim()===itemHdr; });
+    var mOut = _masterItems.find(function(r){ return String(r.Item_Code||'').trim()===String(itemCodeOut).trim(); });
+    if (!mHdr || !mOut) return { reject:false, rejectMsg:'', warnings:[] };
+
+    var equivHdr = String(mHdr.Equivalent||'').trim().toUpperCase();
+    var equivOut = String(mOut.Equivalent||'').trim().toUpperCase();
+    // Header T pakai hdr-t (from batch/Stok_Sheet) — actual, bukan M_ITEM
+    var tHdr = parseFloat(document.getElementById('hdr-t').value)||parseFloat(mHdr.T)||0;
+    var tOut = parseFloat(mOut.T)||0;
+
+    var warnings = [];
+    var reject = false, rejectMsg = '';
+
+    // 1) Equivalent check — beda = WARNING, bisa lanjut
+    if (equivHdr && equivOut && equivHdr !== equivOut) {
+      warnings.push('EQUIVALENT beda → Header: '+equivHdr+' | Output: '+equivOut+' (grade material berbeda)');
+    }
+
+    // 2) Tebal check — 0-3.5% warning, >3.5% REJECT
+    if (tHdr>0 && tOut>0) {
+      var diff = Math.abs(tOut - tHdr);
+      var pct  = (diff/tHdr)*100;
+      if (pct > 3.5) {
+        reject = true;
+        rejectMsg = '❌ TEBAL DITOLAK (selisih > 3.5%)\n\n'
+                  + '   Header T : '+tHdr.toFixed(2)+' mm\n'
+                  + '   Output T : '+tOut.toFixed(2)+' mm\n'
+                  + '   Selisih  : '+diff.toFixed(2)+' mm ('+pct.toFixed(1)+'%)\n\n'
+                  + 'Batch input TIDAK cocok dengan spec output.\nGanti item OUT dengan tebal ±3.5% dari header.';
+      } else if (pct > 0) {
+        warnings.push('TEBAL beda '+pct.toFixed(1)+'% → Header: '+tHdr.toFixed(2)+' mm | Output: '+tOut.toFixed(2)+' mm');
+      }
+    }
+
+    return { reject:reject, rejectMsg:rejectMsg, warnings:warnings };
+  };
+
+  /* Handler UI: reject → alert & block; warning → confirm dialog */
+  window.enforcePokayoke = function(itemCodeOut) {
+    var res = checkPokayokeVsHeader(itemCodeOut);
+    if (res.reject) { alert(res.rejectMsg); return false; }
+    if (res.warnings.length) {
+      return confirm('⚠️ POKA-YOKE WARNING\n\n• '+res.warnings.join('\n• ')+'\n\n[OK] Lanjut  [Cancel] Batalkan pilihan');
+    }
+    return true;
+  };
+
+  /* ── Q4: Cust=DRC → LOCK ke DRC; Cust≠DRC → default FC, UNLOCK (bisa toggle) ── */
   window.applyOwnerUsedByCust = function(n,custVal) {
     var cust=String(custVal||'').trim().toUpperCase();
     var isDrc=(cust==='DRC'||cust.indexOf('DRC')===0);
-    if (!isDrc) return;
     var targetEl=document.getElementById('shr-target-'+n);
-    if (targetEl&&targetEl.value==='Scrap_Area') return;
+    // Skip kalau target Scrap/WIP — sudah di-handle handleShrTargetChange
+    if (targetEl && (targetEl.value==='Scrap_Area'||targetEl.value==='WIP_Cust'||targetEl.value==='WIP_Stamping')) return;
     var ownerUsedInp=document.getElementById('shr-owner-used-'+n);
     var badge=document.getElementById('shr-badge-'+n);
     if (!ownerUsedInp||!badge) return;
-    ownerUsedInp.value='DRC'; badge.textContent='DRC'; badge.className='owner-badge badge-drc';
-    badge.style.cursor='default'; badge.style.pointerEvents='none'; badge.style.opacity='0.75';
-    badge.title='Terkunci — customer DRC';
+
+    if (isDrc) {
+      // Cust=DRC → LOCK ke DRC
+      ownerUsedInp.value='DRC'; badge.textContent='DRC'; badge.className='owner-badge badge-drc';
+      badge.style.cursor='default'; badge.style.pointerEvents='none'; badge.style.opacity='0.75';
+      badge.title='🔒 Terkunci — customer DRC';
+    } else {
+      // Cust≠DRC → default FC, UNLOCK (user bisa toggle FC↔DRC)
+      ownerUsedInp.value='FC'; badge.textContent='FC'; badge.className='owner-badge badge-fc';
+      badge.style.cursor='pointer'; badge.style.pointerEvents=''; badge.style.opacity='1';
+      badge.title='Klik untuk toggle FC ↔ DRC';
+    }
   };
 
   window.toggleOwner = function(n) {
@@ -960,21 +1106,63 @@ document.addEventListener('keydown', function(e) {
     else{inp.value='FC';bdg.textContent='FC';bdg.className='owner-badge badge-fc';}
   };
 
-  /* ── SO CHANGE ── */
+  /* ── SO CHANGE — auto-fill Cust + lock read-only + trigger Owner/Target rules ── */
   window.handleSoChangeShr = function(n) {
-    var soEl = document.getElementById('shr-so-'+n);
-    var soVal = String(soEl.value||'').trim().toUpperCase();
-    if (soVal&&_soData.length===0) { alert('🛑 Data SO tidak terbaca!'); return; }
-    var custVal='';
-    if (soVal&&_soData.length>0) {
-      var found=_soData.find(function(r){
-        var rSo=String(r.SO_No||r['SO No']||r.SONO||'').trim().toUpperCase();
-        return rSo===soVal||rSo.indexOf(soVal)>-1;
+    var soEl   = document.getElementById('shr-so-'+n);
+    var custEl = document.getElementById('shr-cust-'+n);
+    var soVal  = String(soEl.value||'').trim().toUpperCase();
+    soEl.value = soVal;  // normalize uppercase
+
+    if (soVal && _soData.length===0) { alert('🛑 Data SO/STP belum ter-load, tunggu sebentar!'); return; }
+
+    var custVal = '';
+    if (soVal && _soData.length>0) {
+      var found = _soData.find(function(r){ return r.ref_no === soVal; });
+      if (!found) found = _soData.find(function(r){
+        return r.ref_no.indexOf(soVal)===0 || soVal.indexOf(r.ref_no)===0;
       });
-      if (found) custVal=String(found.Cust||found.CUST||found.Customer||'').trim();
+      if (found) custVal = found.cust||'';
     }
-    document.getElementById('shr-cust-'+n).value=custVal;
-    if (custVal) applyOwnerUsedByCust(n,custVal);
+    if (custEl) custEl.value = custVal;
+
+    // Q7: Lock Cust field read-only setelah auto-fill sukses
+    if (custEl) {
+      if (custVal) {
+        custEl.readOnly = true;
+        custEl.style.background = '#e8f5e9';
+        custEl.style.cursor = 'not-allowed';
+        custEl.title = '🔒 Auto-fill dari SO/STP — ubah SO No untuk ganti Cust';
+      } else {
+        custEl.readOnly = false;
+        custEl.style.background = '';
+        custEl.style.cursor = '';
+        custEl.title = '';
+      }
+    }
+
+    // Q4: Cust=DRC → lock Owner_Used DRC; Cust≠DRC → default FC, unlock
+    applyOwnerUsedByCust(n, custVal);
+    // Q5+Q6: Auto-set Target_Loc dari prefix SO_Ref
+    autoApplyTargetLocFromSoRef(n, soVal);
+  };
+
+  /* ── Q5+Q6: Target_Loc default dari prefix SO_Ref ── */
+  window.autoApplyTargetLocFromSoRef = function(n, soRef) {
+    var targetEl = document.getElementById('shr-target-'+n);
+    if (!targetEl) return;
+    var ref = String(soRef||'').trim().toUpperCase();
+    // STP-YYNNNN → FG_RM_Stamping (default, bisa diubah)
+    // Lainnya      → FG_Cust        (default, bisa diubah)
+    var suggested = ref.indexOf('STP-')===0 ? 'FG_RM_Stamping' : 'FG_Cust';
+    // Guard: pastikan opsi ada di select
+    var hasOpt = false;
+    for (var i=0; i<targetEl.options.length; i++) {
+      if (targetEl.options[i].value === suggested) { hasOpt = true; break; }
+    }
+    if (!hasOpt) suggested = 'FG_Cust';
+    targetEl.value = suggested;
+    // Trigger handler downstream (visual state Owner_Used)
+    if (typeof handleShrTargetChange === 'function') handleShrTargetChange(n);
   };
 
   /* ── VALIDASI ITEM vs SO ── */
@@ -1073,7 +1261,28 @@ document.addEventListener('keydown', function(e) {
     _spkNo = '';
 
     google.script.run.withSuccessHandler(function(d){_masterItems=d||[];}).getSheetData('M_ITEM');
-    google.script.run.withSuccessHandler(function(d){_soData=d||[];}).getSheetData('SO');
+    // ✅ Union SO + STP_REQ agar STP-YYNNNN juga bisa dilookup
+    google.script.run.withSuccessHandler(function(so){
+      var soUnion = (so||[]).map(function(r){
+        return {
+          ref_no    : String(r.SO_No||'').trim().toUpperCase(),
+          cust      : String(r.Cust||r.CUST||r.Customer||'').trim(),
+          item_code : String(r.Item_Code||'').trim(),
+          tipe      : 'SO'
+        };
+      }).filter(function(r){return r.ref_no;});
+      google.script.run.withSuccessHandler(function(stp){
+        var stpUnion = (stp||[]).map(function(r){
+          return {
+            ref_no    : String(r.STP_No||'').trim().toUpperCase(),
+            cust      : String(r.Cust||'').trim(),
+            item_code : String(r.Item_Code||'').trim(),
+            tipe      : 'STP'
+          };
+        }).filter(function(r){return r.ref_no;});
+        _soData = soUnion.concat(stpUnion);
+      }).withFailureHandler(function(){ _soData = soUnion; }).getSheetData('STP_REQ');
+    }).getSheetData('SO');
     // Stok diload saat openCreateSHR() dipanggil
   }
 
@@ -1118,6 +1327,16 @@ document.addEventListener('keydown', function(e) {
       });
     });
 
+    // ✅ Sprint 3: Poka-yoke check per OUT vs Header (guard sebelum submit)
+    var _pokaWarn = [], _pokaReject = null;
+    for (var _pi=0; _pi<outShr.length; _pi++) {
+      var _pchk = checkPokayokeVsHeader(outShr[_pi].item_code);
+      if (_pchk.reject) { _pokaReject = 'OUT #'+(_pi+1)+':\n\n'+_pchk.rejectMsg; break; }
+      if (_pchk.warnings.length) _pokaWarn.push('OUT #'+(_pi+1)+': '+_pchk.warnings.join('; '));
+    }
+    if (_pokaReject) { alert(_pokaReject); return; }
+    if (_pokaWarn.length && !confirm('⚠️ POKA-YOKE WARNING (semua OUT):\n\n• '+_pokaWarn.join('\n• ')+'\n\n[OK] Tetap simpan  [Cancel] Batal')) return;
+
     var payload = {
       spk_no    : isEditMode ? window._editingSpkShrNo : null,
       batch_id  : batchId,
@@ -1143,33 +1362,65 @@ document.addEventListener('keydown', function(e) {
       btn.textContent= isEditMode ? '💾 Simpan Perubahan' : '💾 SIMPAN & CETAK SPK';
       window._editingSpkShrNo = null;
 
-      // ✅ Stop timer refresh stok segera (sudah tidak perlu di view-detail)
+      // Stop timer refresh stok
       if (window._stokRefreshTimerSHR) {
         clearInterval(window._stokRefreshTimerSHR);
         window._stokRefreshTimerSHR = null;
       }
 
-      // ✅ Navigate ke detail (sole async call, prioritas tertinggi)
-      openDetailSHR(res.spk_no);
-
-      // ✅ Refresh list di background setelah delay (tidak compete dgn openDetail)
-      setTimeout(function(){
-        loadListSHR();
-      }, 2000);
-
-      // ✅ Print di background setelah delay (hanya untuk save BARU)
-      if (!isEditMode) {
-        setTimeout(function(){
-          var dataInduk={spk_no:res.spk_no,tanggal:document.getElementById('hdr-date').textContent,batch_id:batchId,
-            lokasi_asal:document.getElementById('hdr-source-loc').value,qty_induk:inputQty,
-            kg_induk:inKg,operator:document.getElementById('hdr-op').value,
-            spec_induk:document.getElementById('hdr-spec').value};
-          var dataAnak=outShr.map(function(s,idx){return{spk_child_no:res.spk_no+'-'+String(idx+1).padStart(2,'0'),
-            so_no:s.so_no||'--',cust:s.cust||'--',spec_hasil:s.description||'--',
-            cut_p:s.cut_p||1,cut_l:s.cut_l||1,target_loc:s.target_loc||'',qty_target:s.qty_plan||0};});
-          printSPK_SHR(dataInduk,dataAnak);
-        }, 3500);
+      if (isEditMode) {
+        // ── EDIT MODE: behavior lama (navigate ke detail)
+        openDetailSHR(res.spk_no);
+        setTimeout(function(){ loadListSHR(); }, 2000);
+        return;
       }
+
+      // ── CREATE MODE: Skenario C — snapshot data → print → auto-reset preserve
+      var snapshotInduk = {
+        spk_no      : res.spk_no,
+        tanggal     : document.getElementById('hdr-date').textContent,
+        batch_id    : batchId,
+        lokasi_asal : document.getElementById('hdr-source-loc').value,
+        qty_induk   : inputQty,
+        kg_induk    : inKg,
+        operator    : document.getElementById('hdr-op').value,
+        spec_induk  : document.getElementById('hdr-spec').value,
+        mc_no       : document.getElementById('hdr-machine').value
+      };
+      var snapshotAnak = outShr.map(function(s,idx){
+        return {
+          spk_child_no : res.spk_no+'-'+String(idx+1).padStart(2,'0'),
+          so_no        : s.so_no||'--',
+          cust         : s.cust||'--',
+          spec_hasil   : s.description||'--',
+          cut_p        : s.cut_p||1,
+          cut_l        : s.cut_l||1,
+          target_loc   : s.target_loc||'',
+          qty_target   : s.qty_plan||0
+        };
+      });
+
+      // Toast konfirmasi
+      var toast = document.createElement('div');
+      toast.innerHTML = '✅ SPK <b>'+res.spk_no+'</b> tersimpan. Form direset — siap SPK berikutnya.';
+      toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--shr-green);color:#fff;padding:12px 24px;border-radius:4px;font-weight:600;font-size:12px;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,0.25);';
+      document.body.appendChild(toast);
+      setTimeout(function(){ if(toast.parentNode) toast.remove(); }, 3500);
+
+      // Print via snapshot (aman meski form udah reset)
+      setTimeout(function(){ printSPK_SHR(snapshotInduk, snapshotAnak); }, 400);
+
+      // Auto-reset dengan preserve field (Mesin/Op/Source_Loc/Tanggal)
+      setTimeout(function(){
+        resetFormSHRPreserve();
+        refreshStokAvail();  // Reload stok avail biar data terbaru
+        // Focus ke Batch input biar user langsung ketik batch berikutnya
+        var inp = document.getElementById('hdr-batch-search');
+        if (inp) inp.focus();
+      }, 600);
+
+      // Refresh list di background
+      setTimeout(function(){ loadListSHR(); }, 2000);
     };
     var failureHandler = function(err){
       btn.disabled=false; btn.textContent=isEditMode?'💾 Simpan Perubahan':'💾 SIMPAN & CETAK SPK';
@@ -1183,16 +1434,40 @@ document.addEventListener('keydown', function(e) {
     }
   };
 
-  /* ── RESET FORM ── */
+  /* ── RESET FORM (PRESERVE MODE — Skenario C) ── */
+  window.resetFormSHRPreserve = function() {
+    // Snapshot field yang mau di-preserve
+    var keep = {
+      mc        : document.getElementById('hdr-machine').value,
+      op        : document.getElementById('hdr-op').value,
+      sourceLoc : document.getElementById('hdr-source-loc').value
+    };
+    // Reset penuh
+    resetFormSHR();
+    // Restore preserved
+    if (keep.mc)        document.getElementById('hdr-machine').value    = keep.mc;
+    if (keep.op)        document.getElementById('hdr-op').value         = keep.op;
+    if (keep.sourceLoc) document.getElementById('hdr-source-loc').value = keep.sourceLoc;
+    // Tanggal: refresh ke hari ini (jaga2 kalau lewat tengah malam)
+    var dateEl = document.getElementById('hdr-date');
+    if (dateEl) dateEl.textContent = new Date().toLocaleDateString('id-ID', {day:'2-digit', month:'short', year:'numeric'});
+  };
+
+  /* ── RESET FORM (FULL) ── */
   window.resetFormSHR = function() {
     window._editingSpkShrNo = null;
     _spkNo = ''; _shrCount = 0; _sheetOwner = 'FC';
     _acItem.hide && _acItem.hide();
 
-    var sel = document.getElementById('hdr-batch');
-    sel.innerHTML='<option value="">-- Pilih Batch --</option>';
-    sel.disabled=false; sel.style.background='';
-    document.getElementById('hdr-batch-id').value='';
+    var inpSearch = document.getElementById('hdr-batch-search');
+    if (inpSearch) {
+      inpSearch.value = '';
+      inpSearch.disabled = false;
+      inpSearch.style.background = '';
+    }
+    var _drop = document.getElementById('hdr-batch-dropdown');
+    if (_drop) _drop.style.display = 'none';
+    document.getElementById('hdr-batch-id').value = '';
     ['hdr-item','hdr-spec','hdr-op','hdr-wgpce-input'].forEach(function(id){
       var e=document.getElementById(id);if(e)e.value='';
     });
@@ -1234,18 +1509,15 @@ function populateFormFromSpkShr(res) {
   spkDisplay.textContent=h.spk_no; spkDisplay.style.color='#e65100';
   spkDisplay.title='MODE EDIT — SPK '+h.spk_no;
 
-  var selBatch=document.getElementById('hdr-batch');
-  var found=false;
-  for (var i=0;i<selBatch.options.length;i++) {
-    if (selBatch.options[i].value===h.batch_id){selBatch.selectedIndex=i;found=true;break;}
+  var inpSearch = document.getElementById('hdr-batch-search');
+  if (inpSearch) {
+    inpSearch.value = h.batch_id + ' (Locked - Edit Mode)';
+    inpSearch.disabled = true;
+    inpSearch.style.background = '#f5e8d0';
   }
-  if (!found) {
-    var opt=document.createElement('option');
-    opt.value=h.batch_id; opt.textContent=h.batch_id+' (existing)';
-    selBatch.appendChild(opt); selBatch.value=h.batch_id;
-  }
-  selBatch.disabled=true; selBatch.style.background='#f5e8d0';
-  document.getElementById('hdr-batch-id').value=h.batch_id;
+  var _drop = document.getElementById('hdr-batch-dropdown');
+  if (_drop) _drop.style.display = 'none';
+  document.getElementById('hdr-batch-id').value = h.batch_id;
   document.getElementById('hdr-item').value=h.item_code||'';
   document.getElementById('hdr-spec').value=h.input_spec||'';
   document.getElementById('hdr-priority').value=h.priority||'Normal';
@@ -1300,6 +1572,15 @@ function populateFormFromSpkShr(res) {
 
       handleShrTargetChange(n);
       if (shr.cust) applyOwnerUsedByCust(n,shr.cust);
+      // ✅ Edit mode: restore Owner_Used dari DB (override auto-force by cust)
+      var _dbOwnerUsed = shr.owner_used || shr.owner || ownerVal;
+      var _ouInp = document.getElementById('shr-owner-used-'+n);
+      var _bdg   = document.getElementById('shr-badge-'+n);
+      if (_ouInp) _ouInp.value = _dbOwnerUsed;
+      if (_bdg) {
+        _bdg.textContent = _dbOwnerUsed;
+        _bdg.className   = 'owner-badge '+(_dbOwnerUsed==='DRC'?'badge-drc':'badge-fc');
+      }
       calcQtyPlan(n);
     });
   }
