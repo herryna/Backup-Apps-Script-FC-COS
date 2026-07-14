@@ -1,0 +1,944 @@
+<style>
+.sa-wrap { padding:18px 22px; background:#f8fafc; min-height:100vh; font-family:'Segoe UI',system-ui,sans-serif; }
+.sa-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid #e2e8f0; }
+.sa-title { font-size:20px; font-weight:600; color:#7f1d1d; display:flex; align-items:center; gap:8px; }
+.sa-meta { font-size:11px; color:#64748b; margin-top:3px; }
+.sa-actions { display:flex; gap:8px; }
+.sa-btn { background:#fff; color:#475569; border:1px solid #cbd5e1; padding:0 12px; height:32px; border-radius:4px; font-size:12px; font-weight:500; cursor:pointer; display:flex; align-items:center; gap:4px; }
+.sa-btn:hover { background:#f1f5f9; border-color:#7f1d1d; color:#7f1d1d; }
+.sa-btn-run { background:#991b1b; color:#fff; border-color:#991b1b; }
+.sa-btn-run:hover { background:#7f1d1d; border-color:#7f1d1d; color:#fff; }
+.sa-btn-run:disabled { background:#94a3b8; border-color:#94a3b8; cursor:not-allowed; }
+.sa-btn:disabled { background:#f1f5f9; color:#cbd5e1; cursor:not-allowed; }
+
+.sa-tabbar { display:flex; gap:4px; margin-bottom:14px; border-bottom:1px solid #e2e8f0; }
+.sa-tab { background:transparent; color:#64748b; border:1px solid transparent; border-bottom:none; padding:9px 18px; border-radius:6px 6px 0 0; font-size:13px; font-weight:500; cursor:pointer; display:flex; align-items:center; gap:6px; margin-bottom:-1px; font-family:inherit; }
+.sa-tab:hover { background:#fef2f2; color:#7f1d1d; }
+.sa-tab.is-active { background:#fff; color:#7f1d1d; border-color:#e2e8f0; border-bottom-color:#fff; font-weight:600; }
+.sa-tab-pane { display:none; }
+.sa-tab-pane.is-active { display:block; }
+
+.sa-kpi-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:12px; }
+.sa-kpi { background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:12px 14px; }
+.sa-kpi-label { font-size:11px; color:#64748b; font-weight:500; margin-bottom:4px; }
+.sa-kpi-value { font-size:22px; font-weight:700; color:#0f172a; line-height:1; }
+.sa-kpi-value.sa-crit { color:#991b1b; }
+.sa-kpi-value.sa-warn { color:#b45309; }
+.sa-kpi-value.sa-muted { color:#cbd5e1; }
+.sa-kpi-sub { font-size:11px; color:#64748b; margin-top:4px; }
+.sa-kpi-sub .sa-warn-text { color:#b45309; font-weight:600; }
+.sa-kpi-sub .sa-crit-text { color:#991b1b; font-weight:600; }
+
+.sa-section { background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:14px 16px; margin-bottom:12px; }
+.sa-section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.sa-section-title { font-size:13px; font-weight:600; color:#0f172a; display:flex; align-items:center; gap:6px; }
+.sa-section-desc { font-size:11px; color:#64748b; margin-top:2px; }
+.sa-section-filters { display:flex; gap:6px; align-items:center; }
+.sa-section-filters select, .sa-section-filters input { height:26px; padding:0 6px; font-size:11px; border:1px solid #cbd5e1; border-radius:4px; background:#fff; color:#0f172a; font-family:inherit; }
+.sa-section-filters select:focus, .sa-section-filters input:focus { outline:none; border-color:#7f1d1d; }
+
+.sa-filter-bar { background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:10px 12px; margin-bottom:12px; }
+.sa-filter-row { display:grid; grid-template-columns:130px 130px 100px 90px 100px auto; gap:10px; align-items:end; }
+.sa-filter-row label { font-size:10px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; }
+.sa-filter-row input, .sa-filter-row select { height:28px; padding:0 6px; font-size:11px; border:1px solid #cbd5e1; border-radius:4px; background:#fff; font-family:inherit; width:100%; box-sizing:border-box; }
+.sa-filter-row .sa-btn-apply { background:#7f1d1d; color:#fff; border:1px solid #7f1d1d; }
+
+.sa-table { width:100%; border-collapse:collapse; font-size:12px; }
+.sa-table thead th { text-align:left; padding:7px 4px; font-weight:600; font-size:10px; color:#64748b; letter-spacing:0.3px; text-transform:uppercase; border-bottom:1px solid #e2e8f0; white-space:nowrap; }
+.sa-table tbody td { padding:8px 4px; border-bottom:1px solid #f1f5f9; vertical-align:middle; color:#1e293b; font-size:12px; }
+.sa-table tbody tr:hover { background:#fef2f2; }
+.sa-table tbody tr.sa-row-expanded { background:#fef2f2; }
+.sa-table tbody tr.sa-out-detail { background:#f8fafc; }
+.sa-table tbody tr.sa-out-detail:hover { background:#f8fafc; }
+.sa-num { text-align:right; font-variant-numeric:tabular-nums; font-family:'SF Mono',Menlo,Consolas,monospace; font-size:11px; }
+.sa-num-crit { color:#991b1b; font-weight:700; }
+.sa-num-warn { color:#b45309; font-weight:700; }
+.sa-num-ok { color:#059669; font-weight:500; }
+.sa-batch-id { font-family:'SF Mono',Menlo,monospace; font-size:11px; }
+.sa-spec-main { font-weight:500; color:#0f172a; }
+.sa-spec-vendor { font-size:10px; color:#64748b; margin-top:2px; }
+
+.sa-lvl-dot { display:inline-block; width:10px; height:10px; border-radius:50%; }
+.sa-lvl-dot.sa-lvl-crit { background:#dc2626; }
+.sa-lvl-dot.sa-lvl-warn { background:#f59e0b; }
+.sa-lvl-cell-crit { border-left:3px solid #dc2626; padding-left:6px; }
+.sa-lvl-cell-warn { border-left:3px solid #f59e0b; padding-left:6px; }
+
+.sa-cat-badge { display:inline-block; padding:2px 6px; border-radius:3px; font-size:10px; font-weight:600; }
+.sa-cat-coil { background:#FAEEDA; color:#633806; }
+.sa-cat-sheet { background:#E1F5EE; color:#085041; }
+.sa-cat-wip { background:#E6F1FB; color:#0C447C; }
+.sa-cat-fg { background:#EAF3DE; color:#27500A; }
+.sa-cat-ng { background:#FCEBEB; color:#791F1F; }
+.sa-source-tag { font-size:9px; padding:1px 4px; border-radius:2px; background:#f1f5f9; color:#64748b; margin-left:4px; text-transform:uppercase; letter-spacing:0.3px; }
+.sa-source-tag.sa-src-historical { background:#f5f3ff; color:#6b21a8; }
+
+.sa-status-badge { display:inline-block; padding:1px 6px; border-radius:8px; font-size:10px; font-weight:600; }
+.sa-status-ok { background:#EAF3DE; color:#27500A; }
+.sa-status-warn { background:#FAEEDA; color:#633806; }
+.sa-status-crit { background:#FCEBEB; color:#791F1F; }
+.sa-habis-badge { display:inline-block; padding:1px 5px; background:#eff6ff; color:#1e40af; border-radius:3px; font-size:9px; font-weight:600; margin-left:4px; }
+
+.sa-btn-inline { height:22px; padding:0 8px; font-size:10px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; color:#475569; cursor:pointer; font-family:inherit; }
+.sa-btn-inline:hover { background:#7f1d1d; border-color:#7f1d1d; color:#fff; }
+
+.sa-checker-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+.sa-checker-card { padding:10px 12px; border:1px solid #e2e8f0; border-radius:6px; background:#fff; }
+.sa-checker-card.sa-checker-crit { background:#fef2f2; border-color:#fca5a5; }
+.sa-checker-card.sa-checker-warn { background:#fffbeb; border-color:#fcd34d; }
+.sa-checker-card.sa-checker-ok { background:#f8fafc; border-color:#e2e8f0; }
+.sa-checker-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+.sa-checker-title { font-size:11px; font-weight:600; }
+.sa-checker-count { font-size:15px; font-weight:700; }
+.sa-checker-crit .sa-checker-title { color:#7f1d1d; }
+.sa-checker-crit .sa-checker-count { color:#991b1b; }
+.sa-checker-warn .sa-checker-title { color:#78350f; }
+.sa-checker-warn .sa-checker-count { color:#b45309; }
+.sa-checker-ok .sa-checker-title { color:#475569; }
+.sa-checker-ok .sa-checker-count { color:#64748b; }
+.sa-checker-list { font-size:10px; font-family:'SF Mono',Menlo,monospace; word-break:break-word; line-height:1.5; max-height:100px; overflow-y:auto; }
+.sa-checker-crit .sa-checker-list { color:#991b1b; }
+.sa-checker-warn .sa-checker-list { color:#b45309; }
+.sa-checker-ok .sa-checker-list { color:#94a3b8; font-style:italic; font-family:inherit; }
+
+.sa-loss-2col { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+.sa-loss-out-row { display:grid; grid-template-columns:130px 1fr 90px 90px 70px 80px; gap:10px; padding:4px 0; font-size:11px; }
+.sa-loss-out-row .sa-num { font-size:11px; }
+
+.sa-loading { text-align:center; padding:40px; color:#94a3b8; font-style:italic; }
+.sa-empty { text-align:center; padding:30px; color:#94a3b8; font-style:italic; font-size:12px; }
+.sa-empty-large { text-align:center; padding:60px 20px; color:#64748b; background:#f8fafc; border:2px dashed #cbd5e1; border-radius:8px; }
+.sa-empty-large-icon { font-size:42px; opacity:0.4; margin-bottom:10px; }
+.sa-empty-large-title { font-size:15px; font-weight:600; color:#475569; margin-bottom:6px; }
+.sa-empty-large-desc { font-size:12px; color:#94a3b8; line-height:1.6; }
+.sa-error { text-align:center; padding:30px; color:#c62828; background:#fef2f2; font-weight:500; border-radius:6px; }
+
+.sa-modal-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(15,23,42,0.55); z-index:9000; display:none; align-items:center; justify-content:center; padding:20px; box-sizing:border-box; }
+.sa-modal-overlay.is-open { display:flex; }
+.sa-modal { background:#fff; border-radius:8px; width:100%; max-width:720px; max-height:88vh; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,0.25); }
+.sa-modal-header { padding:14px 18px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; background:#fef2f2; border-radius:8px 8px 0 0; }
+.sa-modal-title { display:flex; align-items:center; gap:10px; }
+.sa-modal-id { font-size:16px; font-weight:600; color:#0f172a; font-family:'SF Mono',Menlo,monospace; }
+.sa-modal-close { background:transparent; border:none; cursor:pointer; font-size:18px; color:#64748b; padding:4px 10px; border-radius:4px; }
+.sa-modal-close:hover { background:#e2e8f0; color:#0f172a; }
+.sa-modal-body { padding:16px 18px; overflow-y:auto; flex:1; }
+.sa-modal-footer { padding:12px 18px; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:8px; background:#f8fafc; border-radius:0 0 8px 8px; }
+.sa-modal-section { margin-bottom:18px; }
+.sa-modal-section-title { font-size:11px; font-weight:700; color:#7f1d1d; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; padding-bottom:4px; border-bottom:1px solid #e2e8f0; }
+.sa-modal-meta { display:grid; grid-template-columns:repeat(3,1fr); gap:10px 16px; }
+.sa-meta-item { display:flex; flex-direction:column; }
+.sa-meta-label { font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.3px; }
+.sa-meta-value { font-size:12px; color:#0f172a; font-weight:500; margin-top:2px; }
+.sa-tree-empty { padding:20px; text-align:center; color:#94a3b8; font-style:italic; font-size:12px; }
+.sa-tree-row { display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:4px; font-size:12px; }
+.sa-tree-row:hover { background:#fef2f2; }
+.sa-tree-row.is-current { background:#fef3c7; border-left:3px solid #f59e0b; padding-left:7px; }
+.sa-tree-type { display:inline-block; padding:1px 5px; border-radius:3px; font-size:9px; font-weight:700; color:#fff; min-width:35px; text-align:center; }
+.sa-tree-type-COIL { background:#0369a1; }
+.sa-tree-type-SHEET { background:#047857; }
+.sa-tree-type-WIP { background:#c2410c; }
+.sa-tree-type-FG { background:#1a3a6e; }
+.sa-tree-type-NG { background:#991b1b; }
+.sa-tree-type-default { background:#64748b; }
+.sa-tree-id { font-family:'SF Mono',Menlo,monospace; font-size:12px; font-weight:600; color:#0f172a; }
+.sa-tree-info { font-size:11px; color:#64748b; }
+.sa-tree-current-tag { margin-left:auto; font-size:10px; color:#92400e; font-weight:700; }
+.sa-tree-spkref { margin-left:auto; font-size:10px; color:#6b7280; font-family:'SF Mono',Menlo,monospace; }
+.sa-tree-children { margin-left:16px; border-left:1px dashed #cbd5e1; padding-left:8px; }
+
+@media (max-width:1100px) { .sa-kpi-strip { grid-template-columns:repeat(2,1fr); } .sa-checker-grid, .sa-loss-2col { grid-template-columns:1fr; } .sa-modal-meta { grid-template-columns:repeat(2,1fr); } }
+</style>
+
+
+<div class="sa-wrap">
+
+  <div class="sa-header">
+    <div>
+      <div class="sa-title">🔍 Stock Audit</div>
+      <div class="sa-meta" id="sa-meta">Belum pernah di-audit</div>
+    </div>
+    <div class="sa-actions">
+      <button class="sa-btn" id="sa-btn-export" disabled><i class="ti ti-download"></i> Export CSV</button>
+      <button class="sa-btn sa-btn-run" id="sa-btn-run"><i class="ti ti-refresh"></i> Jalankan Audit</button>
+    </div>
+  </div>
+
+  <div class="sa-tabbar">
+    <button class="sa-tab is-active" data-tab="integrity">🛡️ Data Integrity</button>
+    <button class="sa-tab" data-tab="loss">📊 Loss Analytics</button>
+  </div>
+
+  <!-- ===== TAB 1: DATA INTEGRITY ===== -->
+  <div class="sa-tab-pane is-active" data-pane="integrity">
+
+    <div class="sa-kpi-strip" id="sa-kpi-strip">
+      <div class="sa-kpi"><div class="sa-loading">Loading...</div></div>
+    </div>
+
+    <div class="sa-section">
+      <div class="sa-section-header">
+        <div>
+          <div class="sa-section-title">⚖️ Mass balance exceptions</div>
+          <div class="sa-section-desc">Batch dengan selisih &gt; threshold M_Threshold</div>
+        </div>
+        <div class="sa-section-filters">
+          <select id="sa-flt-mb-level"><option value="all">Semua level</option><option value="crit">Crit only</option><option value="warn">Warn only</option></select>
+          <select id="sa-flt-mb-cat"><option value="all">Semua kat</option><option value="coil">Coil</option><option value="sheet">Sheet</option><option value="wip">WIP</option><option value="fg">FG</option><option value="ng">NG</option></select>
+          <select id="sa-flt-mb-source"><option value="all">Active + Hist</option><option value="active">Active</option><option value="historical">Historical</option></select>
+        </div>
+      </div>
+      <table class="sa-table">
+        <thead><tr>
+          <th style="width:26px"></th>
+          <th style="width:52px">Kat</th>
+          <th style="width:140px">Batch ID</th>
+          <th>Spec / vendor</th>
+          <th style="width:80px" class="sa-num">In (Kg)</th>
+          <th style="width:80px" class="sa-num">Selisih</th>
+          <th style="width:60px" class="sa-num">%</th>
+          <th style="width:60px;text-align:center">Aksi</th>
+        </tr></thead>
+        <tbody id="sa-tbl-mb"><tr><td colspan="8" class="sa-loading">⏳ Memuat...</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="sa-section">
+      <div class="sa-section-header">
+        <div>
+          <div class="sa-section-title">⚠️ SPK salah kamar (5 checker)</div>
+          <div class="sa-section-desc">Deteksi mismatch antara SPK, Trace_Log, dan Stok_*</div>
+        </div>
+      </div>
+      <div class="sa-checker-grid" id="sa-checker-grid"><div class="sa-loading" style="grid-column:1/-1">Loading...</div></div>
+    </div>
+
+    <div class="sa-section">
+      <div class="sa-section-header">
+        <div>
+          <div class="sa-section-title">🔄 Reconciliation per Item_Code</div>
+          <div class="sa-section-desc">Total KG per Item dari SPK vs Stok_* + Delivered · Selisih &gt; 100 Kg</div>
+        </div>
+      </div>
+      <div id="sa-recon-container"><div class="sa-loading">Loading...</div></div>
+    </div>
+
+  </div>
+
+  <!-- ===== TAB 2: LOSS ANALYTICS ===== -->
+  <div class="sa-tab-pane" data-pane="loss">
+
+    <div class="sa-filter-bar">
+      <div class="sa-filter-row">
+        <div><label>Date From</label><input type="date" id="sa-loss-date-from"></div>
+        <div><label>Date To</label><input type="date" id="sa-loss-date-to"></div>
+        <div><label>SPK Type</label><select id="sa-loss-type"><option value="all">Semua</option><option value="CTL">CTL</option><option value="SHR">SHR</option><option value="SLT">SLT</option></select></div>
+        <div><label>Mesin</label><select id="sa-loss-machine"><option value="all">Semua</option></select></div>
+        <div><label>Operator</label><select id="sa-loss-operator"><option value="all">Semua</option></select></div>
+        <button class="sa-btn sa-btn-apply" id="sa-loss-apply">Apply</button>
+      </div>
+    </div>
+
+    <div class="sa-kpi-strip" id="sa-loss-kpi"><div class="sa-kpi"><div class="sa-loading">Loading...</div></div></div>
+
+    <div class="sa-section">
+      <div class="sa-section-header">
+        <div>
+          <div class="sa-section-title">🎯 Top loss contributors (per SPK HEADER)</div>
+          <div class="sa-section-desc">Klik row untuk expand OUT breakdown · Sorted by |loss Kg| desc</div>
+        </div>
+        <select id="sa-loss-limit" style="height:26px;padding:0 6px;font-size:11px;border:1px solid #cbd5e1;border-radius:4px"><option value="20">Top 20</option><option value="50">Top 50</option><option value="9999">Semua</option></select>
+      </div>
+      <table class="sa-table">
+        <thead><tr>
+          <th style="width:20px"></th>
+          <th style="width:130px">SPK HEADER</th>
+          <th style="width:60px">Mesin</th>
+          <th style="width:70px">OP</th>
+          <th style="width:70px">Tgl</th>
+          <th style="width:75px" class="sa-num">Input</th>
+          <th style="width:75px" class="sa-num">OUT Sum</th>
+          <th style="width:55px" class="sa-num">NG</th>
+          <th style="width:70px" class="sa-num">Loss Kg</th>
+          <th style="width:55px" class="sa-num">%</th>
+          <th style="width:55px;text-align:center">Level</th>
+        </tr></thead>
+        <tbody id="sa-tbl-loss-headers"><tr><td colspan="11" class="sa-loading">⏳ Memuat...</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="sa-loss-2col">
+      <div class="sa-section" style="margin-bottom:0">
+        <div class="sa-section-title" style="margin-bottom:4px">🔧 Loss per Mesin</div>
+        <div class="sa-section-desc" style="margin-bottom:8px">Total Kg loss + avg %</div>
+        <table class="sa-table">
+          <thead><tr>
+            <th>Mesin</th>
+            <th class="sa-num" style="width:50px">SPK</th>
+            <th class="sa-num" style="width:80px">Loss Kg</th>
+            <th class="sa-num" style="width:60px">Avg %</th>
+          </tr></thead>
+          <tbody id="sa-tbl-loss-machine"><tr><td colspan="4" class="sa-loading">⏳</td></tr></tbody>
+        </table>
+      </div>
+      <div class="sa-section" style="margin-bottom:0">
+        <div class="sa-section-title" style="margin-bottom:4px">👷 Loss per Operator</div>
+        <div class="sa-section-desc" style="margin-bottom:8px">Ranking untuk coaching opportunity</div>
+        <table class="sa-table">
+          <thead><tr>
+            <th>Operator</th>
+            <th class="sa-num" style="width:50px">SPK</th>
+            <th class="sa-num" style="width:80px">Loss Kg</th>
+            <th class="sa-num" style="width:60px">Avg %</th>
+          </tr></thead>
+          <tbody id="sa-tbl-loss-operator"><tr><td colspan="4" class="sa-loading">⏳</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="sa-section">
+      <div class="sa-section-title" style="margin-bottom:4px">📦 Loss per Item Code</div>
+      <div class="sa-section-desc" style="margin-bottom:8px">Material dengan pattern loss tertinggi · untuk perbaikan planning</div>
+      <table class="sa-table">
+        <thead><tr>
+          <th style="width:110px">Item Code</th>
+          <th>Deskripsi</th>
+          <th class="sa-num" style="width:50px">SPK</th>
+          <th class="sa-num" style="width:100px">Total Input</th>
+          <th class="sa-num" style="width:90px">Total Loss</th>
+          <th class="sa-num" style="width:60px">Avg %</th>
+          <th class="sa-num" style="width:80px">Range %</th>
+        </tr></thead>
+        <tbody id="sa-tbl-loss-item"><tr><td colspan="7" class="sa-loading">⏳</td></tr></tbody>
+      </table>
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- ===== MODAL TRACE ===== -->
+<div class="sa-modal-overlay" id="sa-modal-overlay">
+  <div class="sa-modal">
+    <div class="sa-modal-header">
+      <div class="sa-modal-title">
+        <span class="sa-cat-badge" id="sa-modal-cat">—</span>
+        <span class="sa-modal-id" id="sa-modal-id">—</span>
+      </div>
+      <button class="sa-modal-close" id="sa-modal-close" title="Tutup (Esc)">✕</button>
+    </div>
+    <div class="sa-modal-body" id="sa-modal-body"><div class="sa-loading">⏳ Memuat trace...</div></div>
+    <div class="sa-modal-footer">
+      <button class="sa-btn" id="sa-btn-tracker">📋 Buka di Tracker</button>
+      <button class="sa-btn" id="sa-btn-close-foot">Tutup</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+(function() {
+  'use strict';
+
+  var SA_DATA = null;
+  var SA_LOADING = false;
+  var SA_MODAL_BATCH = null;
+  var SA_FILTER = { mb_level:'all', mb_cat:'all', mb_source:'all' };
+  var SA_LOSS_FILTER = { date_from:'', date_to:'', spk_type:'all', machine:'all', operator:'all', limit:20 };
+  var SA_EXPANDED = {};
+
+  function sa_emptyState() {
+    document.getElementById('sa-meta').textContent = 'Belum pernah di-audit';
+    document.getElementById('sa-btn-export').disabled = true;
+    var kpiEmpty = '<div class="sa-kpi"><div class="sa-kpi-label">—</div><div class="sa-kpi-value sa-muted">—</div><div class="sa-kpi-sub">Klik "Jalankan Audit"</div></div>';
+    document.getElementById('sa-kpi-strip').innerHTML = kpiEmpty + kpiEmpty + kpiEmpty + kpiEmpty;
+    document.getElementById('sa-loss-kpi').innerHTML = kpiEmpty + kpiEmpty + kpiEmpty + kpiEmpty;
+
+    document.getElementById('sa-tbl-mb').innerHTML =
+      '<tr><td colspan="8"><div class="sa-empty-large"><div class="sa-empty-large-icon">🔍</div>' +
+      '<div class="sa-empty-large-title">Belum ada hasil audit</div>' +
+      '<div class="sa-empty-large-desc">Klik tombol <b>Jalankan Audit</b> di atas untuk mulai scanning system-wide.</div></div></td></tr>';
+    document.getElementById('sa-checker-grid').innerHTML = '<div class="sa-empty" style="grid-column:1/-1">Jalankan audit dulu</div>';
+    document.getElementById('sa-recon-container').innerHTML = '<div class="sa-empty">Jalankan audit dulu</div>';
+    document.getElementById('sa-tbl-loss-headers').innerHTML = '<tr><td colspan="11" class="sa-empty">Jalankan audit dulu</td></tr>';
+    document.getElementById('sa-tbl-loss-machine').innerHTML = '<tr><td colspan="4" class="sa-empty">—</td></tr>';
+    document.getElementById('sa-tbl-loss-operator').innerHTML = '<tr><td colspan="4" class="sa-empty">—</td></tr>';
+    document.getElementById('sa-tbl-loss-item').innerHTML = '<tr><td colspan="7" class="sa-empty">—</td></tr>';
+  }
+
+  function sa_load() {
+    if (typeof google === 'undefined' || !google.script || !google.script.run) { sa_emptyState(); return; }
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res || !res.success || !res.result) { sa_emptyState(); return; }
+        SA_DATA = res.result;
+        sa_initLossDefaults();
+        sa_render();
+      })
+      .withFailureHandler(function() { sa_emptyState(); })
+      .getStockAudit();
+  }
+
+  function sa_initLossDefaults() {
+    var la = SA_DATA && SA_DATA.loss_analytics;
+    if (!la || !la.success) return;
+
+    // Default date range last 90 hari
+    var today = new Date();
+    var d90 = new Date(); d90.setDate(d90.getDate() - 90);
+    var toStr = function(d) { return d.toISOString().slice(0,10); };
+    if (!SA_LOSS_FILTER.date_from) SA_LOSS_FILTER.date_from = toStr(d90);
+    if (!SA_LOSS_FILTER.date_to)   SA_LOSS_FILTER.date_to = toStr(today);
+    document.getElementById('sa-loss-date-from').value = SA_LOSS_FILTER.date_from;
+    document.getElementById('sa-loss-date-to').value = SA_LOSS_FILTER.date_to;
+
+    // Populate machine + operator select from data
+    var mcs = {}, ops = {};
+    (la.headers || []).forEach(function(h) {
+      if (h.machine) mcs[h.machine] = true;
+      if (h.operator) ops[h.operator] = true;
+    });
+    var mcSel = document.getElementById('sa-loss-machine');
+    var opSel = document.getElementById('sa-loss-operator');
+    var curMc = mcSel.value; var curOp = opSel.value;
+    mcSel.innerHTML = '<option value="all">Semua</option>' + Object.keys(mcs).sort().map(function(m) { return '<option value="' + sa_esc(m) + '">' + sa_esc(m) + '</option>'; }).join('');
+    opSel.innerHTML = '<option value="all">Semua</option>' + Object.keys(ops).sort().map(function(o) { return '<option value="' + sa_esc(o) + '">' + sa_esc(o) + '</option>'; }).join('');
+    mcSel.value = curMc || 'all';
+    opSel.value = curOp || 'all';
+  }
+
+  function sa_render() {
+    if (!SA_DATA) { sa_emptyState(); return; }
+    document.getElementById('sa-btn-export').disabled = false;
+    sa_renderMeta();
+    sa_renderKpi();
+    sa_renderMassBalance();
+    sa_renderSpkSalahKamar();
+    sa_renderReconciliation();
+    sa_renderLossAll();
+  }
+
+  function sa_renderMeta() {
+    document.getElementById('sa-meta').textContent =
+      'Last run: ' + SA_DATA.generated_at + ' · Duration ' + SA_DATA.duration_sec + 's · By: ' + SA_DATA.by_user;
+  }
+
+  function sa_renderKpi() {
+    var s = SA_DATA.summary; var html = '';
+    html += '<div class="sa-kpi"><div class="sa-kpi-label">Batch di-audit</div><div class="sa-kpi-value">' + sa_fmt(s.batches_audited) +
+      '</div><div class="sa-kpi-sub">Active ' + sa_fmt(s.active_count) + ' · Hist ' + sa_fmt(s.historical_count) + '</div></div>';
+    var mbTotal = (s.mb_warn||0) + (s.mb_crit||0);
+    html += '<div class="sa-kpi"><div class="sa-kpi-label">Mass balance issue</div><div class="sa-kpi-value ' +
+      (s.mb_crit>0?'sa-crit':(mbTotal>0?'sa-warn':'')) + '">' + sa_fmt(mbTotal) +
+      '</div><div class="sa-kpi-sub"><span class="sa-warn-text">' + s.mb_warn + ' warn</span> · <span class="sa-crit-text">' + s.mb_crit + ' crit</span></div></div>';
+    var spkIssues = s.spk_issues || 0;
+    html += '<div class="sa-kpi"><div class="sa-kpi-label">SPK salah kamar</div><div class="sa-kpi-value ' +
+      (spkIssues>0?'sa-crit':'') + '">' + sa_fmt(spkIssues) + '</div><div class="sa-kpi-sub">5 checker terdeteksi</div></div>';
+    var reconItems = s.recon_gap_items || 0;
+    html += '<div class="sa-kpi"><div class="sa-kpi-label">Reconciliation gap</div><div class="sa-kpi-value ' +
+      (reconItems>0?'sa-warn':'') + '">' + sa_fmt(reconItems) + ' item</div><div class="sa-kpi-sub">Total gap ' + sa_fmt(s.recon_gap_kg||0) + ' Kg</div></div>';
+    document.getElementById('sa-kpi-strip').innerHTML = html;
+  }
+
+  function sa_renderMassBalance() {
+    var arr = SA_DATA.mass_balance || [];
+    var filtered = arr.filter(function(r) {
+      if (SA_FILTER.mb_level!=='all' && r.level!==SA_FILTER.mb_level) return false;
+      if (SA_FILTER.mb_cat!=='all' && r.cat!==SA_FILTER.mb_cat) return false;
+      if (SA_FILTER.mb_source!=='all' && r.source!==SA_FILTER.mb_source) return false;
+      return true;
+    });
+    var tbody = document.getElementById('sa-tbl-mb');
+    if (filtered.length===0) {
+      tbody.innerHTML = arr.length===0
+        ? '<tr><td colspan="8" class="sa-empty">✅ Semua batch clean.</td></tr>'
+        : '<tr><td colspan="8" class="sa-empty">Tidak ada exception sesuai filter.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = filtered.map(function(r) {
+      var kgIn=parseFloat(r.kg_in)||0, sel=parseFloat(r.selisih_kg)||0;
+      var pct=kgIn>0?(sel/kgIn*100):0;
+      var pctStr=(pct>=0?'+':'')+pct.toFixed(1)+'%';
+      var selStr=(sel>=0?'+':'')+sa_fmt(sel);
+      var lvlClass=r.level==='crit'?'sa-num-crit':'sa-num-warn';
+      var lvlCellCls=r.level==='crit'?'sa-lvl-cell-crit':'sa-lvl-cell-warn';
+      var srcTag=r.source==='historical'?'<span class="sa-source-tag sa-src-historical">HIST</span>':'';
+      return '<tr><td class="'+lvlCellCls+'"><span class="sa-lvl-dot sa-lvl-'+r.level+'"></span></td>'+
+        '<td><span class="sa-cat-badge sa-cat-'+r.cat+'">'+String(r.cat).toUpperCase()+'</span></td>'+
+        '<td class="sa-batch-id">'+sa_esc(r.batch_id)+srcTag+'</td>'+
+        '<td><div class="sa-spec-main">'+sa_esc(r.spec)+'</div>'+
+        '<div class="sa-spec-vendor">'+sa_esc(r.vendor||'—')+(r.no_coil?' · '+sa_esc(r.no_coil):'')+'</div></td>'+
+        '<td class="sa-num">'+sa_fmt(kgIn)+'</td>'+
+        '<td class="sa-num '+lvlClass+'">'+selStr+'</td>'+
+        '<td class="sa-num '+lvlClass+'">'+pctStr+'</td>'+
+        '<td style="text-align:center"><button class="sa-btn-inline" data-batch="'+sa_esc(r.batch_id)+'" data-cat="'+r.cat+'" onclick="return window.saTrace(this)">Trace ↗</button></td></tr>';
+    }).join('');
+  }
+
+  function sa_renderSpkSalahKamar() {
+    var ck = SA_DATA.spk_salah_kamar || {}, html='';
+    ['checker1','checker2','checker3','checker4','checker5'].forEach(function(key, idx) {
+      var c = ck[key]; if (!c) return;
+      var lvlClass='sa-checker-'+(c.level||'ok');
+      var count = c.ids?c.ids.length:0;
+      var listHtml = count>0 ? c.ids.join(', ') : (c.error?'⚠ Error: '+c.error:'Tidak ada masalah — clean ✓');
+      html += '<div class="sa-checker-card '+lvlClass+'"><div class="sa-checker-head">'+
+        '<div class="sa-checker-title">'+(idx+1)+'. '+sa_esc(c.title)+'</div>'+
+        '<div class="sa-checker-count">'+count+'</div></div>'+
+        '<div class="sa-checker-list">'+sa_esc(listHtml)+'</div></div>';
+    });
+    document.getElementById('sa-checker-grid').innerHTML = html;
+  }
+
+  function sa_renderReconciliation() {
+    var arr = SA_DATA.reconciliation || [];
+    var container = document.getElementById('sa-recon-container');
+    if (arr.length===0) { container.innerHTML = '<div class="sa-empty">✅ Tidak ada gap reconciliation.</div>'; return; }
+    var html = '<table class="sa-table"><thead><tr>'+
+      '<th style="width:110px">Item Code</th><th>Deskripsi</th>'+
+      '<th style="width:90px" class="sa-num">SPK In</th><th style="width:100px" class="sa-num">Stok Sekarang</th>'+
+      '<th style="width:90px" class="sa-num">Delivered</th><th style="width:80px" class="sa-num">Selisih</th>'+
+      '</tr></thead><tbody>';
+    html += arr.map(function(r) {
+      var selStr=(r.selisih>=0?'+':'')+sa_fmt(r.selisih);
+      var selCls=r.level==='crit'?'sa-num-crit':(r.level==='warn'?'sa-num-warn':'sa-num-ok');
+      return '<tr><td class="sa-batch-id">'+sa_esc(r.item_code)+'</td>'+
+        '<td style="color:#64748b;font-size:11px">'+sa_esc(r.desc)+'</td>'+
+        '<td class="sa-num">'+sa_fmt(r.spk_in)+'</td><td class="sa-num">'+sa_fmt(r.stok)+'</td>'+
+        '<td class="sa-num">'+sa_fmt(r.delivered)+'</td>'+
+        '<td class="sa-num '+selCls+'">'+selStr+'</td></tr>';
+    }).join('');
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  }
+
+  /* ===== LOSS ANALYTICS RENDER ===== */
+  function sa_renderLossAll() {
+    var la = SA_DATA && SA_DATA.loss_analytics;
+    if (!la || !la.success) {
+      document.getElementById('sa-loss-kpi').innerHTML =
+        '<div class="sa-kpi" style="grid-column:1/-1"><div class="sa-error">⚠️ Loss analytics gagal: ' + sa_esc(la?la.message:'no data') + '</div></div>';
+      return;
+    }
+    var filtered = sa_applyLossFilter(la.headers || []);
+    sa_renderLossKpi(la, filtered);
+    sa_renderLossHeaders(filtered);
+    sa_renderLossMachine(sa_aggByKey(filtered, 'machine'));
+    sa_renderLossOperator(sa_aggByKey(filtered, 'operator'));
+    sa_renderLossItem(sa_aggByKey(filtered, 'item_code'));
+  }
+
+  function sa_applyLossFilter(headers) {
+    var df = SA_LOSS_FILTER.date_from ? new Date(SA_LOSS_FILTER.date_from) : null;
+    var dt = SA_LOSS_FILTER.date_to ? new Date(SA_LOSS_FILTER.date_to) : null;
+    if (dt) dt.setHours(23,59,59,999);
+    return headers.filter(function(h) {
+      if (SA_LOSS_FILTER.spk_type!=='all' && h.type_prefix!==SA_LOSS_FILTER.spk_type) return false;
+      if (SA_LOSS_FILTER.machine!=='all' && h.machine!==SA_LOSS_FILTER.machine) return false;
+      if (SA_LOSS_FILTER.operator!=='all' && h.operator!==SA_LOSS_FILTER.operator) return false;
+      if (df || dt) {
+        var td = h.tgl_done ? new Date(h.tgl_done) : null;
+        if (!td) return false;
+        if (df && td < df) return false;
+        if (dt && td > dt) return false;
+      }
+      return true;
+    });
+  }
+
+  function sa_aggByKey(headers, key) {
+    var agg = {};
+    headers.forEach(function(h) {
+      var k = h[key]; if (!k) return;
+      if (!agg[k]) agg[k] = { key:k, spk_count:0, total_input_kg:0, total_loss_kg:0, loss_pcts:[], desc:h.item_desc||'' };
+      agg[k].spk_count++;
+      agg[k].total_input_kg += h.kg_input;
+      agg[k].total_loss_kg  += h.loss_kg;
+      agg[k].loss_pcts.push(h.loss_pct);
+    });
+    var arr = Object.keys(agg).map(function(k) {
+      var a = agg[k];
+      var avg = a.loss_pcts.length>0 ? a.loss_pcts.reduce(function(x,y){return x+y;},0)/a.loss_pcts.length : 0;
+      return {
+        key:a.key, spk_count:a.spk_count,
+        total_input_kg:a.total_input_kg, total_loss_kg:a.total_loss_kg,
+        avg_loss_pct:Math.round(avg*100)/100,
+        min_loss_pct:a.loss_pcts.length>0?Math.round(Math.min.apply(null,a.loss_pcts)*100)/100:0,
+        max_loss_pct:a.loss_pcts.length>0?Math.round(Math.max.apply(null,a.loss_pcts)*100)/100:0,
+        desc:a.desc
+      };
+    });
+    arr.sort(function(a,b){ return Math.abs(b.total_loss_kg)-Math.abs(a.total_loss_kg); });
+    return arr;
+  }
+
+  function sa_renderLossKpi(la, filtered) {
+    var totalLoss = 0, totalInput = 0, lossPcts = [];
+    var typeCounts = { CTL:0, SHR:0, SLT:0 };
+    filtered.forEach(function(h) {
+      totalLoss += h.loss_kg;
+      totalInput += h.kg_input;
+      lossPcts.push(h.loss_pct);
+      if (typeCounts[h.type_prefix]!==undefined) typeCounts[h.type_prefix]++;
+    });
+    var avgPct = lossPcts.length>0 ? (lossPcts.reduce(function(x,y){return x+y;},0)/lossPcts.length) : 0;
+
+    var mcAgg = sa_aggByKey(filtered, 'machine');
+    var topMc = mcAgg.length>0 ? mcAgg[0] : null;
+
+    var html = '';
+    html += '<div class="sa-kpi"><div class="sa-kpi-label">Total SPK di-audit</div><div class="sa-kpi-value">' +
+      sa_fmt(filtered.length) + '</div><div class="sa-kpi-sub">CTL:' + typeCounts.CTL + ' · SHR:' + typeCounts.SHR + ' · SLT:' + typeCounts.SLT + '</div></div>';
+    var lossCls = Math.abs(avgPct)>3 ? 'sa-crit' : (Math.abs(avgPct)>1.5 ? 'sa-warn' : '');
+    html += '<div class="sa-kpi"><div class="sa-kpi-label">Total Loss</div><div class="sa-kpi-value ' + lossCls + '">' +
+      sa_fmt(totalLoss) + ' <span style="font-size:11px;color:#64748b">Kg</span></div>' +
+      '<div class="sa-kpi-sub">Avg ' + (filtered.length>0?Math.round(totalLoss/filtered.length):0) + ' Kg/SPK</div></div>';
+    html += '<div class="sa-kpi"><div class="sa-kpi-label">Avg Loss Rate</div><div class="sa-kpi-value ' + lossCls + '">' +
+      (Math.round(avgPct*100)/100) + '%</div>' +
+      '<div class="sa-kpi-sub">Input total ' + sa_fmt(totalInput) + ' Kg</div></div>';
+    html += '<div class="sa-kpi"><div class="sa-kpi-label">Top Loss Machine</div><div class="sa-kpi-value">' +
+      (topMc?sa_esc(topMc.key):'—') + '</div>' +
+      '<div class="sa-kpi-sub">' + (topMc?sa_fmt(topMc.total_loss_kg)+' Kg ('+topMc.avg_loss_pct+'%)':'—') + '</div></div>';
+    document.getElementById('sa-loss-kpi').innerHTML = html;
+  }
+
+  function sa_renderLossHeaders(headers) {
+    var limit = parseInt(SA_LOSS_FILTER.limit,10) || 20;
+    var display = headers.slice(0, limit);
+    var tbody = document.getElementById('sa-tbl-loss-headers');
+    if (display.length===0) { tbody.innerHTML = '<tr><td colspan="11" class="sa-empty">Tidak ada SPK sesuai filter.</td></tr>'; return; }
+    var html = '';
+    display.forEach(function(h) {
+      var isExp = !!SA_EXPANDED[h.spk_no];
+      var lvlCls = h.level==='crit'?'sa-status-crit':(h.level==='warn'?'sa-status-warn':'sa-status-ok');
+      var lossNumCls = h.level==='crit'?'sa-num-crit':(h.level==='warn'?'sa-num-warn':'sa-num-ok');
+      var pctCls = h.level==='crit'?'sa-num-crit':(h.level==='warn'?'sa-num-warn':'sa-num-ok');
+      html += '<tr class="' + (isExp?'sa-row-expanded':'') + '" data-spk="' + sa_esc(h.spk_no) + '" onclick="return window.saToggleLoss(this)" style="cursor:pointer">' +
+        '<td style="color:#0284c7">' + (isExp?'▼':'▸') + '</td>' +
+        '<td class="sa-batch-id">' + sa_esc(h.spk_no) + (h.is_habis?'<span class="sa-habis-badge">HABIS</span>':'') + '</td>' +
+        '<td style="font-size:11px">' + sa_esc(h.machine) + '</td>' +
+        '<td style="font-size:11px">' + sa_esc(h.operator||'—') + '</td>' +
+        '<td style="font-size:11px">' + sa_esc(h.tgl_done||'—') + '</td>' +
+        '<td class="sa-num">' + sa_fmt(h.kg_input) + '</td>' +
+        '<td class="sa-num">' + sa_fmt(h.kg_out_sum) + '</td>' +
+        '<td class="sa-num">' + sa_fmt(h.kg_ng_sum) + '</td>' +
+        '<td class="sa-num ' + lossNumCls + '">' + sa_fmt(h.loss_kg) + '</td>' +
+        '<td class="sa-num ' + pctCls + '">' + (h.loss_pct>=0?'+':'') + h.loss_pct + '%</td>' +
+        '<td style="text-align:center"><span class="sa-status-badge ' + lvlCls + '">' + String(h.level).toUpperCase() + '</span></td>' +
+      '</tr>';
+      if (isExp && h.outs && h.outs.length>0) {
+        html += '<tr class="sa-out-detail"><td colspan="11" style="padding:8px 12px 12px 32px;font-size:11px">' +
+          '<div style="color:#64748b;margin-bottom:6px;font-weight:600">OUT-level breakdown (' + h.outs.length + ' rows):</div>';
+        h.outs.forEach(function(o) {
+          var gapCls = Math.abs(o.gap_pct)>3?'sa-num-crit':(Math.abs(o.gap_pct)>1?'sa-num-warn':'sa-num-ok');
+          html += '<div class="sa-loss-out-row">' +
+            '<div class="sa-batch-id">' + sa_esc(o.spk_no) + '</div>' +
+            '<div>' + sa_esc(o.item_code) + ' · ' + sa_esc(o.input_spec||'') + (o.so_ref?' · <span style="color:#64748b">'+sa_esc(o.so_ref)+'</span>':'') + (o.cust?' <span style="color:#64748b">('+sa_esc(o.cust)+')</span>':'') + '</div>' +
+            '<div class="sa-num">' + sa_fmt(o.kg_target) + '</div>' +
+            '<div class="sa-num">' + sa_fmt(o.kg_actual) + '</div>' +
+            '<div class="sa-num ' + gapCls + '">' + (o.gap_kg>=0?'-':'+') + sa_fmt(Math.abs(o.gap_kg)) + '</div>' +
+            '<div class="sa-num ' + gapCls + '">' + (o.gap_pct>=0?'-':'+') + Math.abs(o.gap_pct) + '%</div>' +
+          '</div>';
+        });
+        html += '</td></tr>';
+      }
+    });
+    tbody.innerHTML = html;
+  }
+
+  function sa_renderLossMachine(arr) {
+    var tbody = document.getElementById('sa-tbl-loss-machine');
+    if (arr.length===0) { tbody.innerHTML = '<tr><td colspan="4" class="sa-empty">—</td></tr>'; return; }
+    tbody.innerHTML = arr.map(function(m) {
+      var cls = Math.abs(m.avg_loss_pct)>3?'sa-num-crit':(Math.abs(m.avg_loss_pct)>1.5?'sa-num-warn':'sa-num-ok');
+      return '<tr><td style="font-family:var(--font-mono, monospace);font-size:11px">' + sa_esc(m.key) + '</td>' +
+        '<td class="sa-num">' + m.spk_count + '</td>' +
+        '<td class="sa-num ' + cls + '">' + sa_fmt(m.total_loss_kg) + '</td>' +
+        '<td class="sa-num ' + cls + '">' + m.avg_loss_pct + '%</td></tr>';
+    }).join('');
+  }
+
+  function sa_renderLossOperator(arr) {
+    var tbody = document.getElementById('sa-tbl-loss-operator');
+    if (arr.length===0) { tbody.innerHTML = '<tr><td colspan="4" class="sa-empty">—</td></tr>'; return; }
+    tbody.innerHTML = arr.map(function(o) {
+      var cls = Math.abs(o.avg_loss_pct)>3?'sa-num-crit':(Math.abs(o.avg_loss_pct)>1.5?'sa-num-warn':'sa-num-ok');
+      return '<tr><td style="font-size:11px">' + sa_esc(o.key) + '</td>' +
+        '<td class="sa-num">' + o.spk_count + '</td>' +
+        '<td class="sa-num ' + cls + '">' + sa_fmt(o.total_loss_kg) + '</td>' +
+        '<td class="sa-num ' + cls + '">' + o.avg_loss_pct + '%</td></tr>';
+    }).join('');
+  }
+
+  function sa_renderLossItem(arr) {
+    var tbody = document.getElementById('sa-tbl-loss-item');
+    if (arr.length===0) { tbody.innerHTML = '<tr><td colspan="7" class="sa-empty">—</td></tr>'; return; }
+    tbody.innerHTML = arr.map(function(it) {
+      var cls = Math.abs(it.avg_loss_pct)>3?'sa-num-crit':(Math.abs(it.avg_loss_pct)>1.5?'sa-num-warn':'sa-num-ok');
+      return '<tr><td class="sa-batch-id">' + sa_esc(it.key) + '</td>' +
+        '<td style="color:#64748b;font-size:11px">' + sa_esc(it.desc) + '</td>' +
+        '<td class="sa-num">' + it.spk_count + '</td>' +
+        '<td class="sa-num">' + sa_fmt(it.total_input_kg) + '</td>' +
+        '<td class="sa-num ' + cls + '">' + sa_fmt(it.total_loss_kg) + '</td>' +
+        '<td class="sa-num ' + cls + '">' + it.avg_loss_pct + '%</td>' +
+        '<td class="sa-num" style="color:#64748b;font-size:10px">' + it.min_loss_pct + '-' + it.max_loss_pct + '%</td></tr>';
+    }).join('');
+  }
+
+  window.saToggleLoss = function(trEl) {
+    var spk = trEl.getAttribute('data-spk');
+    if (!spk) return false;
+    SA_EXPANDED[spk] = !SA_EXPANDED[spk];
+    sa_renderLossAll();
+    return false;
+  };
+
+  function sa_onLossApply() {
+    SA_LOSS_FILTER.date_from = document.getElementById('sa-loss-date-from').value;
+    SA_LOSS_FILTER.date_to   = document.getElementById('sa-loss-date-to').value;
+    SA_LOSS_FILTER.spk_type  = document.getElementById('sa-loss-type').value;
+    SA_LOSS_FILTER.machine   = document.getElementById('sa-loss-machine').value;
+    SA_LOSS_FILTER.operator  = document.getElementById('sa-loss-operator').value;
+    SA_EXPANDED = {};
+    sa_renderLossAll();
+  }
+
+  function sa_switchTab(tabName) {
+    var tabs = document.querySelectorAll('.sa-tab');
+    var panes = document.querySelectorAll('.sa-tab-pane');
+    for (var i=0; i<tabs.length; i++) {
+      if (tabs[i].getAttribute('data-tab')===tabName) tabs[i].classList.add('is-active');
+      else tabs[i].classList.remove('is-active');
+    }
+    for (var j=0; j<panes.length; j++) {
+      if (panes[j].getAttribute('data-pane')===tabName) panes[j].classList.add('is-active');
+      else panes[j].classList.remove('is-active');
+    }
+  }
+
+  function sa_onRunAudit() {
+    if (SA_LOADING) return;
+    SA_LOADING = true;
+    var btn = document.getElementById('sa-btn-run');
+    btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Sedang audit...';
+    document.getElementById('sa-tbl-mb').innerHTML = '<tr><td colspan="8" class="sa-loading">⏳ Scanning...</td></tr>';
+    document.getElementById('sa-checker-grid').innerHTML = '<div class="sa-loading" style="grid-column:1/-1">⏳</div>';
+    document.getElementById('sa-recon-container').innerHTML = '<div class="sa-loading">⏳</div>';
+    document.getElementById('sa-tbl-loss-headers').innerHTML = '<tr><td colspan="11" class="sa-loading">⏳ Computing loss...</td></tr>';
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        SA_LOADING = false;
+        btn.disabled = false; btn.innerHTML = '<i class="ti ti-refresh"></i> Jalankan Audit';
+        if (!res || !res.success) { sa_onError(res?res.message:'No response'); return; }
+        SA_DATA = res.result;
+        sa_initLossDefaults();
+        sa_render();
+        if (typeof showToast==='function') {
+          var mb=res.result.mass_balance.length, spk=res.result.summary.spk_issues||0;
+          var recon=res.result.summary.recon_gap_items||0;
+          var la=res.result.loss_analytics;
+          var lossCount = (la&&la.success)?la.summary.total_spk_audited:0;
+          showToast('Audit selesai — MB:'+mb+' · SPK:'+spk+' · Recon:'+recon+' · Loss:'+lossCount+' SPK', 'success');
+        }
+      })
+      .withFailureHandler(function(e) {
+        SA_LOADING = false;
+        btn.disabled = false; btn.innerHTML = '<i class="ti ti-refresh"></i> Jalankan Audit';
+        sa_onError(e.message||String(e));
+      })
+      .runStockAudit();
+  }
+
+  function sa_onError(msg) {
+    if (typeof showToast==='function') showToast('Audit error: '+msg, 'error');
+    document.getElementById('sa-tbl-mb').innerHTML = '<tr><td colspan="8" class="sa-error">⚠️ '+sa_esc(msg)+'</td></tr>';
+  }
+
+  /* ===== EXPORT CSV ===== */
+  function sa_onExport() {
+    if (!SA_DATA) return;
+    var lines = [];
+    lines.push('=== STOCK AUDIT REPORT ===');
+    lines.push('Generated: '+SA_DATA.generated_at+',,By: '+SA_DATA.by_user);
+    lines.push('');
+
+    lines.push('=== SECTION 1: MASS BALANCE EXCEPTIONS ===');
+    lines.push('Batch_ID,Category,Spec,Vendor,No_Coil,Kg_In,Selisih_Kg,Selisih_Pct,Level,Source');
+    (SA_DATA.mass_balance||[]).forEach(function(r) {
+      var kgIn=parseFloat(r.kg_in)||0;
+      var pct=kgIn>0?(r.selisih_kg/kgIn*100).toFixed(2):'0';
+      lines.push([r.batch_id,r.cat,r.spec,r.vendor||'',r.no_coil||'',kgIn,r.selisih_kg,pct+'%',r.level,r.source].map(sa_csvEsc).join(','));
+    });
+    lines.push('');
+
+    lines.push('=== SECTION 2: SPK SALAH KAMAR ===');
+    lines.push('Checker,Title,Level,Count,Details');
+    ['checker1','checker2','checker3','checker4','checker5'].forEach(function(k, i) {
+      var c = SA_DATA.spk_salah_kamar[k]; if (!c) return;
+      lines.push([(i+1),c.title,c.level,(c.ids||[]).length,(c.ids||[]).join(' | ')].map(sa_csvEsc).join(','));
+    });
+    lines.push('');
+
+    lines.push('=== SECTION 3: RECONCILIATION ===');
+    lines.push('Item_Code,Description,SPK_In,Stok,Delivered,Selisih,Level');
+    (SA_DATA.reconciliation||[]).forEach(function(r) {
+      lines.push([r.item_code,r.desc,r.spk_in,r.stok,r.delivered,r.selisih,r.level].map(sa_csvEsc).join(','));
+    });
+    lines.push('');
+
+    var la = SA_DATA.loss_analytics;
+    if (la && la.success) {
+      lines.push('=== SECTION 4: LOSS ANALYTICS (per SPK HEADER) ===');
+      lines.push('SPK_No,Type,Machine,Operator,Tgl_Done,Item_Code,Batch_Input,Kg_Input,Kg_Out_Sum,Kg_NG_Sum,Loss_Kg,Loss_Pct,Level,Is_Habis');
+      var filtered = sa_applyLossFilter(la.headers||[]);
+      filtered.forEach(function(h) {
+        lines.push([h.spk_no,h.spk_type,h.machine,h.operator,h.tgl_done,h.item_code,h.batch_input,h.kg_input,h.kg_out_sum,h.kg_ng_sum,h.loss_kg,h.loss_pct+'%',h.level,h.is_habis?'YES':'NO'].map(sa_csvEsc).join(','));
+      });
+      lines.push('');
+      lines.push('=== SECTION 4B: LOSS OUT BREAKDOWN ===');
+      lines.push('Parent_SPK,OUT_SPK,Item_Code,SO_Ref,Cust,Kg_Target,Kg_Actual,Gap_Kg,Gap_Pct');
+      filtered.forEach(function(h) {
+        (h.outs||[]).forEach(function(o) {
+          lines.push([h.spk_no,o.spk_no,o.item_code,o.so_ref||'',o.cust||'',o.kg_target,o.kg_actual,o.gap_kg,o.gap_pct+'%'].map(sa_csvEsc).join(','));
+        });
+      });
+    }
+
+    var csv = lines.join('\n');
+    var blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var date = new Date().toISOString().slice(0,10);
+    a.href = url; a.download = 'stock_audit_'+date+'.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    if (typeof showToast==='function') showToast('CSV downloaded', 'success');
+  }
+
+  function sa_csvEsc(v) {
+    var s = String(v==null?'':v).replace(/"/g,'""');
+    return /[,"\n]/.test(s) ? '"'+s+'"' : s;
+  }
+
+  /* ===== MODAL TRACE ===== */
+  window.saTrace = function(btnEl) {
+    var batchId = btnEl.getAttribute('data-batch');
+    var cat = btnEl.getAttribute('data-cat')||'';
+    if (!batchId) return false;
+    sa_openTrace(batchId, cat);
+    return false;
+  };
+
+  function sa_openTrace(batchId, cat) {
+    SA_MODAL_BATCH = batchId;
+    document.getElementById('sa-modal-cat').textContent = cat?cat.toUpperCase():'BATCH';
+    document.getElementById('sa-modal-cat').className = 'sa-cat-badge'+(cat?' sa-cat-'+cat:'');
+    document.getElementById('sa-modal-id').textContent = batchId;
+    document.getElementById('sa-modal-body').innerHTML = '<div class="sa-loading">⏳ Memuat trace...</div>';
+    document.getElementById('sa-modal-overlay').classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+    google.script.run
+      .withSuccessHandler(function(res) { sa_onTraceLoad(res, batchId); })
+      .withFailureHandler(function(e) {
+        document.getElementById('sa-modal-body').innerHTML = '<div class="sa-error">⚠️ Error: '+sa_esc(e.message||String(e))+'</div>';
+      })
+      .getLiveStockTrace(batchId);
+  }
+
+  function sa_onTraceLoad(res, batchId) {
+    if (!res || !res.success) {
+      document.getElementById('sa-modal-body').innerHTML = '<div class="sa-error">⚠️ '+sa_esc(res?(res.message||'Gagal'):'No response')+'</div>';
+      return;
+    }
+    var html = '<div class="sa-modal-section"><div class="sa-modal-section-title">📋 Info Batch</div><div class="sa-modal-meta">';
+    if (res.meta) {
+      html += sa_metaItem('Root Batch', res.meta.root_batch||'—');
+      html += sa_metaItem('Ancestors', String(res.meta.total_ancestors||0));
+      html += sa_metaItem('Descendants', String(res.meta.total_descendants||0));
+      html += sa_metaItem('Delivered', res.meta.is_delivered?'✓ Yes':'◯ In Stock');
+    }
+    html += '</div></div><div class="sa-modal-section"><div class="sa-modal-section-title">🌳 Genealogy Tree</div>';
+    if (res.flat && res.flat.length>0) {
+      var ancestors = res.flat.filter(function(n){return (n.depth_from_current||0)<0;});
+      ancestors.sort(function(a,b){return a.depth_from_current-b.depth_from_current;});
+      if (ancestors.length>0) {
+        html += '<div style="margin-bottom:10px;padding:8px;background:#fff7ed;border-left:3px solid #f59e0b;border-radius:4px;">';
+        html += '<div style="font-size:10px;color:#92400e;font-weight:600;margin-bottom:4px;">📍 ASAL-USUL</div>';
+        for (var a=0;a<ancestors.length;a++) html += sa_renderTreeRow(ancestors[a], batchId);
+        html += '</div>';
+      }
+    }
+    if (res.tree) html += sa_renderTreeRecursive(res.tree, batchId);
+    else html += '<div class="sa-tree-empty">Tidak ada history trace.</div>';
+    html += '</div>';
+    document.getElementById('sa-modal-body').innerHTML = html;
+  }
+
+  function sa_metaItem(label, value) {
+    return '<div class="sa-meta-item"><div class="sa-meta-label">'+sa_esc(label)+'</div><div class="sa-meta-value">'+sa_esc(value)+'</div></div>';
+  }
+
+  function sa_renderTreeRecursive(node, currentBatchId) {
+    if (!node) return '<div class="sa-tree-empty">Tree kosong</div>';
+    var hasChildren = node.children && node.children.length>0;
+    var html = '<div>' + sa_renderTreeRow(node, currentBatchId);
+    if (hasChildren) {
+      html += '<div class="sa-tree-children">';
+      for (var i=0;i<node.children.length;i++) html += sa_renderTreeRecursive(node.children[i], currentBatchId);
+      html += '</div>';
+    }
+    return html + '</div>';
+  }
+
+  function sa_renderTreeRow(node, currentBatchId) {
+    var isCurrent = node.batch_id===currentBatchId;
+    var typeUpper = String(node.type||'').toUpperCase();
+    var typeClass = ['COIL','SHEET','WIP','FG','NG'].indexOf(typeUpper)>=0 ? 'sa-tree-type-'+typeUpper : 'sa-tree-type-default';
+    var html = '<div class="sa-tree-row'+(isCurrent?' is-current':'')+'">';
+    html += '<span class="sa-tree-type '+typeClass+'">'+sa_esc(typeUpper||'-')+'</span>';
+    html += '<span class="sa-tree-id">'+sa_esc(node.batch_id||'-')+'</span>';
+    html += '<span class="sa-tree-info">'+sa_esc(node.item_code||'-')+' · '+sa_fmt(node.qty)+' pc / '+sa_fmt(node.kg)+' kg</span>';
+    if (isCurrent) html += '<span class="sa-tree-current-tag">← BATCH INI</span>';
+    else if (node.spk_ref) html += '<span class="sa-tree-spkref">via '+sa_esc(node.spk_ref)+'</span>';
+    return html + '</div>';
+  }
+
+  function sa_closeTrace() {
+    document.getElementById('sa-modal-overlay').classList.remove('is-open');
+    document.body.style.overflow = ''; SA_MODAL_BATCH = null;
+  }
+
+  function sa_openInTracker() {
+    var batchId = SA_MODAL_BATCH; sa_closeTrace();
+    if (!batchId) return;
+    try { window.LS_TRACKER_PENDING_BATCH = batchId; } catch(e){}
+    if (typeof window.goSubPage==='function') window.goSubPage('tracker', null);
+    else alert('Buka menu Tracker, search: '+batchId);
+  }
+
+  function sa_fmt(n) { n = parseFloat(n)||0; return Math.round(n).toLocaleString('id-ID'); }
+  function sa_esc(s) { if (s==null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  /* ===== WIRE EVENTS ===== */
+  document.getElementById('sa-btn-run').addEventListener('click', sa_onRunAudit);
+  document.getElementById('sa-btn-export').addEventListener('click', sa_onExport);
+  document.getElementById('sa-flt-mb-level').addEventListener('change', function() { SA_FILTER.mb_level=this.value; if (SA_DATA) sa_renderMassBalance(); });
+  document.getElementById('sa-flt-mb-cat').addEventListener('change', function() { SA_FILTER.mb_cat=this.value; if (SA_DATA) sa_renderMassBalance(); });
+  document.getElementById('sa-flt-mb-source').addEventListener('change', function() { SA_FILTER.mb_source=this.value; if (SA_DATA) sa_renderMassBalance(); });
+  document.getElementById('sa-loss-apply').addEventListener('click', sa_onLossApply);
+  document.getElementById('sa-loss-limit').addEventListener('change', function() { SA_LOSS_FILTER.limit=this.value; if (SA_DATA) sa_renderLossAll(); });
+  document.getElementById('sa-modal-close').addEventListener('click', sa_closeTrace);
+  document.getElementById('sa-btn-close-foot').addEventListener('click', sa_closeTrace);
+  document.getElementById('sa-btn-tracker').addEventListener('click', sa_openInTracker);
+  document.getElementById('sa-modal-overlay').addEventListener('click', function(ev) { if (ev.target===this) sa_closeTrace(); });
+  document.addEventListener('keydown', function(ev) { if (ev.key==='Escape' && SA_MODAL_BATCH) sa_closeTrace(); });
+
+  var tabBtns = document.querySelectorAll('.sa-tab');
+  for (var t=0;t<tabBtns.length;t++) {
+    tabBtns[t].addEventListener('click', function() { sa_switchTab(this.getAttribute('data-tab')); });
+  }
+
+  sa_load();
+})();
+</script>

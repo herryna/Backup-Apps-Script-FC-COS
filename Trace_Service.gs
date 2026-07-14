@@ -1419,3 +1419,891 @@ function debugMassBalanceWIP() {
     }
   }
 }
+
+/* =========================================================================
+ * getSystemMassBalance(scope) — Sprint 2B
+ * ---------------------------------------------------------------------
+ * Scan mass balance system-wide dengan memanfaatkan enrichment dari
+ * getLiveStockData() (Sprint 1B). Semua batch yang terlihat di Stok_*
+ * (baik active maupun historical/habis) akan di-audit selisih-nya.
+ *
+ * @param {string} scope 'all' | 'active' | 'historical'
+ * @return {Object} { success, exceptions[], summary{}, meta{} }
+ * ========================================================================= */
+function getSystemMassBalance(scope) {
+  scope = scope || 'all';
+  try {
+    var liveData = getLiveStockData();
+    if (!liveData || !liveData.success) {
+      return {
+        success: false,
+        message: 'getLiveStockData failed: ' + (liveData ? liveData.message : 'no response')
+      };
+    }
+
+    var exceptions = [];
+    var stats = {
+      total_audited: 0,
+      warn: 0, crit: 0, ok: 0,
+      active: 0, historical: 0
+    };
+    var cats = ['coil', 'sheet', 'wip', 'fg', 'ng'];
+
+    cats.forEach(function(cat) {
+      var arr = (liveData.batches && liveData.batches[cat]) || [];
+      arr.forEach(function(b) {
+        var kgAvail = parseFloat(b.kg_avail) || 0;
+        var kgKeep  = parseFloat(b.kg_keep)  || 0;
+        var isActive = (kgAvail > 0 || kgKeep > 0);
+
+        if (scope === 'active'     && !isActive) return;
+        if (scope === 'historical' &&  isActive) return;
+
+        stats.total_audited++;
+        if (isActive) stats.active++; else stats.historical++;
+
+        if (b.selisih_level === 'warn')      stats.warn++;
+        else if (b.selisih_level === 'crit') stats.crit++;
+        else                                  stats.ok++;
+
+        if (b.selisih_level) {
+          exceptions.push({
+            batch_id  : b.batch_id,
+            cat       : cat,
+            spec      : b.description || b.spec_composite || '',
+            vendor    : b.supplier || '',
+            no_coil   : b.no_coil  || '',
+            kg_in     : parseFloat(b.kg_in) || 0,
+            kg_avail  : kgAvail,
+            selisih_kg: parseFloat(b.selisih_kg) || 0,
+            level     : b.selisih_level,
+            source    : isActive ? 'active' : 'historical'
+          });
+        }
+      });
+    });
+
+    // Sort: crit dulu, warn kemudian, dalam grup sort by abs(selisih) desc
+    exceptions.sort(function(a, b) {
+      var lvl = { crit: 2, warn: 1 };
+      var la = lvl[a.level] || 0, lb = lvl[b.level] || 0;
+      if (la !== lb) return lb - la;
+      return Math.abs(b.selisih_kg) - Math.abs(a.selisih_kg);
+    });
+
+    return {
+      success   : true,
+      exceptions: exceptions,
+      summary   : stats,
+      meta      : {
+        scope       : scope,
+        generated_at: new Date().toISOString()
+      }
+    };
+  } catch (e) {
+    return { success: false, message: String(e), stack: e.stack };
+  }
+}
+
+/* Test helper */
+function _test_getSystemMassBalance() {
+  var res = getSystemMassBalance('all');
+  if (!res.success) { Logger.log('ERR: ' + res.message); return; }
+  Logger.log('=== SUMMARY ===');
+  Logger.log('audited=' + res.summary.total_audited +
+             ' | active=' + res.summary.active +
+             ' | historical=' + res.summary.historical +
+             ' | warn=' + res.summary.warn +
+             ' | crit=' + res.summary.crit +
+             ' | ok=' + res.summary.ok);
+  Logger.log('=== TOP 5 EXCEPTIONS ===');
+  res.exceptions.slice(0, 5).forEach(function(e) {
+    Logger.log(e.level + ' | ' + e.cat + ' | ' + e.batch_id +
+               ' | in=' + Math.round(e.kg_in) +
+               ' | selisih=' + e.selisih_kg + ' | src=' + e.source);
+  });
+}
+
+/* =========================================================================
+ * SPK SALAH KAMAR — 5 CHECKERS (Sprint 2C)
+ * ========================================================================= */
+
+function _saGetStockBatchSet(ss) {
+  var sheets = ['Stok_Coil', 'Stok_Sheet', 'Stok_WIP', 'Stok_FG', 'Stok_NG'];
+  var set = {};
+  sheets.forEach(function(name) {
+    var sh = ss.getSheetByName(name);
+    if (!sh) return;
+    var last = sh.getLastRow();
+    if (last < 2) return;
+    var data = sh.getRange(1, 1, last, sh.getLastColumn()).getValues();
+    var hdr = data[0].map(function(h) { return String(h).trim(); });
+    var iB = _lsFindCol(hdr, ['Batch_ID']);
+    if (iB < 0) return;
+    for (var r = 1; r < data.length; r++) {
+      var b = String(data[r][iB] || '').trim();
+      if (b) set[b] = name;
+    }
+  });
+  return set;
+}
+
+function _saGetSpkData(ss) {
+  var sh = ss.getSheetByName('SPK');
+  if (!sh) return null;
+  var last = sh.getLastRow();
+  if (last < 2) return { rows: [], hdr: [], idx: {} };
+  var data = sh.getRange(1, 1, last, sh.getLastColumn()).getValues();
+  var hdr = data[0].map(function(h) { return String(h).trim(); });
+  return {
+    rows: data, hdr: hdr,
+    idx: {
+      spkNo    : _lsFindCol(hdr, ['SPK_No']),
+      type     : _lsFindCol(hdr, ['SPK_Type']),
+      status   : _lsFindCol(hdr, ['Status']),
+      owner    : _lsFindCol(hdr, ['Owner']),
+      ownerUsed: _lsFindCol(hdr, ['Owner_Used']),
+      targetLoc: _lsFindCol(hdr, ['Target_Loc']),
+      cust     : _lsFindCol(hdr, ['Cust']),
+      soRef    : _lsFindCol(hdr, ['SO_Ref']),
+      itemCode : _lsFindCol(hdr, ['Item_Code']),
+      kgActual : _lsFindCol(hdr, ['KG_Actual'])
+    }
+  };
+}
+
+function _saGetTraceData(ss) {
+  var sh = ss.getSheetByName('Trace_Log');
+  if (!sh) return { rows: [], hdr: [], idx: {} };
+  var last = sh.getLastRow();
+  if (last < 2) return { rows: [], hdr: [], idx: {} };
+  var data = sh.getRange(1, 1, last, sh.getLastColumn()).getValues();
+  var hdr = data[0].map(function(h) { return String(h).trim(); });
+  return {
+    rows: data, hdr: hdr,
+    idx: {
+      batch      : _lsFindCol(hdr, ['Batch_ID']),
+      type       : _lsFindCol(hdr, ['Type']),
+      spkRef     : _lsFindCol(hdr, ['SPK_Ref']),
+      sourceBatch: _lsFindCol(hdr, ['Source_Batch']),
+      rootBatch  : _lsFindCol(hdr, ['Root_Batch'])
+    }
+  };
+}
+
+function _saCheckSpkDoneNoTrace(spkData, traceData) {
+  var results = [];
+  if (!spkData || spkData.idx.spkNo < 0) return results;
+
+  var traceSet = {};
+  if (traceData && traceData.idx.spkRef >= 0) {
+    for (var t = 1; t < traceData.rows.length; t++) {
+      var ref = String(traceData.rows[t][traceData.idx.spkRef] || '').trim();
+      if (ref) traceSet[ref] = true;
+    }
+  }
+
+  for (var r = 1; r < spkData.rows.length; r++) {
+    var row = spkData.rows[r];
+    var type = String(row[spkData.idx.type] || '');
+    var status = String(row[spkData.idx.status] || '');
+    if (type.indexOf('-OUT') < 0) continue;
+    if (status !== 'DONE') continue;
+    var spkNo = String(row[spkData.idx.spkNo] || '').trim();
+    if (!spkNo) continue;
+    if (!traceSet[spkNo]) results.push(spkNo);
+  }
+  return results;
+}
+
+function _saCheckTraceNoStok(traceData, stockSet) {
+  var results = [];
+  if (!traceData || traceData.idx.batch < 0) return results;
+
+  var seen = {};
+  for (var t = 1; t < traceData.rows.length; t++) {
+    var batch = String(traceData.rows[t][traceData.idx.batch] || '').trim();
+    if (!batch || seen[batch]) continue;
+    seen[batch] = true;
+    if (!stockSet[batch]) results.push(batch);
+  }
+  return results;
+}
+
+function _saCheckOwnerUsedMismatch(spkData) {
+  var results = [];
+  if (!spkData || spkData.idx.spkNo < 0) return results;
+
+  for (var r = 1; r < spkData.rows.length; r++) {
+    var row = spkData.rows[r];
+    var spkNo = String(row[spkData.idx.spkNo] || '').trim();
+    if (!spkNo) continue;
+    var owner     = String(row[spkData.idx.owner] || '').toUpperCase().trim();
+    var ownerUsed = String(row[spkData.idx.ownerUsed] || '').toUpperCase().trim();
+    var targetLoc = String(row[spkData.idx.targetLoc] || '').trim();
+    var cust      = String(row[spkData.idx.cust] || '').toUpperCase().trim();
+    if (!ownerUsed) continue;
+
+    var expected = null, reason = '';
+    if (targetLoc.indexOf('Scrap') >= 0) {
+      expected = owner; reason = 'Scrap→Owner';
+    } else if (targetLoc === 'WIP_Cust' || targetLoc === 'WIP_Stamping') {
+      expected = owner; reason = 'WIP→Owner';
+    } else if (cust.indexOf('DRC') >= 0) {
+      expected = 'DRC'; reason = 'DRC-Cust→DRC';
+    }
+
+    if (expected && ownerUsed !== expected) {
+      results.push(spkNo + ' [' + reason + ': need ' + expected + ', got ' + ownerUsed + ']');
+    }
+  }
+  return results;
+}
+
+function _saCheckTargetLocMismatch(spkData) {
+  var results = [];
+  if (!spkData || spkData.idx.spkNo < 0) return results;
+
+  for (var r = 1; r < spkData.rows.length; r++) {
+    var row = spkData.rows[r];
+    var spkNo = String(row[spkData.idx.spkNo] || '').trim();
+    if (!spkNo) continue;
+    var targetLoc = String(row[spkData.idx.targetLoc] || '').trim();
+    var soRef     = String(row[spkData.idx.soRef] || '').trim();
+    if (!targetLoc || !soRef) continue;
+
+    var isStp  = soRef.indexOf('STP-') === 0;
+    var isCust = soRef.indexOf('SO-') === 0;
+    if (isStp && (targetLoc === 'FG_Cust' || targetLoc === 'WIP_Cust')) {
+      results.push(spkNo + ' [STP→' + targetLoc + ', should be Stamping]');
+    } else if (isCust && (targetLoc === 'FG_RM_Stamping' || targetLoc === 'WIP_Stamping')) {
+      results.push(spkNo + ' [SO→' + targetLoc + ', should be Cust]');
+    }
+  }
+  return results;
+}
+
+function _saCheckOrphanBatch(ss, traceData) {
+  var results = [];
+  var validSources = {};
+
+  var grSh = ss.getSheetByName('GR');
+  if (grSh) {
+    var gLast = grSh.getLastRow();
+    if (gLast >= 2) {
+      var gData = grSh.getRange(1, 1, gLast, grSh.getLastColumn()).getValues();
+      var gHdr = gData[0].map(function(h) { return String(h).trim(); });
+      var iB = _lsFindCol(gHdr, ['Batch_ID']);
+      if (iB >= 0) {
+        for (var g = 1; g < gData.length; g++) {
+          var b = String(gData[g][iB] || '').trim();
+          if (b) validSources[b] = true;
+        }
+      }
+    }
+  }
+
+  if (traceData && traceData.idx.batch >= 0) {
+    for (var t = 1; t < traceData.rows.length; t++) {
+      var b = String(traceData.rows[t][traceData.idx.batch] || '').trim();
+      if (b) validSources[b] = true;
+    }
+  }
+
+  var sheets = ['Stok_Sheet', 'Stok_WIP', 'Stok_FG', 'Stok_NG'];
+  sheets.forEach(function(name) {
+    var sh = ss.getSheetByName(name);
+    if (!sh) return;
+    var last = sh.getLastRow();
+    if (last < 2) return;
+    var data = sh.getRange(1, 1, last, sh.getLastColumn()).getValues();
+    var hdr = data[0].map(function(h) { return String(h).trim(); });
+    var iB = _lsFindCol(hdr, ['Batch_ID']);
+    var iSrc = _lsFindCol(hdr, ['Source_Batch']);
+    if (iB < 0 || iSrc < 0) return;
+    for (var r = 1; r < data.length; r++) {
+      var batch = String(data[r][iB] || '').trim();
+      var src = String(data[r][iSrc] || '').trim();
+      if (!batch || !src) continue;
+      if (!validSources[src]) results.push(batch + ' [src:' + src + ']');
+    }
+  });
+  return results;
+}
+
+function getSpkSalahKamar() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var spkData = _saGetSpkData(ss);
+    var traceData = _saGetTraceData(ss);
+    var stockSet = _saGetStockBatchSet(ss);
+
+    var c1 = _saCheckSpkDoneNoTrace(spkData, traceData);
+    var c2 = _saCheckTraceNoStok(traceData, stockSet);
+    var c3 = _saCheckOwnerUsedMismatch(spkData);
+    var c4 = _saCheckTargetLocMismatch(spkData);
+    var c5 = _saCheckOrphanBatch(ss, traceData);
+
+    return {
+      success: true,
+      checker1: { title: 'SPK DONE tanpa Trace_Log', ids: c1, level: c1.length > 0 ? 'crit' : 'ok' },
+      checker2: { title: 'Trace_Log tanpa Stok_*',    ids: c2, level: c2.length > 0 ? 'crit' : 'ok' },
+      checker3: { title: 'Owner_Used mismatch',       ids: c3, level: c3.length > 0 ? 'warn' : 'ok' },
+      checker4: { title: 'Target_Loc mismatch',       ids: c4, level: c4.length > 0 ? 'warn' : 'ok' },
+      checker5: { title: 'Orphan batch (no source)',  ids: c5, level: c5.length > 0 ? 'crit' : 'ok' },
+      total_issues: c1.length + c2.length + c3.length + c4.length + c5.length
+    };
+  } catch (e) {
+    return { success: false, message: String(e), stack: e.stack };
+  }
+}
+
+/* =========================================================================
+ * RECONCILIATION per Item_Code (Sprint 2C)
+ * Formula: SPK_In = Stok + Delivered + Loss
+ * Flag Item dengan |selisih| > threshold (default 100 Kg)
+ * ========================================================================= */
+function getReconciliation(threshold) {
+  threshold = threshold || 100;
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var itemMap = {};
+    var descMap = {};
+
+    var mSh = ss.getSheetByName('M_ITEM');
+    if (mSh) {
+      var mData = mSh.getRange(1, 1, mSh.getLastRow(), mSh.getLastColumn()).getValues();
+      var mHdr = mData[0].map(function(h) { return String(h).trim(); });
+      var iMc = _lsFindCol(mHdr, ['Item_Code']);
+      var iMd = _lsFindCol(mHdr, ['Description']);
+      if (iMc >= 0 && iMd >= 0) {
+        for (var m = 1; m < mData.length; m++) {
+          var ic = String(mData[m][iMc] || '').trim();
+          if (ic) descMap[ic] = String(mData[m][iMd] || '');
+        }
+      }
+    }
+
+    // GR contributions
+    var grSh = ss.getSheetByName('GR');
+    if (grSh) {
+      var gData = grSh.getRange(1, 1, grSh.getLastRow(), grSh.getLastColumn()).getValues();
+      var gHdr = gData[0].map(function(h) { return String(h).trim(); });
+      var iGi = _lsFindCol(gHdr, ['Item_Code']);
+      var iGk = _lsFindCol(gHdr, ['KG_In']);
+      if (iGi >= 0 && iGk >= 0) {
+        for (var g = 1; g < gData.length; g++) {
+          var ic = String(gData[g][iGi] || '').trim();
+          var kg = parseFloat(gData[g][iGk]) || 0;
+          if (!ic) continue;
+          if (!itemMap[ic]) itemMap[ic] = { spk_in: 0, stok: 0, delivered: 0 };
+          itemMap[ic].spk_in += kg;
+        }
+      }
+    }
+
+    // SPK OUT contributions
+    var spkData = _saGetSpkData(ss);
+    if (spkData && spkData.idx.itemCode >= 0 && spkData.idx.kgActual >= 0) {
+      for (var r = 1; r < spkData.rows.length; r++) {
+        var row = spkData.rows[r];
+        var type = String(row[spkData.idx.type] || '');
+        var status = String(row[spkData.idx.status] || '');
+        if (type.indexOf('-OUT') < 0 || status !== 'DONE') continue;
+        var ic = String(row[spkData.idx.itemCode] || '').trim();
+        var kg = parseFloat(row[spkData.idx.kgActual]) || 0;
+        if (!ic) continue;
+        if (!itemMap[ic]) itemMap[ic] = { spk_in: 0, stok: 0, delivered: 0 };
+        itemMap[ic].spk_in += kg;
+      }
+    }
+
+    // Current Stok
+    ['Stok_Coil', 'Stok_Sheet', 'Stok_WIP', 'Stok_FG', 'Stok_NG'].forEach(function(name) {
+      var sh = ss.getSheetByName(name);
+      if (!sh) return;
+      var last = sh.getLastRow();
+      if (last < 2) return;
+      var data = sh.getRange(1, 1, last, sh.getLastColumn()).getValues();
+      var hdr = data[0].map(function(h) { return String(h).trim(); });
+      var iIc = _lsFindCol(hdr, ['Item_Code']);
+      var iKa = _lsFindCol(hdr, ['KG_Avail', 'Kg_Avail']);
+      var iKk = _lsFindCol(hdr, ['KG_Keep']);
+      if (iIc < 0 || iKa < 0) return;
+      for (var s = 1; s < data.length; s++) {
+        var ic = String(data[s][iIc] || '').trim();
+        var kgA = parseFloat(data[s][iKa]) || 0;
+        var kgK = iKk >= 0 ? (parseFloat(data[s][iKk]) || 0) : 0;
+        if (!ic) continue;
+        if (!itemMap[ic]) itemMap[ic] = { spk_in: 0, stok: 0, delivered: 0 };
+        itemMap[ic].stok += (kgA + kgK);
+      }
+    });
+
+    // Delivered from DELV
+    var delvSh = ss.getSheetByName('DELV');
+    if (delvSh) {
+      var dLast = delvSh.getLastRow();
+      if (dLast >= 2) {
+        var dData = delvSh.getRange(1, 1, dLast, delvSh.getLastColumn()).getValues();
+        var dHdr = dData[0].map(function(h) { return String(h).trim(); });
+        var iDi = _lsFindCol(dHdr, ['Item_Code']);
+        var iDk = _lsFindCol(dHdr, ['KG_Delv', 'KG', 'KG_Out']);
+        if (iDi >= 0 && iDk >= 0) {
+          for (var d = 1; d < dData.length; d++) {
+            var ic = String(dData[d][iDi] || '').trim();
+            var kg = parseFloat(dData[d][iDk]) || 0;
+            if (!ic) continue;
+            if (!itemMap[ic]) itemMap[ic] = { spk_in: 0, stok: 0, delivered: 0 };
+            itemMap[ic].delivered += kg;
+          }
+        }
+      }
+    }
+
+    var results = [];
+    var totalGapKg = 0;
+    Object.keys(itemMap).forEach(function(ic) {
+      var it = itemMap[ic];
+      var selisih = it.spk_in - it.stok - it.delivered;
+      var abs = Math.abs(selisih);
+      if (abs < threshold) return;
+      results.push({
+        item_code: ic,
+        desc     : descMap[ic] || '—',
+        spk_in   : Math.round(it.spk_in),
+        stok     : Math.round(it.stok),
+        delivered: Math.round(it.delivered),
+        selisih  : Math.round(selisih),
+        level    : abs > (threshold * 5) ? 'crit' : 'warn'
+      });
+      totalGapKg += abs;
+    });
+
+    results.sort(function(a, b) { return Math.abs(b.selisih) - Math.abs(a.selisih); });
+
+    return {
+      success: true,
+      items  : results,
+      summary: {
+        total_gap_items: results.length,
+        total_gap_kg   : Math.round(totalGapKg),
+        threshold_used : threshold
+      }
+    };
+  } catch (e) {
+    return { success: false, message: String(e), stack: e.stack };
+  }
+}
+
+/* Test helpers */
+function _test_getSpkSalahKamar() {
+  var res = getSpkSalahKamar();
+  if (!res.success) { Logger.log('ERR: ' + res.message); return; }
+  Logger.log('Total issues: ' + res.total_issues);
+  ['checker1','checker2','checker3','checker4','checker5'].forEach(function(k) {
+    Logger.log(k + ' (' + res[k].level + '): ' + res[k].ids.length);
+    if (res[k].ids.length > 0) Logger.log('  ' + res[k].ids.slice(0, 5).join(' | '));
+  });
+}
+
+function _test_getReconciliation() {
+  var res = getReconciliation(100);
+  if (!res.success) { Logger.log('ERR: ' + res.message); return; }
+  Logger.log('Gap items: ' + res.summary.total_gap_items + ' | Total gap Kg: ' + res.summary.total_gap_kg);
+  res.items.slice(0, 5).forEach(function(it) {
+    Logger.log(it.item_code + ' [' + it.level + '] in=' + it.spk_in +
+               ' stok=' + it.stok + ' delv=' + it.delivered + ' selisih=' + it.selisih);
+  });
+}
+
+/* =========================================================================
+ * SPK LOSS REPORT — Chain Loss Analytics (Sprint 2D)
+ * ---------------------------------------------------------------------
+ * Formula per SPK HEADER (DONE):
+ *   HEADER Loss = HEADER.KG_Actual − SUM(child OUT.KG_Actual DONE)
+ *                                  − SUM(child NG-rows.KG_Actual DONE)
+ *
+ * OUT Gap per OUT: KG_Target − KG_Actual (cutting under/over-production)
+ *
+ * Behavior:
+ *   - CTL Is_Habis=TRUE  → HEADER Loss = trim/scrap declared
+ *   - SHR/SLT/CTL non-Habis → HEADER Loss ≈ 0 by construction;
+ *                             chain loss visible via OUT Gap
+ *
+ * Threshold di M_Threshold:
+ *   Metric_Name = LOSS_PCT_CTL / LOSS_PCT_SHR / LOSS_PCT_SLT
+ *   Warning_Threshold + Alert_Threshold (unit: %)
+ *   Fallback: CTL 2/5, SHR 1/3, SLT 1/3
+ * ========================================================================= */
+
+function getSpkLossReport(filter) {
+  filter = filter || {};
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var spkSh = ss.getSheetByName('SPK');
+    if (!spkSh) return { success: false, message: 'SPK sheet not found' };
+    var last = spkSh.getLastRow();
+    if (last < 2) return { success: true, summary: _lossEmptySummary(), headers: [], agg_by_machine: [], agg_by_operator: [], agg_by_item: [] };
+
+    var data = spkSh.getRange(1, 1, last, spkSh.getLastColumn()).getValues();
+    var hdr  = data[0].map(function(h) { return String(h).trim(); });
+
+    var I = {
+      spkNo   : _lsFindCol(hdr, ['SPK_No']),
+      type    : _lsFindCol(hdr, ['SPK_Type']),
+      parent  : _lsFindCol(hdr, ['Parent_SPK']),
+      status  : _lsFindCol(hdr, ['Status']),
+      kgAct   : _lsFindCol(hdr, ['KG_Actual']),
+      kgTgt   : _lsFindCol(hdr, ['KG_Target']),
+      qtyAct  : _lsFindCol(hdr, ['Qty_Actual']),
+      qtyTgt  : _lsFindCol(hdr, ['Qty_Target']),
+      mc      : _lsFindCol(hdr, ['MC_No']),
+      op      : _lsFindCol(hdr, ['OP']),
+      item    : _lsFindCol(hdr, ['Item_Code']),
+      selesai : _lsFindCol(hdr, ['Selesai_DT']),
+      batchId : _lsFindCol(hdr, ['Batch_ID']),
+      isHabis : _lsFindCol(hdr, ['Is_Habis']),
+      soRef   : _lsFindCol(hdr, ['SO_Ref']),
+      cust    : _lsFindCol(hdr, ['Cust']),
+      inputSpec: _lsFindCol(hdr, ['Input_Spec'])
+    };
+    if (I.spkNo < 0 || I.type < 0 || I.status < 0 || I.kgAct < 0) {
+      return { success: false, message: 'SPK sheet missing required columns' };
+    }
+
+    // Build children map by Parent_SPK
+    var childrenByParent = {};
+    for (var r = 1; r < data.length; r++) {
+      var parent = String(data[r][I.parent] || '').trim();
+      if (parent) {
+        if (!childrenByParent[parent]) childrenByParent[parent] = [];
+        childrenByParent[parent].push(r);
+      }
+    }
+
+    // Item description map
+    var itemDescMap = {};
+    var mSh = ss.getSheetByName('M_ITEM');
+    if (mSh) {
+      var mData = mSh.getRange(1, 1, mSh.getLastRow(), mSh.getLastColumn()).getValues();
+      var mHdr = mData[0].map(function(h) { return String(h).trim(); });
+      var iMic = _lsFindCol(mHdr, ['Item_Code']);
+      var iMid = _lsFindCol(mHdr, ['Description']);
+      if (iMic >= 0 && iMid >= 0) {
+        for (var m = 1; m < mData.length; m++) {
+          var ic = String(mData[m][iMic] || '').trim();
+          if (ic) itemDescMap[ic] = String(mData[m][iMid] || '').trim();
+        }
+      }
+    }
+
+    var threshold = _getLossThresholds(ss);
+    var tz = Session.getScriptTimeZone();
+
+    // Parse filter
+    var dateFrom = filter.date_from ? new Date(filter.date_from) : null;
+    var dateTo   = filter.date_to   ? new Date(filter.date_to)   : null;
+    if (dateTo) dateTo.setHours(23, 59, 59, 999);
+
+    var filterType = filter.spk_type && filter.spk_type !== 'all' ? String(filter.spk_type).toUpperCase() : null;
+    var filterMc   = filter.machine  && filter.machine  !== 'all' ? String(filter.machine).trim() : null;
+    var filterOp   = filter.operator && filter.operator !== 'all' ? String(filter.operator).trim() : null;
+    var filterItem = filter.item_code && filter.item_code !== 'all' ? String(filter.item_code).trim() : null;
+
+    var headers = [];
+    var stats = {
+      total_audited: 0, total_loss_kg: 0, header_loss_kg: 0, out_gap_kg: 0,
+      ctl: 0, shr: 0, slt: 0, loss_pcts: []
+    };
+    var machineAgg = {}, operatorAgg = {}, itemAgg = {};
+
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      var type = String(row[I.type] || '');
+      var status = String(row[I.status] || '');
+      if (type.indexOf('-HEADER') < 0) continue;
+      if (status !== 'DONE') continue;
+
+      var spkNo = String(row[I.spkNo] || '').trim();
+      if (!spkNo) continue;
+
+      var tglDone = row[I.selesai];
+      if (dateFrom && (!tglDone || new Date(tglDone) < dateFrom)) continue;
+      if (dateTo   && (!tglDone || new Date(tglDone) > dateTo)) continue;
+
+      var typePrefix = type.split('-')[0];
+      var machine = String(row[I.mc] || '').trim();
+      var operator = I.op >= 0 ? String(row[I.op] || '').trim() : '';
+      var itemCode = String(row[I.item] || '').trim();
+
+      if (filterType && typePrefix !== filterType) continue;
+      if (filterMc   && machine !== filterMc) continue;
+      if (filterOp   && operator !== filterOp) continue;
+      if (filterItem && itemCode !== filterItem) continue;
+
+      var kgInput = parseFloat(row[I.kgAct]) || 0;
+      if (kgInput === 0) continue;
+
+      // Sum children (OUT DONE + NG DONE)
+      var childIdxs = childrenByParent[spkNo] || [];
+      var kgOutSum = 0, kgNgSum = 0, outGapSum = 0;
+      var outs = [];
+
+      for (var ci = 0; ci < childIdxs.length; ci++) {
+        var crIdx = childIdxs[ci];
+        var childRow = data[crIdx];
+        var childType = String(childRow[I.type] || '');
+        var childStatus = String(childRow[I.status] || '');
+        var childKgAct = parseFloat(childRow[I.kgAct]) || 0;
+        var childKgTgt = I.kgTgt >= 0 ? (parseFloat(childRow[I.kgTgt]) || 0) : 0;
+
+        if (childType.indexOf('-OUT') >= 0 && childStatus === 'DONE') {
+          kgOutSum += childKgAct;
+          var gap = childKgTgt - childKgAct;
+          outGapSum += gap;
+          outs.push({
+            spk_no    : String(childRow[I.spkNo] || '').trim(),
+            item_code : String(childRow[I.item] || '').trim(),
+            input_spec: I.inputSpec >= 0 ? String(childRow[I.inputSpec] || '').trim() : '',
+            so_ref    : I.soRef >= 0 ? String(childRow[I.soRef] || '').trim() : '',
+            cust      : I.cust >= 0 ? String(childRow[I.cust] || '').trim() : '',
+            kg_target : Math.round(childKgTgt),
+            kg_actual : Math.round(childKgAct),
+            qty_target: I.qtyTgt >= 0 ? Math.round(parseFloat(childRow[I.qtyTgt]) || 0) : 0,
+            qty_actual: I.qtyAct >= 0 ? Math.round(parseFloat(childRow[I.qtyAct]) || 0) : 0,
+            gap_kg    : Math.round(gap),
+            gap_pct   : childKgTgt > 0 ? Math.round((gap / childKgTgt * 100) * 100) / 100 : 0
+          });
+        } else if (childType.indexOf('-NG') >= 0 && childStatus === 'DONE') {
+          kgNgSum += childKgAct;
+        }
+      }
+
+      var lossKg = kgInput - kgOutSum - kgNgSum;
+      var lossPct = kgInput > 0 ? (lossKg / kgInput * 100) : 0;
+      var absLossPct = Math.abs(lossPct);
+
+      var thr = threshold[typePrefix.toLowerCase()] || { warn: 2, crit: 5 };
+      var level = 'ok';
+      if (absLossPct > thr.crit) level = 'crit';
+      else if (absLossPct > thr.warn) level = 'warn';
+
+      var isHabis = I.isHabis >= 0 && (row[I.isHabis] === true || String(row[I.isHabis]).toUpperCase() === 'TRUE');
+      var tglDoneStr = tglDone instanceof Date ? Utilities.formatDate(tglDone, tz, 'yyyy-MM-dd') : String(tglDone || '');
+      var batchInput = I.batchId >= 0 ? String(row[I.batchId] || '').trim() : '';
+
+      headers.push({
+        spk_no      : spkNo,
+        spk_type    : type,
+        type_prefix : typePrefix,
+        is_habis    : isHabis,
+        machine     : machine,
+        operator    : operator,
+        tgl_done    : tglDoneStr,
+        item_code   : itemCode,
+        item_desc   : itemDescMap[itemCode] || '',
+        batch_input : batchInput,
+        kg_input    : Math.round(kgInput),
+        kg_out_sum  : Math.round(kgOutSum),
+        kg_ng_sum   : Math.round(kgNgSum),
+        loss_kg     : Math.round(lossKg),
+        loss_pct    : Math.round(lossPct * 100) / 100,
+        out_gap_kg  : Math.round(outGapSum),
+        out_count   : outs.length,
+        level       : level,
+        outs        : outs
+      });
+
+      stats.total_audited++;
+      stats.total_loss_kg  += lossKg;
+      stats.header_loss_kg += lossKg;
+      stats.out_gap_kg     += outGapSum;
+      stats.loss_pcts.push(lossPct);
+      if (typePrefix === 'CTL') stats.ctl++;
+      else if (typePrefix === 'SHR') stats.shr++;
+      else if (typePrefix === 'SLT') stats.slt++;
+
+      if (machine) {
+        if (!machineAgg[machine]) machineAgg[machine] = { spk_count: 0, total_input_kg: 0, total_loss_kg: 0, loss_pcts: [] };
+        machineAgg[machine].spk_count++;
+        machineAgg[machine].total_input_kg += kgInput;
+        machineAgg[machine].total_loss_kg  += lossKg;
+        machineAgg[machine].loss_pcts.push(lossPct);
+      }
+      if (operator) {
+        if (!operatorAgg[operator]) operatorAgg[operator] = { spk_count: 0, total_input_kg: 0, total_loss_kg: 0, loss_pcts: [] };
+        operatorAgg[operator].spk_count++;
+        operatorAgg[operator].total_input_kg += kgInput;
+        operatorAgg[operator].total_loss_kg  += lossKg;
+        operatorAgg[operator].loss_pcts.push(lossPct);
+      }
+      if (itemCode) {
+        if (!itemAgg[itemCode]) itemAgg[itemCode] = { spk_count: 0, total_input_kg: 0, total_loss_kg: 0, loss_pcts: [] };
+        itemAgg[itemCode].spk_count++;
+        itemAgg[itemCode].total_input_kg += kgInput;
+        itemAgg[itemCode].total_loss_kg  += lossKg;
+        itemAgg[itemCode].loss_pcts.push(lossPct);
+      }
+    }
+
+    // Sort by abs loss desc
+    headers.sort(function(a, b) { return Math.abs(b.loss_kg) - Math.abs(a.loss_kg); });
+
+    // Build agg arrays
+    var machineArr = Object.keys(machineAgg).map(function(k) {
+      var a = machineAgg[k];
+      return {
+        machine: k, spk_count: a.spk_count,
+        total_input_kg: Math.round(a.total_input_kg),
+        total_loss_kg: Math.round(a.total_loss_kg),
+        avg_loss_pct: _lossAvg(a.loss_pcts)
+      };
+    }).sort(function(a, b) { return Math.abs(b.total_loss_kg) - Math.abs(a.total_loss_kg); });
+
+    var operatorArr = Object.keys(operatorAgg).map(function(k) {
+      var a = operatorAgg[k];
+      return {
+        operator: k, spk_count: a.spk_count,
+        total_input_kg: Math.round(a.total_input_kg),
+        total_loss_kg: Math.round(a.total_loss_kg),
+        avg_loss_pct: _lossAvg(a.loss_pcts)
+      };
+    }).sort(function(a, b) { return Math.abs(b.total_loss_kg) - Math.abs(a.total_loss_kg); });
+
+    var itemArr = Object.keys(itemAgg).map(function(k) {
+      var a = itemAgg[k];
+      var pcts = a.loss_pcts;
+      return {
+        item_code: k, desc: itemDescMap[k] || '',
+        spk_count: a.spk_count,
+        total_input_kg: Math.round(a.total_input_kg),
+        total_loss_kg: Math.round(a.total_loss_kg),
+        avg_loss_pct: _lossAvg(pcts),
+        min_loss_pct: pcts.length > 0 ? Math.round(Math.min.apply(null, pcts) * 100) / 100 : 0,
+        max_loss_pct: pcts.length > 0 ? Math.round(Math.max.apply(null, pcts) * 100) / 100 : 0
+      };
+    }).sort(function(a, b) { return Math.abs(b.total_loss_kg) - Math.abs(a.total_loss_kg); });
+
+    var summary = {
+      total_spk_audited  : stats.total_audited,
+      total_loss_kg      : Math.round(stats.total_loss_kg),
+      header_loss_kg     : Math.round(stats.header_loss_kg),
+      out_gap_kg         : Math.round(stats.out_gap_kg),
+      avg_loss_pct       : _lossAvg(stats.loss_pcts),
+      ctl_count          : stats.ctl,
+      shr_count          : stats.shr,
+      slt_count          : stats.slt,
+      top_machine        : machineArr.length > 0 ? machineArr[0].machine : null,
+      top_machine_loss_kg: machineArr.length > 0 ? machineArr[0].total_loss_kg : 0
+    };
+
+    return {
+      success        : true,
+      summary        : summary,
+      headers        : headers,
+      agg_by_machine : machineArr,
+      agg_by_operator: operatorArr,
+      agg_by_item    : itemArr,
+      meta: {
+        generated_at  : new Date().toISOString(),
+        threshold     : threshold,
+        filter_applied: filter
+      }
+    };
+  } catch (e) {
+    return { success: false, message: String(e), stack: e.stack };
+  }
+}
+
+function _lossEmptySummary() {
+  return {
+    total_spk_audited: 0, total_loss_kg: 0, header_loss_kg: 0, out_gap_kg: 0,
+    avg_loss_pct: 0, ctl_count: 0, shr_count: 0, slt_count: 0,
+    top_machine: null, top_machine_loss_kg: 0
+  };
+}
+
+function _lossAvg(arr) {
+  if (!arr || arr.length === 0) return 0;
+  var sum = 0;
+  for (var i = 0; i < arr.length; i++) sum += arr[i];
+  return Math.round((sum / arr.length) * 100) / 100;
+}
+
+function _getLossThresholds(ss) {
+  var fallback = {
+    ctl: { warn: 2, crit: 5 },
+    shr: { warn: 1, crit: 3 },
+    slt: { warn: 1, crit: 3 }
+  };
+  try {
+    var sh = ss.getSheetByName('M_Threshold');
+    if (!sh) return fallback;
+    var last = sh.getLastRow();
+    if (last < 2) return fallback;
+    var data = sh.getRange(1, 1, last, sh.getLastColumn()).getValues();
+    var hdr  = data[0].map(function(h) { return String(h).trim(); });
+    var iN = _lsFindCol(hdr, ['Metric_Name']);
+    var iW = _lsFindCol(hdr, ['Warning_Threshold']);
+    var iA = _lsFindCol(hdr, ['Alert_Threshold']);
+    var iAc= _lsFindCol(hdr, ['Active']);
+    if (iN < 0) return fallback;
+
+    var result = JSON.parse(JSON.stringify(fallback));
+    for (var r = 1; r < data.length; r++) {
+      var name = String(data[r][iN] || '').trim().toUpperCase();
+      if (iAc >= 0 && String(data[r][iAc] || 'TRUE').toUpperCase() === 'FALSE') continue;
+      var w = iW >= 0 ? parseFloat(data[r][iW]) : NaN;
+      var a = iA >= 0 ? parseFloat(data[r][iA]) : NaN;
+      var wOk = !isNaN(w) && w > 0;
+      var aOk = !isNaN(a) && a > 0;
+
+      if (name === 'LOSS_PCT_CTL') {
+        result.ctl = { warn: wOk ? w : fallback.ctl.warn, crit: aOk ? a : fallback.ctl.crit };
+      } else if (name === 'LOSS_PCT_SHR') {
+        result.shr = { warn: wOk ? w : fallback.shr.warn, crit: aOk ? a : fallback.shr.crit };
+      } else if (name === 'LOSS_PCT_SLT') {
+        result.slt = { warn: wOk ? w : fallback.slt.warn, crit: aOk ? a : fallback.slt.crit };
+      }
+    }
+    return result;
+  } catch (e) {
+    return fallback;
+  }
+}
+
+/* Test helper */
+function _test_getSpkLossReport() {
+  var res = getSpkLossReport({});
+  if (!res.success) { Logger.log('ERR: ' + res.message); return; }
+  var s = res.summary;
+  Logger.log('=== LOSS REPORT SUMMARY ===');
+  Logger.log('SPK audited: ' + s.total_spk_audited + ' (CTL:' + s.ctl_count + ' SHR:' + s.shr_count + ' SLT:' + s.slt_count + ')');
+  Logger.log('Total loss: ' + s.total_loss_kg + ' Kg | HEADER: ' + s.header_loss_kg + ' | OUT gap: ' + s.out_gap_kg);
+  Logger.log('Avg loss rate: ' + s.avg_loss_pct + '% | Top mesin: ' + s.top_machine + ' (' + s.top_machine_loss_kg + ' Kg)');
+
+  Logger.log('\n=== TOP 5 LOSS SPK ===');
+  res.headers.slice(0, 5).forEach(function(h) {
+    Logger.log(h.spk_no + ' [' + h.level + '] ' + h.machine + '/' + h.operator +
+               ' | in=' + h.kg_input + ' out=' + h.kg_out_sum + ' ng=' + h.kg_ng_sum +
+               ' | loss=' + h.loss_kg + ' (' + h.loss_pct + '%)' +
+               (h.is_habis ? ' [Is_Habis]' : ''));
+  });
+
+  Logger.log('\n=== PER MESIN (top 5) ===');
+  res.agg_by_machine.slice(0, 5).forEach(function(m) {
+    Logger.log(m.machine + ': ' + m.spk_count + ' SPK | loss=' + m.total_loss_kg + ' | avg=' + m.avg_loss_pct + '%');
+  });
+
+  Logger.log('\n=== PER OPERATOR (top 5) ===');
+  res.agg_by_operator.slice(0, 5).forEach(function(o) {
+    Logger.log(o.operator + ': ' + o.spk_count + ' SPK | loss=' + o.total_loss_kg + ' | avg=' + o.avg_loss_pct + '%');
+  });
+
+  Logger.log('\n=== PER ITEM (top 5) ===');
+  res.agg_by_item.slice(0, 5).forEach(function(it) {
+    Logger.log(it.item_code + ': ' + it.spk_count + ' SPK | loss=' + it.total_loss_kg +
+               ' | avg=' + it.avg_loss_pct + '% (range ' + it.min_loss_pct + '-' + it.max_loss_pct + '%)');
+  });
+}

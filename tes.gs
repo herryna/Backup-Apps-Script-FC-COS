@@ -1,29 +1,29 @@
-// Test 1: init data
-function test_stpInit() {
-  var r = stpGetInitData();
-  Logger.log('items: ' + r.items.length + ', customers: ' + r.customers.length);
-}
-
-// Test 2: create dummy STP
-function test_stpSave() {
-  var r = stpSaveNew({
-    header: {
-      cust: 'PT ABC',
-      periode: '2026-07',
-      schedule_date: '2026-07-15',
-      owner_used: 'FC',
-      priority: 'Normal'
-    },
-    items: [
-      { item_code: 'PASTE_ITEM_CODE_ASLI_DISINI', qty_req: 1000, note: 'test 1' },
-      { item_code: 'PASTE_ITEM_CODE_ASLI_DISINI_2', qty_req: 500 }
-    ]
+function _test_massBalance_sprint1B() {
+  var res = getLiveStockData();
+  if (!res.success) { Logger.log('ERR: ' + res.message); return; }
+  
+  Logger.log('=== SUMMARY per kategori ===');
+  ['coil','sheet','wip','fg','ng'].forEach(function(cat) {
+    var s = res.summary[cat];
+    Logger.log(cat.toUpperCase() + ': batch=' + s.total_batch + 
+      ' | kg_in=' + Math.round(s.kg_in) + 
+      ' | kg_keep=' + Math.round(s.kg_keep) + 
+      ' | kg_konsumsi=' + Math.round(s.kg_konsumsi) + 
+      ' | kg_avail=' + Math.round(s.kg_avail) + 
+      ' | selisih warn/crit=' + s.selisih_warn_count + '/' + s.selisih_crit_count);
   });
-  Logger.log(JSON.stringify(r));
-}
-
-// Test 3: list
-function test_stpList() {
-  var r = stpGetList({ status: 'ALL' });
-  Logger.log('groups: ' + (r.groups || []).length);
+  
+  Logger.log('\n=== SAMPLE 3 batch dengan selisih ===');
+  var batches = [].concat(res.batches.coil, res.batches.sheet, res.batches.wip, res.batches.fg, res.batches.ng);
+  var flagged = batches.filter(function(b) { return b.selisih_level; }).slice(0, 3);
+  flagged.forEach(function(b) {
+    Logger.log(b.batch_id + ' [' + b.selisih_level + ']: selisih=' + b.selisih_kg + 
+      ' | in=' + b.kg_in + ' keep=' + b.kg_keep + ' kons=' + b.kg_konsumsi + ' av=' + b.kg_avail);
+  });
+  
+  Logger.log('\n=== SAMPLE 3 batch WIP dengan vendor enriched ===');
+  var wipWithVendor = res.batches.wip.filter(function(b) { return b.supplier; }).slice(0, 3);
+  wipWithVendor.forEach(function(b) {
+    Logger.log(b.batch_id + ': ' + b.supplier + ' · ' + b.no_coil);
+  });
 }
