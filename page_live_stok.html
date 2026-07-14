@@ -282,6 +282,80 @@
   .ls-filter-group { min-width: 100%; }
   .ls-modal-meta { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ===== TAB 2 HEALTH (Sprint 3) ===== */
+.lh-toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:10px 12px; background:#fff; border:1px solid #e2e8f0; border-radius:6px; }
+.lh-period-group { display:flex; gap:4px; align-items:center; }
+.lh-period-label { font-size:11px; color:#64748b; font-weight:600; text-transform:uppercase; margin-right:8px; }
+.lh-period-btn { background:#f1f5f9; color:#475569; border:1px solid transparent; padding:5px 10px; border-radius:4px; font-size:11px; font-weight:500; cursor:pointer; font-family:inherit; }
+.lh-period-btn:hover { background:#e2e8f0; color:#1a3a6e; }
+.lh-period-btn.is-active { background:#1a3a6e; color:#fff; border-color:#1a3a6e; }
+.lh-toolbar-right { display:flex; align-items:center; gap:10px; }
+.lh-meta { font-size:11px; color:#64748b; }
+.lh-btn-refresh { background:#1a3a6e; color:#fff; border:none; padding:6px 12px; border-radius:4px; font-size:11px; font-weight:500; cursor:pointer; }
+.lh-btn-refresh:disabled { background:#94a3b8; cursor:not-allowed; }
+
+.lh-kpi { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:12px; }
+.lh-kpi-card { background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:12px 14px; }
+.lh-kpi-label { font-size:11px; color:#64748b; font-weight:500; margin-bottom:4px; }
+.lh-kpi-value { font-size:22px; font-weight:700; color:#0f172a; line-height:1; }
+.lh-kpi-value.lh-ok { color:#059669; }
+.lh-kpi-value.lh-warn { color:#b45309; }
+.lh-kpi-value.lh-crit { color:#991b1b; }
+.lh-kpi-value.lh-muted { color:#cbd5e1; }
+.lh-kpi-sub { font-size:11px; color:#64748b; margin-top:4px; }
+.lh-kpi-sub b { color:#0f172a; }
+
+.lh-matrix-section { background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:14px 16px; margin-bottom:12px; }
+.lh-section-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.lh-section-title { font-size:13px; font-weight:600; color:#0f172a; }
+.lh-section-desc { font-size:11px; color:#64748b; margin-top:2px; }
+.lh-section-filters { display:flex; gap:6px; }
+.lh-section-filters select { height:26px; padding:0 6px; font-size:11px; border:1px solid #cbd5e1; border-radius:4px; background:#fff; color:#0f172a; font-family:inherit; }
+
+.lh-matrix { width:100%; border-collapse:collapse; font-size:12px; }
+.lh-matrix thead th { text-align:left; padding:7px 6px; font-weight:600; font-size:10px; color:#64748b; letter-spacing:0.3px; text-transform:uppercase; border-bottom:1px solid #e2e8f0; white-space:nowrap; }
+.lh-matrix tbody td { padding:8px 6px; border-bottom:1px solid #f1f5f9; vertical-align:middle; color:#1e293b; font-size:12px; }
+.lh-matrix tbody tr { cursor:pointer; }
+.lh-matrix tbody tr:hover { background:#f0f9ff; }
+.lh-mat-name { font-family:'SF Mono',Menlo,monospace; font-size:11px; font-weight:600; color:#0f172a; }
+.lh-num { text-align:right; font-variant-numeric:tabular-nums; font-family:'SF Mono',Menlo,monospace; font-size:11px; }
+.lh-num.lh-ok { color:#059669; font-weight:600; }
+.lh-num.lh-warn { color:#b45309; font-weight:600; }
+.lh-num.lh-crit { color:#991b1b; font-weight:600; }
+.lh-num.lh-highlight { background:#ecfdf5; color:#059669; font-weight:700; }
+.lh-status-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:500; }
+.lh-st-ready { background:#dcfce7; color:#166534; }
+.lh-st-producible { background:#fef3c7; color:#92400e; }
+.lh-st-short { background:#fee2e2; color:#991b1b; }
+.lh-st-all_ffs { background:#dbeafe; color:#1e40af; }
+.lh-alert-icon { color:#dc2626; margin-left:4px; font-weight:700; }
+
+/* Batch drill-down modal */
+.lh-modal-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(15,23,42,0.55); z-index:9000; display:none; align-items:center; justify-content:center; padding:20px; box-sizing:border-box; }
+.lh-modal-overlay.is-open { display:flex; }
+.lh-modal { background:#fff; border-radius:8px; width:100%; max-width:960px; max-height:88vh; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,0.25); }
+.lh-modal-header { padding:14px 18px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; background:#f0f9ff; border-radius:8px 8px 0 0; }
+.lh-modal-title { display:flex; align-items:center; gap:10px; font-size:16px; font-weight:600; color:#0f172a; }
+.lh-modal-body { padding:16px 18px; overflow-y:auto; flex:1; }
+.lh-modal-footer { padding:12px 18px; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:8px; background:#f8fafc; border-radius:0 0 8px 8px; }
+.lh-modal-close { background:transparent; border:none; cursor:pointer; font-size:18px; color:#64748b; padding:4px 10px; border-radius:4px; }
+.lh-modal-close:hover { background:#e2e8f0; color:#0f172a; }
+.lh-summary-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:16px; }
+.lh-sum-item { background:#f8fafc; padding:10px 12px; border-radius:6px; }
+.lh-sum-label { font-size:10px; color:#64748b; text-transform:uppercase; letter-spacing:0.3px; }
+.lh-sum-value { font-size:16px; font-weight:600; color:#0f172a; margin-top:2px; font-variant-numeric:tabular-nums; }
+.lh-modal-section-title { font-size:11px; font-weight:700; color:#1a3a6e; text-transform:uppercase; letter-spacing:0.5px; margin:16px 0 8px; padding-bottom:4px; border-bottom:1px solid #e2e8f0; }
+.lh-batch-status-badge { display:inline-block; padding:1px 6px; border-radius:8px; font-size:10px; font-weight:600; }
+.lh-bs-all_ffs { background:#dcfce7; color:#166534; }
+.lh-bs-partial_ffs { background:#fef3c7; color:#92400e; }
+.lh-bs-full_committed { background:#fee2e2; color:#991b1b; }
+.lh-bs-has_keep { background:#e0e7ff; color:#3730a3; }
+.lh-item-list { background:#f8fafc; border-radius:6px; padding:10px 12px; font-size:11px; }
+.lh-item-row { display:grid; grid-template-columns:1fr 100px 100px; gap:10px; padding:4px 0; border-bottom:1px dashed #e2e8f0; }
+.lh-item-row:last-child { border:none; }
+
+@media (max-width: 1100px) { .lh-kpi { grid-template-columns:repeat(2,1fr); } .lh-summary-grid { grid-template-columns:repeat(2,1fr); } }
 </style>
 
 
@@ -393,16 +467,66 @@
 
   </div>
 
-  <!-- ===== TAB 2: HEALTH (Placeholder Sprint 3) ===== -->
+  <!-- ===== TAB 2: HEALTH (Sprint 3) ===== -->
   <div class="ls-tab-pane" data-pane="health">
-    <div class="ls-placeholder">
-      <div class="ls-placeholder-icon">💊</div>
-      <div class="ls-placeholder-title">Stock Health Dashboard</div>
-      <div class="ls-placeholder-desc">
-        Coverage Matrix · Days of Coverage · Reorder Signal · Batch Value Distribution<br>
-        Datang di Sprint 3.
+
+    <div class="lh-toolbar">
+      <div class="lh-period-group">
+        <span class="lh-period-label">Period:</span>
+        <button class="lh-period-btn" data-period="current">Current</button>
+        <button class="lh-period-btn is-active" data-period="current_next">Current + M+1</button>
+        <button class="lh-period-btn" data-period="all_open">All Open</button>
+      </div>
+      <div class="lh-toolbar-right">
+        <span class="lh-meta" id="lh-meta">—</span>
+        <button class="lh-btn-refresh" id="lh-btn-refresh">🔄 Refresh</button>
       </div>
     </div>
+
+    <div class="lh-kpi" id="lh-kpi">
+      <div class="lh-kpi-card"><div class="ls-loading">Loading...</div></div>
+    </div>
+
+    <div class="lh-matrix-section">
+      <div class="lh-section-head">
+        <div>
+          <div class="lh-section-title">📊 Coverage matrix (per Material Fingerprint = Equivalent + T)</div>
+          <div class="lh-section-desc">Klik row → drill-down batch mother coil (FIFO allocation)</div>
+        </div>
+        <div class="lh-section-filters">
+          <select id="lh-flt-status">
+            <option value="all">Semua status</option>
+            <option value="short">🔴 Short only</option>
+            <option value="producible">🟡 Producible only</option>
+            <option value="ready">🟢 Ready only</option>
+            <option value="all_ffs">🔵 All FFS only</option>
+          </select>
+          <select id="lh-flt-alert">
+            <option value="all">Semua</option>
+            <option value="reorder">🚨 Reorder alert only</option>
+          </select>
+        </div>
+      </div>
+      <table class="lh-matrix">
+        <thead>
+          <tr>
+            <th style="width:130px">Material</th>
+            <th class="lh-num" style="width:80px">Demand</th>
+            <th class="lh-num" style="width:80px">Fisik Item</th>
+            <th class="lh-num" style="width:80px">Mother</th>
+            <th class="lh-num" style="width:80px">Committed</th>
+            <th class="lh-num" style="width:80px" title="Free For Sale">FFS 💰</th>
+            <th class="lh-num" style="width:70px">Net Gap</th>
+            <th class="lh-num" style="width:60px">DoC</th>
+            <th style="width:100px;text-align:center">Status</th>
+          </tr>
+        </thead>
+        <tbody id="lh-matrix-body">
+          <tr><td colspan="9" class="ls-loading">Klik "Refresh" atau switch tab Health untuk load data.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
   </div>
 
 </div>
@@ -424,6 +548,25 @@
     <div class="ls-modal-footer">
       <button class="ls-btn-tracker" id="ls-btn-tracker">📋 Buka di Tracker</button>
       <button class="ls-btn-close-foot" id="ls-btn-close-foot">Tutup</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== BATCH DRILL-DOWN MODAL (Sprint 3) ===== -->
+<div class="lh-modal-overlay" id="lh-modal-overlay">
+  <div class="lh-modal">
+    <div class="lh-modal-header">
+      <div class="lh-modal-title">
+        <span>📦 Mother coil detail — <span id="lh-modal-material">—</span></span>
+      </div>
+      <button class="lh-modal-close" id="lh-modal-close" title="Tutup (Esc)">✕</button>
+    </div>
+    <div class="lh-modal-body" id="lh-modal-body">
+      <div class="ls-loading">Memuat detail...</div>
+    </div>
+    <div class="lh-modal-footer">
+      <button class="ls-btn-close-foot" id="lh-modal-close-foot">Tutup</button>
     </div>
   </div>
 </div>
@@ -1015,7 +1158,234 @@
 
   document.addEventListener('keydown', function(ev) {
     if (ev.key === 'Escape' && LS_MODAL_BATCH) ls_closeTrace();
+    if (ev.key === 'Escape' && LH_MODAL_FP) lh_closeBatchModal();
   });
+
+  /* ===== TAB 2 HEALTH (Sprint 3) ===== */
+  var LH_DATA = null;
+  var LH_LOADING = false;
+  var LH_PERIOD = 'current_next';
+  var LH_MODAL_FP = null;
+  var LH_FILTER = { status:'all', alert:'all' };
+
+  function lh_load() {
+    if (LH_LOADING) return;
+    LH_LOADING = true;
+    var btn = document.getElementById('lh-btn-refresh');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Loading...'; }
+    document.getElementById('lh-meta').textContent = 'Memuat...';
+    document.getElementById('lh-matrix-body').innerHTML = '<tr><td colspan="9" class="ls-loading">⏳ Menghitung coverage per material...</td></tr>';
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        LH_LOADING = false;
+        if (btn) { btn.disabled = false; btn.innerHTML = '🔄 Refresh'; }
+        if (!res || !res.success) {
+          document.getElementById('lh-matrix-body').innerHTML =
+            '<tr><td colspan="9" class="ls-error">⚠️ ' + ls_escapeHtml(res ? (res.message||'Gagal') : 'No response') + '</td></tr>';
+          return;
+        }
+        LH_DATA = res;
+        lh_render();
+      })
+      .withFailureHandler(function(e) {
+        LH_LOADING = false;
+        if (btn) { btn.disabled = false; btn.innerHTML = '🔄 Refresh'; }
+        document.getElementById('lh-matrix-body').innerHTML =
+          '<tr><td colspan="9" class="ls-error">⚠️ ' + ls_escapeHtml(e.message||String(e)) + '</td></tr>';
+      })
+      .getStockHealth({ period: LH_PERIOD });
+  }
+
+  function lh_render() {
+    if (!LH_DATA) return;
+    var meta = LH_DATA.meta || {};
+    document.getElementById('lh-meta').textContent =
+      'Period: ' + (meta.active_periods ? meta.active_periods.join(', ') : 'all open') +
+      ' · Lead time ' + (meta.lead_time_default || 14) + 'd';
+    lh_renderKpi();
+    lh_renderMatrix();
+  }
+
+  function lh_renderKpi() {
+    var s = LH_DATA.summary;
+    var html = '';
+    html += '<div class="lh-kpi-card"><div class="lh-kpi-label">Total Materials</div>' +
+      '<div class="lh-kpi-value">' + ls_formatNum(s.total_materials) + '</div>' +
+      '<div class="lh-kpi-sub"><b>' + s.count_ready + '</b> ready · <b>' + s.count_producible + '</b> producible · <b>' + s.count_short + '</b> short · <b>' + s.count_all_ffs + '</b> all-ffs</div></div>';
+    html += '<div class="lh-kpi-card"><div class="lh-kpi-label">Total FFS 💰</div>' +
+      '<div class="lh-kpi-value lh-ok">' + ls_formatNum(s.total_ffs_kg) + ' <span style="font-size:11px;color:#64748b">Kg</span></div>' +
+      '<div class="lh-kpi-sub">Siap dijual / alokasi baru</div></div>';
+    var reorderCls = s.count_reorder > 0 ? 'lh-crit' : 'lh-muted';
+    html += '<div class="lh-kpi-card"><div class="lh-kpi-label">Reorder Alerts 🚨</div>' +
+      '<div class="lh-kpi-value ' + reorderCls + '">' + ls_formatNum(s.count_reorder) + '</div>' +
+      '<div class="lh-kpi-sub">DoC &lt; lead time</div></div>';
+    var covCls = s.count_short > 0 ? 'lh-crit' : (s.count_producible > 0 ? 'lh-warn' : 'lh-ok');
+    html += '<div class="lh-kpi-card"><div class="lh-kpi-label">Total Supply vs Demand</div>' +
+      '<div class="lh-kpi-value ' + covCls + '">' + ls_formatNum(s.total_supply_kg) + '</div>' +
+      '<div class="lh-kpi-sub">Demand <b>' + ls_formatNum(s.total_demand_kg) + '</b> · Committed <b>' + ls_formatNum(s.total_committed_kg) + '</b> Kg</div></div>';
+    document.getElementById('lh-kpi').innerHTML = html;
+  }
+
+  function lh_renderMatrix() {
+    var arr = (LH_DATA.materials || []).filter(function(m) {
+      if (LH_FILTER.status !== 'all' && m.status !== LH_FILTER.status) return false;
+      if (LH_FILTER.alert === 'reorder' && !m.reorder_alert) return false;
+      return true;
+    });
+    var tbody = document.getElementById('lh-matrix-body');
+    if (arr.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" class="ls-empty">Tidak ada material sesuai filter.</td></tr>';
+      return;
+    }
+    var stName = { ready:'🟢 Ready', producible:'🟡 Producible', short:'🔴 Short', all_ffs:'🔵 All FFS' };
+    tbody.innerHTML = arr.map(function(m) {
+      var netCls = m.net_gap < 0 ? 'lh-crit' : (m.net_gap === 0 ? 'lh-warn' : 'lh-ok');
+      var docStr = m.doc_days === null ? '—' : m.doc_days + 'd';
+      var docCls = m.doc_days === null ? '' : (m.doc_days < m.lead_time_days ? 'lh-crit' : (m.doc_days < m.lead_time_days * 1.5 ? 'lh-warn' : 'lh-ok'));
+      var alertIcon = m.reorder_alert ? '<span class="lh-alert-icon" title="Reorder now">🚨</span>' : '';
+      return '<tr data-fp="' + ls_escapeHtml(m.fingerprint) + '">' +
+        '<td><span class="lh-mat-name">' + ls_escapeHtml(m.display) + '</span></td>' +
+        '<td class="lh-num">' + ls_formatNum(m.demand_total) +
+          (m.demand_forecast > 0 ? '<div style="font-size:9px;color:#94a3b8">cur ' + ls_formatNum(m.demand_current) + ' · fc ' + ls_formatNum(m.demand_forecast) + '</div>' : '') +
+        '</td>' +
+        '<td class="lh-num">' + ls_formatNum(m.fisik_item) + '</td>' +
+        '<td class="lh-num">' + ls_formatNum(m.mother_total) + '</td>' +
+        '<td class="lh-num lh-warn">' + ls_formatNum(m.committed) + '</td>' +
+        '<td class="lh-num lh-highlight">' + ls_formatNum(m.ffs) + '</td>' +
+        '<td class="lh-num ' + netCls + '">' + (m.net_gap >= 0 ? '+' : '') + ls_formatNum(m.net_gap) + '</td>' +
+        '<td class="lh-num ' + docCls + '">' + docStr + alertIcon + '</td>' +
+        '<td style="text-align:center"><span class="lh-status-badge lh-st-' + m.status + '">' + (stName[m.status] || m.status) + '</span></td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function lh_openBatchModal(fp) {
+    if (!LH_DATA) return;
+    var mat = null;
+    for (var i = 0; i < LH_DATA.materials.length; i++) {
+      if (LH_DATA.materials[i].fingerprint === fp) { mat = LH_DATA.materials[i]; break; }
+    }
+    if (!mat) return;
+    LH_MODAL_FP = fp;
+    document.getElementById('lh-modal-material').textContent = mat.display;
+    lh_renderBatchModal(mat);
+    document.getElementById('lh-modal-overlay').classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function lh_renderBatchModal(m) {
+    var html = '';
+    html += '<div class="lh-summary-grid">';
+    html += '<div class="lh-sum-item"><div class="lh-sum-label">Demand</div><div class="lh-sum-value">' + ls_formatNum(m.demand_total) + ' <span style="font-size:11px;color:#64748b">Kg</span></div></div>';
+    html += '<div class="lh-sum-item"><div class="lh-sum-label">Fisik Item</div><div class="lh-sum-value">' + ls_formatNum(m.fisik_item) + ' <span style="font-size:11px;color:#64748b">Kg</span></div></div>';
+    html += '<div class="lh-sum-item"><div class="lh-sum-label">Mother Coil</div><div class="lh-sum-value">' + ls_formatNum(m.mother_total) + ' <span style="font-size:11px;color:#64748b">Kg</span></div></div>';
+    html += '<div class="lh-sum-item"><div class="lh-sum-label">FFS 💰</div><div class="lh-sum-value" style="color:#059669">' + ls_formatNum(m.ffs) + ' <span style="font-size:11px;color:#64748b">Kg</span></div></div>';
+    html += '</div>';
+
+    html += '<div class="lh-modal-section-title">🔗 Batch mother coil (FIFO allocation, oldest first)</div>';
+    if (!m.batches || m.batches.length === 0) {
+      html += '<div class="ls-empty">Tidak ada mother coil aktif untuk material ini.</div>';
+    } else {
+      html += '<table class="lh-matrix"><thead><tr>' +
+        '<th style="width:110px">Batch ID</th>' +
+        '<th style="width:100px">No Coil</th>' +
+        '<th style="width:90px">Vendor</th>' +
+        '<th style="width:40px">Own</th>' +
+        '<th style="width:40px">Age</th>' +
+        '<th class="lh-num" style="width:70px">Avail</th>' +
+        '<th class="lh-num" style="width:70px">Keep</th>' +
+        '<th class="lh-num" style="width:80px">Committed</th>' +
+        '<th class="lh-num" style="width:80px">FFS 💰</th>' +
+        '<th style="width:80px;text-align:center">Status</th>' +
+        '</tr></thead><tbody>';
+      var stBatch = { all_ffs:'All FFS', partial_ffs:'Partial', full_committed:'Full Cmt', has_keep:'Has Keep' };
+      m.batches.forEach(function(b) {
+        var ageCls = b.age_days == null ? '' : (b.age_days > 60 ? 'lh-crit' : (b.age_days > 30 ? 'lh-warn' : 'lh-ok'));
+        var ageStr = b.age_days == null ? '—' : b.age_days + 'd';
+        html += '<tr>' +
+          '<td class="lh-mat-name">' + ls_escapeHtml(b.batch_id) + '</td>' +
+          '<td style="font-family:\'SF Mono\',Menlo,monospace;font-size:11px">' + ls_escapeHtml(b.no_coil || '—') + '</td>' +
+          '<td style="font-size:11px">' + ls_escapeHtml(b.supplier || '—') + '</td>' +
+          '<td style="font-size:11px;font-weight:500">' + ls_escapeHtml(b.owner) + '</td>' +
+          '<td class="' + ageCls + '" style="font-size:11px;font-weight:500">' + ageStr + '</td>' +
+          '<td class="lh-num">' + ls_formatNum(b.kg_avail) + '</td>' +
+          '<td class="lh-num">' + ls_formatNum(b.kg_keep) + '</td>' +
+          '<td class="lh-num lh-warn">' + ls_formatNum(b.committed_kg) + '</td>' +
+          '<td class="lh-num lh-highlight">' + ls_formatNum(b.ffs_kg) + '</td>' +
+          '<td style="text-align:center"><span class="lh-batch-status-badge lh-bs-' + b.batch_status + '">' + (stBatch[b.batch_status] || b.batch_status) + '</span></td>' +
+        '</tr>';
+      });
+      html += '</tbody></table>';
+    }
+
+    html += '<div class="lh-modal-section-title">📋 Item-level breakdown</div>';
+    var dItems = m.items_demand || [], fItems = m.items_fisik || [];
+    var itemKeys = {};
+    dItems.forEach(function(i) { itemKeys[i.item_code] = { demand:i.kg_req, fisik:0, desc:i.description }; });
+    fItems.forEach(function(i) {
+      if (!itemKeys[i.item_code]) itemKeys[i.item_code] = { demand:0, fisik:0, desc:i.description };
+      itemKeys[i.item_code].fisik += (i.kg_avail + i.kg_keep);
+    });
+    var itKeys = Object.keys(itemKeys);
+    if (itKeys.length === 0) {
+      html += '<div class="ls-empty">Tidak ada item detail.</div>';
+    } else {
+      html += '<div class="lh-item-list">';
+      html += '<div class="lh-item-row" style="font-weight:600;color:#64748b;font-size:10px;text-transform:uppercase">' +
+        '<div>Item / Deskripsi</div><div style="text-align:right">Demand</div><div style="text-align:right">Fisik</div></div>';
+      itKeys.forEach(function(k) {
+        var it = itemKeys[k];
+        var gap = it.fisik - it.demand;
+        html += '<div class="lh-item-row">' +
+          '<div><b>' + ls_escapeHtml(k) + '</b> <span style="color:#94a3b8">' + ls_escapeHtml(it.desc || '') + '</span></div>' +
+          '<div class="lh-num">' + ls_formatNum(it.demand) + '</div>' +
+          '<div class="lh-num ' + (gap < 0 ? 'lh-crit' : 'lh-ok') + '">' + ls_formatNum(it.fisik) + '</div>' +
+        '</div>';
+      });
+      html += '</div>';
+    }
+    document.getElementById('lh-modal-body').innerHTML = html;
+  }
+
+  function lh_closeBatchModal() {
+    document.getElementById('lh-modal-overlay').classList.remove('is-open');
+    document.body.style.overflow = '';
+    LH_MODAL_FP = null;
+  }
+
+  document.querySelectorAll('.lh-period-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      LH_PERIOD = this.getAttribute('data-period');
+      document.querySelectorAll('.lh-period-btn').forEach(function(b) { b.classList.remove('is-active'); });
+      this.classList.add('is-active');
+      LH_DATA = null;
+      lh_load();
+    });
+  });
+  document.getElementById('lh-btn-refresh').addEventListener('click', function() { LH_DATA = null; lh_load(); });
+  document.getElementById('lh-flt-status').addEventListener('change', function() { LH_FILTER.status = this.value; if (LH_DATA) lh_renderMatrix(); });
+  document.getElementById('lh-flt-alert').addEventListener('change', function() { LH_FILTER.alert = this.value; if (LH_DATA) lh_renderMatrix(); });
+  document.getElementById('lh-matrix-body').addEventListener('click', function(ev) {
+    var tr = ev.target;
+    while (tr && tr.tagName !== 'TR') tr = tr.parentNode;
+    if (tr && tr.getAttribute) {
+      var fp = tr.getAttribute('data-fp');
+      if (fp) lh_openBatchModal(fp);
+    }
+  });
+  document.getElementById('lh-modal-close').addEventListener('click', lh_closeBatchModal);
+  document.getElementById('lh-modal-close-foot').addEventListener('click', lh_closeBatchModal);
+  document.getElementById('lh-modal-overlay').addEventListener('click', function(ev) {
+    if (ev.target === this) lh_closeBatchModal();
+  });
+
+  // Auto-load Tab 2 saat first switch
+  var _origSwitch = ls_switchTab;
+  ls_switchTab = function(tabName) {
+    _origSwitch(tabName);
+    if (tabName === 'health' && !LH_DATA && !LH_LOADING) lh_load();
+  };
 
   ls_load();
 
