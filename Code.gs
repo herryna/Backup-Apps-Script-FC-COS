@@ -31,6 +31,14 @@ function doGet(e) {
     'ctl': { page: 'page_board_ctl', title: 'Board Mesin CTL', icon: 'ti-cut' },
     'slt': { page: 'page_board_slt', title: 'Board Mesin SLT', icon: 'ti-slice' }
   };
+
+  // Standalone guide page (no shell)
+  if (view === 'panduan_live_stok') {
+    return HtmlService.createHtmlOutputFromFile('page_panduan_live_stok')
+      .setTitle('Panduan Live Inventory — COS FC')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
   
   if (viewConfig[view]) {
     var tpl = HtmlService.createTemplateFromFile('index_board');
@@ -81,4 +89,8 @@ function getPageContent(pageName) {
 
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
+function getWebAppUrl() {
+  return ScriptApp.getService().getUrl();
 }

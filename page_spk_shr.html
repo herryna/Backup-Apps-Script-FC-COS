@@ -1666,5 +1666,6 @@ function printSPK_SHR(dataSPK, dataOut) {
 }
 
 /* Auto-load list saat halaman pertama aktif */
-window.addEventListener('load', function(){ loadListSHR(); });
+// Auto-load list setiap kali page di-inject (SPA routing) — bukan hanya first load
+loadListSHR();
 </script>

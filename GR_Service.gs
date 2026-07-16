@@ -88,15 +88,15 @@ function _resolveVendorCode(rawValue, vMap) {
 // ─────────────────────────────────────────────────────────────────────────
 // 1. GET INITIAL DATA (MENARIK DATA PO YANG OPEN SAJA)
 // ─────────────────────────────────────────────────────────────────────────
-function getInitData() {
+function getInitData(dateFrom, dateTo) {
   try {
-    var result = { form: getGRFormData(), dash: getGRDashboardData(1) };
+    var result = { form: getGRFormData(), dash: getGRDashboardData(1, dateFrom, dateTo) };
     return JSON.stringify(result);
   } catch (e) { return JSON.stringify({ error: e.message }); }
 }
 
-function getGRDashboardPage(page) {
-  try { return JSON.stringify(getGRDashboardData(page)); } 
+function getGRDashboardPage(page, dateFrom, dateTo) {
+  try { return JSON.stringify(getGRDashboardData(page, dateFrom, dateTo)); } 
   catch (e) { return JSON.stringify({ error: e.message }); }
 }
 
@@ -175,10 +175,27 @@ function getGRFormData() {
 // ─────────────────────────────────────────────────────────────────────────
 // 2. GET DASHBOARD DATA (MENAMPILKAN RIWAYAT)
 // ─────────────────────────────────────────────────────────────────────────
-function getGRDashboardData(page) {
+function getGRDashboardData(page, dateFrom, dateTo) {
   var pageSize = 50;
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var allData = [];
+
+  // ── Parse date range filter (opsional; null/empty = tidak filter) ──
+  var dateFromObj = null, dateToObj = null;
+  if (dateFrom) {
+    var pf = String(dateFrom).split('-');
+    if (pf.length === 3) {
+      var yf = parseInt(pf[0], 10), mf = parseInt(pf[1], 10) - 1, df = parseInt(pf[2], 10);
+      if (!isNaN(yf) && !isNaN(mf) && !isNaN(df)) dateFromObj = new Date(yf, mf, df, 0, 0, 0);
+    }
+  }
+  if (dateTo) {
+    var pt = String(dateTo).split('-');
+    if (pt.length === 3) {
+      var yt = parseInt(pt[0], 10), mt = parseInt(pt[1], 10) - 1, dt = parseInt(pt[2], 10);
+      if (!isNaN(yt) && !isNaN(mt) && !isNaN(dt)) dateToObj = new Date(yt, mt, dt, 23, 59, 59);
+    }
+  }
 
   // 1. Tarik Master Item untuk mendapatkan dimensi (T, P, L)
   var itemMap = {};
@@ -247,7 +264,14 @@ function getGRDashboardData(page) {
       tglStr = formatTglLabel(rawTgl); 
       sortVal = rawTgl.getTime();
     }
-    
+
+    // ── Apply date range filter ──
+    if (dateFromObj || dateToObj) {
+      if (!(rawTgl instanceof Date)) continue;
+      if (dateFromObj && rawTgl < dateFromObj) continue;
+      if (dateToObj   && rawTgl > dateToObj)   continue;
+    }
+
     var targetLoc = locIdx >= 0 ? String(data[i][locIdx]).trim() : '';
     var jenis = (targetLoc === 'Stok_Coil') ? 'COIL' : 'LEMBARAN';
     var itemCode = iIdx >= 0 ? String(data[i][iIdx]).trim() : '';
@@ -297,7 +321,15 @@ function getGRDashboardData(page) {
     return b.sort_val === a.sort_val ? b.batch_id.localeCompare(a.batch_id) : b.sort_val - a.sort_val; 
   });
   
-  var total = allData.length; 
+  var total = allData.length;
+
+  // ── Kalau ada date filter aktif → return SEMUA (no server pagination).
+  //    Frontend akan handle chip filter + search + pagination client-side.
+  if (dateFromObj || dateToObj) {
+    return { data: allData, totalPages: 1, currentPage: 1, totalItems: total };
+  }
+
+  // Legacy behavior (tanpa date filter): paginate seperti sebelumnya
   var pageSize = 50;
   var totalPages = Math.ceil(total / pageSize) || 1;
   var p = Math.max(1, Math.min(page || 1, totalPages));

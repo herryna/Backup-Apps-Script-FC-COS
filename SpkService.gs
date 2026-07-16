@@ -113,7 +113,8 @@ function saveSPK_CTL(data) {
       'Plan_Run_Menit'     : hdrPlanRun,
       'Total_Durasi_Menit' : hdrTotalDurasi,
       'Is_Habis'           : data.is_habis === true,
-      'T'                  : parseFloat(data.thick) || 0
+      'T'                  : parseFloat(data.thick) || 0,
+      'Coil_Avail_Snapshot': parseFloat(data.coil_avail_kg) || 0
     };
     _appendRowSafe(spkSheet, buildRow(headerData));
     generatedSpks.push(spkNo);
@@ -1716,6 +1717,8 @@ function getSpkFullData(spkNo) {
       target_loc : out.Target_Loc,
       qty_plan   : out.Qty_Target,
       qty_plan_kg: out.KG_Target,
+      qty_actual : parseFloat(out.Qty_Actual) || 0,
+      kg_actual  : parseFloat(out.KG_Actual)  || 0,
       so_ref     : out.SO_Ref,
       cust       : out.Cust,
       owner      : out.Owner || 'FC',
@@ -1750,8 +1753,11 @@ function getSpkFullData(spkNo) {
       selesai_dt : ng.Selesai_DT ? _formatTglID(ng.Selesai_DT, true) : '—'
     };
   });
-  // ✅ Lookup info coil dari Stok_Coil untuk print template
+  // ✅ Lookup info coil dari Stok_Coil untuk print template (thick/width/no_coil selalu dari Stok_Coil)
+  //    Untuk kg_avail: pakai SNAPSHOT dari kolom Coil_Avail_Snapshot di SPK header (data historis saat SPK terbit)
+  //    Fallback ke Stok_Coil.KG_Avail hanya kalau snapshot kosong (SPK lama sebelum patch)
   var coilInfo = { thick: 0, width: 0, no_coil: '', kg_avail: 0 };
+  var snapshotKgAvail = parseFloat(header.Coil_Avail_Snapshot) || 0;
   try {
     var coilSheet = getSheet(SHEET_NAMES.STOK_COIL);
     if (coilSheet) {
@@ -1773,6 +1779,10 @@ function getSpkFullData(spkNo) {
       }
     }
   } catch(e) { /* fallback to empty */ }
+  // Override kg_avail dengan snapshot kalau ada (data saat SPK terbit)
+  if (snapshotKgAvail > 0) {
+    coilInfo.kg_avail = snapshotKgAvail;
+  }
 
   return {
     header: {
@@ -1784,6 +1794,8 @@ function getSpkFullData(spkNo) {
       input_spec : header.Input_Spec,
       qty_target : header.Qty_Target,
       kg_target  : header.KG_Target,
+      qty_actual : parseFloat(header.Qty_Actual) || 0,
+      kg_actual  : parseFloat(header.KG_Actual)  || 0,
       mc_no      : header.MC_No,
       source_loc : header.Source_Loc,
       priority   : header.Priority,
@@ -3028,9 +3040,9 @@ function getSpkFullDataSHR(spkNo) {
       batch_id   : header.Parent_SPK,
       item_code  : header.Item_Code,
       input_spec : header.Input_Spec,
-      qty_target : header.Qty_Target,
-      kg_target  : header.KG_Target,
-      mc_no      : header.MC_No,
+        qty_target : header.Qty_Target,
+        kg_target  : header.KG_Target,
+        mc_no      : header.MC_No,
       source_loc : header.Source_Loc,
       priority   : header.Priority,
       op         : header.OP,

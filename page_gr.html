@@ -57,6 +57,25 @@ td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle
 .badge { padding: 2px 6px; border-radius: 3px; font-weight: 700; font-size: 10px; display: inline-block; text-align: center; }
 .badge-blue { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
 .badge-green { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+
+/* ── Filter bar (date range + chip + search) ── */
+.gr-filter-bar { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: #fff; border: 1px solid var(--border-color); border-bottom: none; border-radius: 4px 4px 0 0; flex-wrap: wrap; }
+.gr-fb-group { display: flex; align-items: center; gap: 6px; }
+.gr-fb-group label { font-weight: 700; font-size: 11px; color: var(--text-muted); }
+.gr-fb-date { border: 1px solid var(--border-color); border-radius: 3px; padding: 4px 8px; font-size: 12px; height: 28px; }
+.gr-fb-date:focus { outline: none; border-color: var(--primary-blue); }
+.gr-fb-search { border: 1px solid var(--border-color); border-radius: 3px; padding: 4px 10px; font-size: 12px; height: 28px; min-width: 280px; }
+.gr-fb-search:focus { outline: none; border-color: var(--primary-blue); box-shadow: 0 0 0 2px rgba(2,101,220,0.15); }
+.gr-fb-clear { padding: 0 10px; height: 28px; border-radius: 3px; background: #fef2f2; color: var(--danger-red); border: 1px solid #fecaca; font-size: 11px; font-weight: 700; cursor: pointer; }
+.gr-fb-clear:hover { background: #fecaca; }
+.gr-fb-counter { margin-left: auto; font-size: 11px; color: var(--text-muted); font-weight: 600; }
+
+/* Chip filter (mirror Opening Balance) */
+.chip-bar { display: flex; gap: 6px; }
+.chip { padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid var(--border-color); background: #fff; color: var(--text-muted); }
+.chip.active { background: var(--primary-blue); border-color: var(--primary-blue); color: #fff; }
+.badge-coil { background: #cffafe; color: #0e7490; border: 1px solid #67e8f9; }
+.badge-sheet { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
 </style>
 
 <div id="view-dashboard" class="view-container active">
@@ -70,10 +89,31 @@ td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle
       <button class="btn btn-primary" onclick="openCreateMulti()">➕ Penerimaan Baru</button>
     </div>
   </div>
-  <div class="table-wrap" style="border-radius: 4px 4px 0 0; min-height: unset;">
+  <div class="gr-filter-bar">
+    <div class="gr-fb-group">
+      <label>📅 Dari</label>
+      <input type="date" class="gr-fb-date" id="fb-from" onchange="reloadWithDateRange()">
+      <label>s/d</label>
+      <input type="date" class="gr-fb-date" id="fb-to" onchange="reloadWithDateRange()">
+    </div>
+    <div class="chip-bar" id="chip-filter">
+      <div class="chip active" data-f="ALL"   onclick="setJenisFilter('ALL')">All</div>
+      <div class="chip"        data-f="COIL"  onclick="setJenisFilter('COIL')">Coil</div>
+      <div class="chip"        data-f="SHEET" onclick="setJenisFilter('SHEET')">Sheet</div>
+    </div>
+    <div class="gr-fb-group">
+      <input type="text" class="gr-fb-search" id="fb-search"
+             placeholder="🔍 Cari: batch / spec (3,2/1219/2438) / vendor / PO / catatan..."
+             oninput="onSearchInput()">
+      <button class="gr-fb-clear" onclick="clearAllFilters()" title="Reset semua filter">✖ Reset</button>
+    </div>
+    <div class="gr-fb-counter" id="dash-counter">0 batch</div>
+  </div>
+
+  <div class="table-wrap" style="border-radius: 0; min-height: unset; border-top: none;">
     <table>
       <thead>
-        <tr><th width="7%">Tanggal</th><th width="11%">Batch ID</th><th width="12%">Item Code</th><th width="18%">Deskripsi</th><th width="10%">Qty / KG</th><th width="13%">Vendor</th><th width="8%">No. DO</th><th width="8%">No. PO</th><th width="13%">Catatan</th></tr>
+        <tr><th width="7%">Tanggal</th><th width="6%">Jenis</th><th width="11%">Batch ID</th><th width="12%">Item Code</th><th width="17%">Deskripsi</th><th width="10%">Qty / KG</th><th width="12%">Vendor</th><th width="7%">No. DO</th><th width="7%">No. PO</th><th width="11%">Catatan</th></tr>
       </thead>
       <tbody id="dash-tbody"></tbody>
     </table>
@@ -159,7 +199,8 @@ td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle
 
 <script>
 var DB = { pos: [] };
-var DASH = { data: [], page: 1, total: 1 };
+var DASH = { data: [], filtered: [], page: 1, total: 1, jenis: 'ALL', search: '', searchTimer: null };
+var CLIENT_PAGE_SIZE = 50;
 var SELECTED_PO_ITEMS = [];       // legacy — dipertahankan untuk backward-safety
 var PO_ITEMS_MAP = {};             // { item_code: { po_item_ref } }
 var ROWS = [];                     // array state per baris input GR
@@ -184,55 +225,172 @@ function grOv(show, msg) {
 
 (function init() {
   var d = new Date(); 
-  document.getElementById('h-tgl').value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  var todayStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  var firstDay = new Date(d.getFullYear(), d.getMonth(), 1);
+  var firstStr = firstDay.getFullYear() + '-' + String(firstDay.getMonth()+1).padStart(2,'0') + '-' + String(firstDay.getDate()).padStart(2,'0');
+
+  document.getElementById('h-tgl').value = todayStr;
+  document.getElementById('fb-from').value = firstStr;
+  document.getElementById('fb-to').value   = todayStr;
+
   buildPODD(); 
   syncAllData(); 
 })();
 
 function syncAllData(callback) {
   grOv(true, "Sinkronisasi Master Data & Sisa PO...");
+  var df = document.getElementById('fb-from').value || null;
+  var dt = document.getElementById('fb-to').value   || null;
   google.script.run.withSuccessHandler(function(jsonStr) {
     grOv(false);
     var res = JSON.parse(jsonStr);
     if (res.error) return alert("Sistem Error: " + res.error);
     DB.pos = res.form.pos || []; 
-    DASH.data = res.dash.data || []; DASH.page = res.dash.currentPage || 1; DASH.total = res.dash.totalPages || 1;
-    renderDashboardTable();
+    DASH.data = res.dash.data || []; DASH.page = 1; DASH.total = res.dash.totalPages || 1;
+    applyClientFilters();
     if(callback) callback(); 
-  }).withFailureHandler(function(e) { grOv(false); alert("Error Server: " + e.message); }).getInitData();
+  }).withFailureHandler(function(e) { grOv(false); alert("Error Server: " + e.message); }).getInitData(df, dt);
 }
 
-function loadDashboard(page) {
-  grOv(true, "Pindah Halaman...");
+function reloadWithDateRange() {
+  var from = document.getElementById('fb-from').value;
+  var to   = document.getElementById('fb-to').value;
+  if (from && to && from > to) return alert('⚠️ Tanggal "Dari" tidak boleh lebih besar dari "Sampai".');
+
+  grOv(true, "Memuat data sesuai rentang tanggal...");
   google.script.run.withSuccessHandler(function(jsonStr) {
-    grOv(false); var res = JSON.parse(jsonStr);
-    DASH.data = res.data; DASH.page = res.currentPage; DASH.total = res.totalPages;
-    renderDashboardTable();
-  }).getGRDashboardPage(page);
+    grOv(false);
+    var res = JSON.parse(jsonStr);
+    if (res.error) return alert("Sistem Error: " + res.error);
+    DASH.data = res.data || []; DASH.page = 1; DASH.total = res.totalPages || 1;
+    applyClientFilters();
+  }).withFailureHandler(function(e) { grOv(false); alert("Error Server: " + e.message); })
+    .getGRDashboardPage(1, from || null, to || null);
 }
 
 function changePage(dir) {
   var target = DASH.page + dir;
-  if(target >= 1 && target <= DASH.total) loadDashboard(target);
+  var totalPages = Math.max(1, Math.ceil(DASH.filtered.length / CLIENT_PAGE_SIZE));
+  if(target >= 1 && target <= totalPages) { DASH.page = target; renderDashboardTable(); }
+}
+
+// ── Filter chip Jenis (All / Coil / Sheet) ──
+function setJenisFilter(f) {
+  DASH.jenis = f;
+  document.querySelectorAll('#chip-filter .chip').forEach(function(c){
+    c.classList.toggle('active', c.dataset.f === f);
+  });
+  DASH.page = 1;
+  applyClientFilters();
+}
+
+// ── Live search dengan debounce ──
+function onSearchInput() {
+  clearTimeout(DASH.searchTimer);
+  DASH.searchTimer = setTimeout(function() {
+    DASH.search = document.getElementById('fb-search').value || '';
+    DASH.page = 1;
+    applyClientFilters();
+  }, 200);
+}
+
+// ── Parser dimensi: "3,2/1219/2438" atau "3,2x1219x2438" ──
+function parseDim(q) {
+  var s = String(q || '').replace(/,/g, '.').replace(/\s+/g, '');
+  if (!s) return null;
+  var parts = s.split(/[\/x×]/i);
+  if (parts.length !== 3) return null;
+  var t = parseFloat(parts[0]);
+  var p = parseFloat(parts[1]);
+  var l = parseFloat(parts[2]);
+  if (isNaN(t) || isNaN(p) || isNaN(l)) return null;
+  return { t: t, p: p, l: l };
+}
+
+function rowMatchesSearch(r, q) {
+  if (!q) return true;
+  var qLow = String(q).toLowerCase().trim();
+  if (!qLow) return true;
+
+  var dim = parseDim(qLow);
+  if (dim) {
+    var tol = 0.001;
+    return Math.abs((r.t || 0) - dim.t) < tol
+        && Math.abs((r.p || 0) - dim.p) < tol
+        && Math.abs((r.l || 0) - dim.l) < tol;
+  }
+
+  var hay = [
+    r.batch_id, r.item_code, r.desc, r.spec,
+    r.supplier, r.no_po, r.no_do, r.note, r.no_coil, r.owner
+  ].join(' ').toLowerCase();
+  return hay.indexOf(qLow) !== -1;
+}
+
+// ── Apply chip + search terhadap DASH.data, hasil ke DASH.filtered ──
+function applyClientFilters() {
+  var jen = DASH.jenis, q = DASH.search;
+  DASH.filtered = (DASH.data || []).filter(function(r){
+    if (jen !== 'ALL' && r.jenis !== jen) return false;
+    if (!rowMatchesSearch(r, q)) return false;
+    return true;
+  });
+  renderDashboardTable();
+}
+
+function clearAllFilters() {
+  var d = new Date();
+  var todayStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  var firstDay = new Date(d.getFullYear(), d.getMonth(), 1);
+  var firstStr = firstDay.getFullYear() + '-' + String(firstDay.getMonth()+1).padStart(2,'0') + '-' + String(firstDay.getDate()).padStart(2,'0');
+  document.getElementById('fb-from').value = firstStr;
+  document.getElementById('fb-to').value   = todayStr;
+  document.getElementById('fb-search').value = '';
+  DASH.search = ''; DASH.jenis = 'ALL'; DASH.page = 1;
+  document.querySelectorAll('#chip-filter .chip').forEach(function(c){
+    c.classList.toggle('active', c.dataset.f === 'ALL');
+  });
+  reloadWithDateRange();
 }
 
 function renderDashboardTable() {
   var tbody = document.getElementById('dash-tbody');
-  document.getElementById('pg-info').textContent = 'Halaman ' + DASH.page + ' / ' + DASH.total;
-  document.getElementById('pg-prev').disabled = (DASH.page === 1);
-  document.getElementById('pg-next').disabled = (DASH.page === DASH.total);
-  if (DASH.data.length === 0) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:30px; color:#94a3b8; font-style:italic;">Belum ada riwayat penerimaan barang.</td></tr>'; return; }
+  var totalFiltered = DASH.filtered.length;
+  var totalRaw = DASH.data.length;
+  var totalPages = Math.max(1, Math.ceil(totalFiltered / CLIENT_PAGE_SIZE));
+  if (DASH.page > totalPages) DASH.page = totalPages;
 
-  tbody.innerHTML = DASH.data.map(function(r, index) {
+  document.getElementById('pg-info').textContent = 'Halaman ' + DASH.page + ' / ' + totalPages;
+  document.getElementById('pg-prev').disabled = (DASH.page === 1);
+  document.getElementById('pg-next').disabled = (DASH.page === totalPages);
+
+  var counter = document.getElementById('dash-counter');
+  if (counter) counter.textContent = totalFiltered + ' dari ' + totalRaw + ' batch';
+
+  if (totalFiltered === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:30px; color:#94a3b8; font-style:italic;">Tidak ada data yang cocok dengan filter saat ini.</td></tr>';
+    return;
+  }
+
+  var start = (DASH.page - 1) * CLIENT_PAGE_SIZE;
+  var pageRows = DASH.filtered.slice(start, start + CLIENT_PAGE_SIZE);
+
+  tbody.innerHTML = pageRows.map(function(r, i) {
+    var globalIdx = start + i;
     var qtykg = r.jenis === 'COIL' ? `<b>${r.kg}</b> KG` : `<b>${r.qty}</b> Sht / ${r.kg} KG`;
+    var jenisCls = r.jenis === 'COIL' ? 'badge-coil' : 'badge-sheet';
     var noteRaw = String(r.note || '').trim();
     var noteEsc = noteRaw.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     var noteCell = noteRaw
       ? `<td title="${noteEsc}" style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#334155;">${noteEsc}</td>`
       : `<td style="color:#cbd5e1; text-align:center;">—</td>`;
-    return `<tr class="dash-row" onclick="openDetail(${index})">
-      <td>${r.tgl_str}</td><td class="td-link"><b>${r.batch_id}</b></td><td>${r.item_code}</td>
-      <td style="color:var(--primary-blue); font-weight:700;">${r.desc}</td><td>${qtykg}</td><td>${r.supplier}</td><td>${r.no_do}</td><td>${r.no_po}</td>${noteCell}
+    return `<tr class="dash-row" onclick="openDetail(${globalIdx})">
+      <td>${r.tgl_str}</td>
+      <td><span class="badge ${jenisCls}">${r.jenis}</span></td>
+      <td class="td-link"><b>${r.batch_id}</b></td>
+      <td>${r.item_code}</td>
+      <td style="color:var(--primary-blue); font-weight:700;">${r.desc}</td>
+      <td>${qtykg}</td><td>${r.supplier}</td><td>${r.no_do}</td><td>${r.no_po}</td>${noteCell}
     </tr>`;
   }).join('');
 }
@@ -606,7 +764,7 @@ function submitGR() {
 }
 
 function openDetail(index) {
-  var r = DASH.data[index]; CUR.editingRow = r;
+  var r = DASH.filtered[index]; CUR.editingRow = r;
   document.getElementById('v-batch').value = r.batch_id; document.getElementById('v-tgl').value = r.tgl_raw; document.getElementById('v-do').value = r.no_do; document.getElementById('v-po').value = r.no_po; document.getElementById('v-jenis').value = r.jenis; document.getElementById('v-own').value = r.owner; document.getElementById('v-item').value = r.item_code; document.getElementById('v-desc').value = r.desc; document.getElementById('v-vend').value = r.supplier;
   document.getElementById('v-nocoil').value = r.no_coil; document.getElementById('vd-wrap-coil').style.display = (r.jenis === 'COIL') ? 'flex' : 'none';
   document.getElementById('v-qty').value = r.qty; document.getElementById('vd-wrap-qty').style.display = (r.jenis !== 'COIL') ? 'flex' : 'none'; document.getElementById('v-kg').value = r.kg; document.getElementById('v-note').value = r.note;

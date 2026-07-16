@@ -404,7 +404,8 @@ td{padding:8px 12px;border-bottom:1px solid #e2e8f0;vertical-align:middle;overfl
     </div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-outline" onclick="showView('view-list')">◀ Kembali</button>
-      <button class="btn btn-outline" onclick="printDetailCTL()">🖨️ Re-Print SPK</button>
+      <button class="btn btn-outline" id="btn-reprint-detail" onclick="printDetailCTL()">🖨️ Re-Print SPK</button>
+      <button class="btn btn-outline" id="btn-report-detail" onclick="printReportCTL()" style="display:none;background:#065f46;color:#fff;border-color:#064e3b;">🖨️ Print Report</button>
       <button class="btn btn-primary" id="btn-edit-detail" onclick="editFromDetail()">✏️ Edit Data</button>
       <button class="btn" id="btn-cancel-detail" onclick="cancelFromDetailCTL()" style="background:#d32f2f;color:#fff;border:1px solid #b71c1c;font-weight:600;">🚫 Cancel SPK</button>
     </div>
@@ -612,10 +613,13 @@ function renderDetailCTL(res) {
   // Cancel SPK total hanya boleh untuk ANTRIAN. SPK RUNNING/DONE/CANCELLED:
   // tombol disembunyikan. Untuk mid-process abandon, PPIC harus pakai
   // cancel per-OUT di Board Mesin (icon X dengan password).
-  var btnEdit   = document.getElementById('btn-edit-detail');
-  var btnCancel = document.getElementById('btn-cancel-detail');
-  var statusUp  = String(h.status||'').toUpperCase();
-  var canEdit   = (statusUp === 'ANTRIAN');
+  var btnEdit    = document.getElementById('btn-edit-detail');
+  var btnCancel  = document.getElementById('btn-cancel-detail');
+  var btnReprint = document.getElementById('btn-reprint-detail');
+  var btnReport  = document.getElementById('btn-report-detail');
+  var statusUp   = String(h.status||'').toUpperCase();
+  var canEdit    = (statusUp === 'ANTRIAN');
+  var isDone     = (statusUp === 'DONE');
 
   if (btnEdit) {
     btnEdit.style.display = canEdit ? 'inline-block' : 'none';
@@ -624,6 +628,9 @@ function renderDetailCTL(res) {
   if (btnCancel) {
     btnCancel.style.display = canEdit ? 'inline-block' : 'none';
   }
+  // Toggle Print button: DONE → Print Report (aktual+NG); selain itu → Re-Print SPK (plan blank)
+  if (btnReprint) btnReprint.style.display = isDone ? 'none' : 'inline-block';
+  if (btnReport)  btnReport.style.display  = isDone ? 'inline-block' : 'none';
 
   document.getElementById('dv-ctl-count').textContent = (res.out_ctls ? res.out_ctls.length : 0) + ' output';
   var ctlHtml = '';
@@ -1970,6 +1977,7 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
       created_by: '',
       note      : '',
       coil_owner: _coilOwner,
+      coil_avail_kg: parseFloat(document.getElementById('hdr-kg-avail').textContent)||0,
       is_habis  : document.getElementById('hdr-is-habis').checked,
       out_ctl   : outCtl,
       out_ctls  : outCtl
@@ -2373,12 +2381,12 @@ function printSPK_CTL(dataSPK, dataOut) {
     + '<tr>'
     + '<td class="lbl">Batch ID</td><td class="bold">'+(dataSPK.batch_id||'')+'</td>'
     + '<td class="lbl">No Coil</td><td class="bold">'+(dataSPK.no_coil||'-')+'</td>'
-    + '<td class="lbl">Operator</td><td class="bold">'+(dataSPK.operator||'')+'</td>'
+    + '<td class="lbl">Coil Awal</td><td class="bold num">'+nfmt(coilAvail)+' Kg</td>'
     + '</tr>'
     + '<tr>'
     + '<td class="lbl">Item Code</td><td class="bold">'+(dataSPK.item_code||'')+'</td>'
     + '<td class="lbl">Spec Coil</td><td class="bold">'+(dataSPK.spec||'')+'</td>'
-    + '<td class="lbl">Target Kg</td><td class="bold num">'+nfmt(targetKg)+' Kg</td>'
+    + '<td class="lbl">Target Proses</td><td class="bold num">'+nfmt(targetKg)+' Kg</td>'
     + '</tr>'
     + '</table></div>'
     + '<table class="tbl">'
@@ -2411,6 +2419,7 @@ function printSPK_CTL(dataSPK, dataOut) {
     + '<div class="catatan">Catatan: ________________________________________________________________________________________</div>'
     + '<div class="sig-row">'
     + '<div class="sig-cell">Dibuat Oleh,<br><br><br><br>( <span class="bold">Admin PPIC</span> )</div>'
+    + '<div class="sig-cell">Diproses Oleh,<br><br><br><br>( <span class="bold">'+(dataSPK.operator||'Operator')+'</span> )</div>'
     + '<div class="sig-cell">Diperiksa Oleh,<br><br><br><br>( <span class="bold">Leader CTL</span> )</div>'
     + '<div class="sig-cell">Disetujui Oleh,<br><br><br><br>( <span class="bold">Supervisor</span> )</div>'
     + '</div>'
@@ -2429,5 +2438,255 @@ function printSPK_CTL(dataSPK, dataOut) {
   };
 }
 
-window.addEventListener('load', function(){ loadListCTL(); });
+/* ================================================================
+   PRINT REPORT SPK CTL — hanya untuk status DONE
+   - Kolom PLAN + AKTUAL sama-sama terisi
+   - Ada tambahan rows NG di bawah (SPK ID/Item Code/Cust kosong; Plan kosong; Aktual terisi)
+   - TOTAL row: SUM Plan (OUT only) + SUM Aktual (OUT + NG)
+   - EST SISA COIL: sisi Plan = Coil_Awal - Target; sisi Aktual = Coil_Awal - KG_Aktual_Header
+   ================================================================ */
+function printReportCTL() {
+  if (!window._lastDetailRes) {
+    alert('Tidak ada data SPK untuk di-print.');
+    return;
+  }
+  var h = window._lastDetailRes.header;
+  var dataInduk = {
+    spk_no       : h.spk_no,
+    tanggal      : h.tgl_buat||'',
+    batch_id     : h.batch_id||'',
+    no_coil      : h.no_coil||'-',
+    item_code    : h.item_code||'',
+    spec         : h.input_spec||'',
+    thick        : h.thick||'',
+    width        : h.width||'',
+    weight_kg    : h.kg_target||0,
+    kg_actual    : parseFloat(h.kg_actual)||0,
+    coil_avail_kg: h.coil_avail_kg||0,
+    operator     : h.op||'',
+    mc_no        : h.mc_no||''
+  };
+  var dataAnak = (window._lastDetailRes.out_ctls||[]).map(function(o){
+    return {
+      spk_child_no: o.spk_no,
+      item_code   : o.item_code||'--',
+      spec_hasil  : o.description||'--',
+      target_loc  : o.target_loc||'',
+      cust        : o.cust||'--',
+      so_no       : o.so_ref||'--',
+      qty_plan    : o.qty_plan||0,
+      kg_plan     : o.qty_plan_kg||0,
+      qty_actual  : parseFloat(o.qty_actual)||0,
+      kg_actual   : parseFloat(o.kg_actual)||0
+    };
+  });
+  var dataNG = (window._lastDetailRes.out_ngs||[]).map(function(ng){
+    return {
+      t          : ng.t||'',
+      p          : ng.p||'',
+      l          : ng.l||'',
+      input_spec : ng.input_spec||'',
+      target_loc : ng.target_loc||'Stok_NG',
+      qty_actual : parseFloat(ng.qty)||0,
+      kg_actual  : parseFloat(ng.kg)||0
+    };
+  });
+  printSPK_CTL_Report(dataInduk, dataAnak, dataNG);
+}
+
+function printSPK_CTL_Report(dataSPK, dataOut, dataNG) {
+  function extractL(desc) {
+    if (!desc) return '';
+    var m = String(desc).match(/(\d+(?:\.\d+)?)/g);
+    return m ? m[m.length-1] : '';
+  }
+  function nfmt(n) {
+    var v = parseFloat(n);
+    if (isNaN(v)) return '0';
+    if (v === Math.floor(v)) return String(v);
+    return v.toFixed(1);
+  }
+
+  var totalPlanSht = 0, totalPlanKg = 0;
+  var totalAktSht  = 0, totalAktKg  = 0;
+  var rowsHtml = '';
+  var rowIdx = 0;
+
+  // === Rows OUT (produk normal) — plan + aktual terisi ===
+  (dataOut||[]).forEach(function(item) {
+    rowIdx++;
+    var l = extractL(item.spec_hasil);
+    var tpl = (dataSPK.thick||'?') + ' x ' + (dataSPK.width||'?') + ' x ' + (l||'?');
+    var qtyP = parseFloat(item.qty_plan)||0;
+    var kgP  = parseFloat(item.kg_plan)||0;
+    var qtyA = parseFloat(item.qty_actual)||0;
+    var kgA  = parseFloat(item.kg_actual)||0;
+    totalPlanSht += qtyP; totalPlanKg += kgP;
+    totalAktSht  += qtyA; totalAktKg  += kgA;
+    rowsHtml += '<tr>'
+      + '<td class="c num">'+rowIdx+'</td>'
+      + '<td class="bold" style="white-space:normal; word-break:break-word; font-size:7.5pt;">'+(item.spk_child_no||'')+'</td>'
+      + '<td style="white-space:normal; word-break:break-word;">'+(item.item_code||'')+'</td>'
+      + '<td class="bold" style="white-space:normal;">'+tpl+'</td>'
+      + '<td style="white-space:normal; font-size:7.5pt; line-height:1.1;">'+(item.target_loc||'')+'</td>'
+      + '<td style="white-space:normal; line-height:1.1;"><b style="font-size:7.5pt;">'+(item.cust||'')+'</b><br><span style="font-size:7pt;color:#444;">'+(item.so_no||'')+'</span></td>'
+      + '<td class="num r bold">'+nfmt(qtyP)+'</td>'
+      + '<td class="num r bold">'+nfmt(kgP)+'</td>'
+      + '<td class="num r bold aktual">'+nfmt(qtyA)+'</td>'
+      + '<td class="num r bold aktual">'+nfmt(kgA)+'</td>'
+      + '</tr>';
+  });
+
+  // === Rows NG — SPK ID/Item Code/Cust/Plan kosong, aktual terisi ===
+  (dataNG||[]).forEach(function(ng) {
+    rowIdx++;
+    var tpl;
+    if (ng.t || ng.p || ng.l) {
+      tpl = (ng.t||'?') + ' x ' + (ng.p||'?') + ' x ' + (ng.l||'?');
+    } else {
+      tpl = ng.input_spec || '—';
+    }
+    var qtyA = parseFloat(ng.qty_actual)||0;
+    var kgA  = parseFloat(ng.kg_actual)||0;
+    totalAktSht += qtyA; totalAktKg += kgA;
+    rowsHtml += '<tr style="background:#fff0e6;">'
+      + '<td class="c num">'+rowIdx+'</td>'
+      + '<td></td>'
+      + '<td></td>'
+      + '<td class="bold" style="white-space:normal;">'+tpl+'</td>'
+      + '<td style="white-space:normal; font-size:7.5pt; line-height:1.1;color:#c2410c;font-weight:bold;">'+(ng.target_loc||'Stok_NG')+'</td>'
+      + '<td></td>'
+      + '<td></td>'
+      + '<td></td>'
+      + '<td class="num r bold aktual">'+nfmt(qtyA)+'</td>'
+      + '<td class="num r bold aktual">'+nfmt(kgA)+'</td>'
+      + '</tr>';
+  });
+
+  var coilAvail = parseFloat(dataSPK.coil_avail_kg)||0;
+  var targetKg  = parseFloat(dataSPK.weight_kg)||0;
+  var kgActHdr  = parseFloat(dataSPK.kg_actual)||0;
+  var sisaPlan  = coilAvail > 0 ? (coilAvail - targetKg) : null;
+  var sisaAkt   = coilAvail > 0 ? (coilAvail - kgActHdr) : null;
+
+  var totalRow = '<tr class="row-total">'
+    + '<td colspan="6" class="bold r" style="padding-right:8px">TOTAL</td>'
+    + '<td class="num r bold">'+nfmt(totalPlanSht)+'</td>'
+    + '<td class="num r bold">'+nfmt(totalPlanKg)+'</td>'
+    + '<td class="num r bold aktual">'+nfmt(totalAktSht)+'</td>'
+    + '<td class="num r bold aktual">'+nfmt(totalAktKg)+'</td>'
+    + '</tr>';
+
+  var sisaRow = '<tr class="row-sisa">'
+    + '<td colspan="6" class="bold r" style="padding-right:8px">EST SISA COIL (Kg)</td>'
+    + '<td class="c">—</td>'
+    + '<td class="num r bold">'+(sisaPlan!==null ? nfmt(sisaPlan) : '—')+'</td>'
+    + '<td class="c">—</td>'
+    + '<td class="num r bold aktual">'+(sisaAkt!==null ? nfmt(sisaAkt) : '—')+'</td>'
+    + '</tr>';
+
+  var htmlPrint = '<html><head><title>Report SPK - '+dataSPK.spk_no+'</title><style>'
+    + '@page{size:letter portrait;margin:8mm}'
+    + '*{box-sizing:border-box;color:#000;margin:0;padding:0}'
+    + 'body{font-family:Verdana,Tahoma,Geneva,sans-serif;font-size:9pt;line-height:1.2}'
+    + '.bold{font-weight:bold}.c{text-align:center}.r{text-align:right}'
+    + '.num{font-family:"Lucida Console","Consolas","Courier New",monospace;font-weight:bold}'
+    + '.title-bar{display:table;width:100%;border-bottom:2px solid #000;padding-bottom:4px;margin-bottom:6px}'
+    + '.title-bar > div{display:table-cell;vertical-align:middle}'
+    + '.title-l{font-size:11pt;font-weight:bold;width:50%}'
+    + '.title-l small{font-size:7.5pt;font-weight:normal;display:block;font-family:Verdana,sans-serif}'
+    + '.title-r{font-size:9pt;text-align:right;width:50%}'
+    + '.title-r .big{font-size:12pt;font-weight:bold;display:block;margin-bottom:2px;letter-spacing:0.5px}'
+    + '.hdr-box{border:1px solid #000;margin-bottom:6px}'
+    + '.hdr-box table{width:100%;border-collapse:collapse}'
+    + '.hdr-box td{padding:3px 6px;font-size:8.5pt;border-bottom:1px solid #ccc}'
+    + '.hdr-box tr:last-child td{border-bottom:none}'
+    + '.hdr-box .lbl{font-weight:bold;background:#f0f0f0;width:12%}'
+    + '.tbl{width:100%;border-collapse:collapse;table-layout:fixed}'
+    + '.tbl th,.tbl td{border:1px solid #000;padding:2px 4px;font-size:8pt;vertical-align:middle;word-wrap:break-word;}'
+    + '.tbl th{background:#e0e0e0;font-weight:bold;text-align:center;font-size:7.5pt;padding:4px 2px}'
+    + '.tbl tbody td{height:10mm}'
+    + '.tbl tfoot td{height:8mm;font-size:8.5pt}'
+    + '.tbl .row-total td{background:#f0f0f0}'
+    + '.tbl .row-sisa td{background:#f8f8f8}'
+    + '.tbl .aktual{background:#fff5f5}'
+    + '.col-num{width:3%}'
+    + '.col-id{width:14%}'
+    + '.col-item{width:10%}'
+    + '.col-spec{width:17%}'
+    + '.col-loc{width:11%}'
+    + '.col-cs{width:15%}'
+    + '.col-plan{width:6%}'
+    + '.col-akt{width:9%}'
+    + '.catatan{margin-top:6px;font-size:8pt;font-style:italic}'
+    + '.sig-row{margin-top:12px;display:table;width:100%}'
+    + '.sig-cell{display:table-cell;text-align:center;font-size:8.5pt;padding:0 8px}'
+    + '</style></head><body>'
+    + '<div class="title-bar">'
+    + '<div class="title-l">[F/C] PT Flambindo Cortama<small>NO Doc: FM-PP-015</small></div>'
+    + '<div class="title-r"><span class="big">SPK CUT TO LENGTH</span>No: <span class="bold num">'+dataSPK.spk_no+'</span> &nbsp;|&nbsp; Tgl: '+dataSPK.tanggal+' &nbsp;|&nbsp; M/C: '+dataSPK.mc_no+'</div>'
+    + '</div>'
+    + '<div class="hdr-box"><table>'
+    + '<tr>'
+    + '<td class="lbl">Batch ID</td><td class="bold">'+(dataSPK.batch_id||'')+'</td>'
+    + '<td class="lbl">No Coil</td><td class="bold">'+(dataSPK.no_coil||'-')+'</td>'
+    + '<td class="lbl">Coil Awal</td><td class="bold num">'+nfmt(coilAvail)+' Kg</td>'
+    + '</tr>'
+    + '<tr>'
+    + '<td class="lbl">Item Code</td><td class="bold">'+(dataSPK.item_code||'')+'</td>'
+    + '<td class="lbl">Spec Coil</td><td class="bold">'+(dataSPK.spec||'')+'</td>'
+    + '<td class="lbl">Target Proses</td><td class="bold num">'+nfmt(targetKg)+' Kg</td>'
+    + '</tr>'
+    + '</table></div>'
+    + '<table class="tbl">'
+    + '<thead>'
+    + '<tr>'
+    + '<th rowspan="2" class="col-num">#</th>'
+    + '<th rowspan="2" class="col-id">SPK ID</th>'
+    + '<th rowspan="2" class="col-item">Item Code</th>'
+    + '<th rowspan="2" class="col-spec">Spec Hasil<br>(T x P x L)</th>'
+    + '<th rowspan="2" class="col-loc">Loc Target</th>'
+    + '<th rowspan="2" class="col-cs">Cust / SO</th>'
+    + '<th colspan="2" style="background:#d0e0f0">PLAN</th>'
+    + '<th colspan="2" style="background:#fcdada">AKTUAL</th>'
+    + '</tr>'
+    + '<tr>'
+    + '<th class="col-plan" style="background:#d0e0f0">Sht</th>'
+    + '<th class="col-plan" style="background:#d0e0f0">Kg</th>'
+    + '<th class="col-akt" style="background:#fcdada">Sht</th>'
+    + '<th class="col-akt" style="background:#fcdada">Kg</th>'
+    + '</tr>'
+    + '</thead>'
+    + '<tbody>'
+    + rowsHtml
+    + '</tbody>'
+    + '<tfoot>'
+    + totalRow
+    + sisaRow
+    + '</tfoot>'
+    + '</table>'
+    + '<div class="catatan">Catatan: ________________________________________________________________________________________</div>'
+    + '<div class="sig-row">'
+    + '<div class="sig-cell">Dibuat Oleh,<br><br><br><br>( <span class="bold">Admin PPIC</span> )</div>'
+    + '<div class="sig-cell">Diproses Oleh,<br><br><br><br>( <span class="bold">'+(dataSPK.operator||'Operator')+'</span> )</div>'
+    + '<div class="sig-cell">Diperiksa Oleh,<br><br><br><br>( <span class="bold">Leader CTL</span> )</div>'
+    + '<div class="sig-cell">Disetujui Oleh,<br><br><br><br>( <span class="bold">Supervisor</span> )</div>'
+    + '</div>'
+    + '</body></html>';
+
+  var printFrame = document.createElement('iframe');
+  printFrame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+  document.body.appendChild(printFrame);
+  printFrame.contentDocument.open();
+  printFrame.contentDocument.write(htmlPrint);
+  printFrame.contentDocument.close();
+  printFrame.onload = function(){
+    printFrame.contentWindow.focus();
+    printFrame.contentWindow.print();
+    setTimeout(function(){ document.body.removeChild(printFrame); }, 3000);
+  };
+}
+
+// Auto-load list setiap kali page di-inject (SPA routing) — bukan hanya first load
+loadListCTL();
 </script>

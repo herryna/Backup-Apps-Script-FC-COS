@@ -1,0 +1,355 @@
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 0;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #f8fafc; color: #1e293b; line-height: 1.65;
+}
+.pg-page { max-width: 960px; margin: 0 auto; padding: 24px 28px 60px; }
+
+/* HEADER */
+.pg-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-bottom: 16px; border-bottom: 2px solid #1a3a6e; margin-bottom: 20px;
+}
+.pg-title { font-size: 24px; font-weight: 700; color: #1a3a6e; display: flex; align-items: center; gap: 10px; }
+.pg-subtitle { font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 400; }
+.pg-actions { display: flex; gap: 8px; }
+.pg-btn {
+  background: #fff; color: #1a3a6e; border: 1px solid #1a3a6e;
+  padding: 7px 14px; border-radius: 4px; font-size: 12px; font-weight: 500;
+  cursor: pointer; font-family: inherit;
+}
+.pg-btn:hover { background: #1a3a6e; color: #fff; }
+.pg-btn-print { background: #1a3a6e; color: #fff; }
+.pg-btn-print:hover { background: #0f2647; }
+
+/* TAB BAR */
+.pg-tabbar { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; }
+.pg-tab {
+  background: transparent; color: #64748b; border: 1px solid transparent;
+  border-bottom: none; padding: 10px 20px;
+  border-radius: 6px 6px 0 0; font-size: 13px; font-weight: 500;
+  cursor: pointer; font-family: inherit; margin-bottom: -1px;
+}
+.pg-tab:hover { background: #f1f5f9; color: #1a3a6e; }
+.pg-tab.is-active { background: #fff; color: #1a3a6e; border-color: #e2e8f0; border-bottom-color: #fff; font-weight: 600; }
+
+/* SECTIONS */
+.pg-section {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: 20px 24px; margin-bottom: 16px;
+}
+.pg-section h2 {
+  font-size: 16px; font-weight: 700; color: #1a3a6e; margin: 0 0 12px;
+  padding-bottom: 8px; border-bottom: 1px solid #e2e8f0;
+  display: flex; align-items: center; gap: 8px;
+}
+.pg-section h3 {
+  font-size: 13px; font-weight: 700; color: #334155; margin: 16px 0 8px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.pg-section p { margin: 0 0 10px; font-size: 13px; color: #334155; }
+.pg-section ul, .pg-section ol { margin: 8px 0 12px 22px; padding: 0; }
+.pg-section li { font-size: 13px; margin-bottom: 6px; color: #334155; }
+.pg-section blockquote {
+  background: #f0f5fc; border-left: 4px solid #1a3a6e;
+  margin: 12px 0; padding: 12px 16px;
+  font-size: 13px; color: #1e293b; border-radius: 0 4px 4px 0;
+  font-style: italic;
+}
+
+/* TABLES */
+.pg-table {
+  width: 100%; border-collapse: collapse; margin: 10px 0;
+  font-size: 12px;
+}
+.pg-table thead { background: #f1f5f9; }
+.pg-table thead th {
+  text-align: left; padding: 9px 10px; font-weight: 600;
+  color: #475569; border-bottom: 2px solid #cbd5e1;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px;
+}
+.pg-table tbody td {
+  padding: 9px 10px; border-bottom: 1px solid #f1f5f9;
+  vertical-align: top; color: #1e293b;
+}
+.pg-table tbody tr:hover { background: #f8fafc; }
+.pg-table tbody td:first-child { font-weight: 600; color: #0f172a; white-space: nowrap; }
+.pg-table code { background: #f1f5f9; padding: 1px 5px; border-radius: 3px; font-size: 11px; color: #7c3aed; }
+
+/* STATUS BADGES INLINE */
+.pg-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 10px;
+  font-size: 11px; font-weight: 600; margin-right: 4px;
+}
+.pg-badge-ready { background: #d1fae5; color: #065f46; }
+.pg-badge-prod { background: #fef3c7; color: #92400e; }
+.pg-badge-short { background: #fee2e2; color: #991b1b; }
+.pg-badge-ffs { background: #dbeafe; color: #1e40af; }
+
+/* FORMULA BOX */
+.pg-formula {
+  background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 4px;
+  padding: 12px 16px; margin: 10px 0;
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 12px; color: #1e293b; white-space: pre;
+}
+
+/* PANES */
+.pg-pane { display: block; }
+.pg-pane.is-hidden { display: none; }
+
+.pg-footer {
+  text-align: center; padding: 20px 0 0;
+  font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; margin-top: 24px;
+}
+
+/* PRINT */
+@media print {
+  body { background: #fff; }
+  .pg-page { max-width: 100%; padding: 0; }
+  .pg-actions, .pg-tabbar { display: none !important; }
+  .pg-pane { display: block !important; }
+  .pg-section {
+    border: none; padding: 12px 0; margin-bottom: 8px;
+    break-inside: avoid;
+  }
+  .pg-section h2 { color: #000; }
+  .pg-header { border-bottom: 2px solid #000; }
+  .pg-title { color: #000; }
+  .pg-print-only { display: block !important; }
+  .pg-table { font-size: 10px; }
+  .pg-formula { font-size: 10px; }
+}
+.pg-print-only { display: none; }
+.pg-print-only-title {
+  font-size: 15px; font-weight: 700; color: #1a3a6e;
+  margin: 20px 0 10px; padding-bottom: 6px; border-bottom: 1px solid #cbd5e1;
+}
+</style>
+
+<div class="pg-page">
+
+  <!-- ===== HEADER ===== -->
+  <div class="pg-header">
+    <div>
+      <div class="pg-title">📖 Panduan Live Inventory</div>
+      <div class="pg-subtitle">COS — Core Operations System · PT Flambindo Cortama</div>
+    </div>
+    <div class="pg-actions">
+      <button class="pg-btn pg-btn-print" onclick="window.print()">🖨️ Print</button>
+      <button class="pg-btn" onclick="window.close()">✕ Tutup</button>
+    </div>
+  </div>
+
+  <!-- ===== SECTION 1: TUJUAN (COMMON) ===== -->
+  <div class="pg-section">
+    <h2>🎯 Tujuan Halaman</h2>
+    <p>Halaman <b>Live Inventory</b> menampilkan kondisi stok material perusahaan secara <i>real-time</i> untuk mendukung pengambilan keputusan operasional dan komersial. Halaman ini terdiri dari dua tab dengan fokus berbeda:</p>
+    <ul>
+      <li><b>Tab Inventory</b> — Rincian batch per batch dari seluruh material yang tercatat. Digunakan untuk audit fisik, penelusuran batch, dan pemantauan <i>aging stock</i>.</li>
+      <li><b>Tab Health</b> — Analisis kecukupan stok terhadap permintaan (Demand). Digunakan untuk perencanaan produksi, pengadaan, dan penjualan.</li>
+    </ul>
+  </div>
+
+  <!-- ===== SECTION 2: KONSEP DASAR (COMMON) ===== -->
+  <div class="pg-section">
+    <h2>📚 Konsep Dasar</h2>
+
+    <h3>A. Kategori Material</h3>
+    <p>Sistem membagi material menjadi 5 kategori berdasarkan tahap prosesnya:</p>
+    <table class="pg-table">
+      <thead><tr><th style="width:80px">Kategori</th><th>Deskripsi</th></tr></thead>
+      <tbody>
+        <tr><td>Coil</td><td>Bahan baku dalam bentuk gulungan (<i>Mother Coil</i>), belum diproses.</td></tr>
+        <tr><td>Sheet</td><td>Lembaran hasil proses CTL (<i>Cut-To-Length</i>) dari Coil.</td></tr>
+        <tr><td>WIP</td><td><i>Work In Progress</i> — material dalam proses lanjutan (misalnya hasil SHR menunggu proses berikutnya).</td></tr>
+        <tr><td>FG</td><td><i>Finished Goods</i> — barang jadi siap kirim ke Customer.</td></tr>
+        <tr><td>NG</td><td><i>Not Good</i> — material afkir / <i>reject</i>.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>B. Kepemilikan (Owner)</h3>
+    <p>Setiap batch material memiliki kepemilikan:</p>
+    <ul>
+      <li><b>FC</b> — PT Flambindo Cortama (perusahaan induk)</li>
+      <li><b>DRC</b> — PT Dian Raya Cipta (afiliasi)</li>
+    </ul>
+    <p>Bila material milik satu entitas dipakai oleh entitas lain, sistem otomatis mencatat sebagai <i>intercompany transfer</i> untuk keperluan billing internal.</p>
+
+    <h3>C. Fingerprint Material</h3>
+    <p>Pada Tab Health, material dikelompokkan berdasarkan <b>Fingerprint = Equivalent + Ketebalan</b> (contoh: <code>SD270 + 1,0 mm</code>). Panjang dan Lebar tidak dijadikan pembeda karena Mother Coil dapat melayani berbagai ukuran turunan.</p>
+  </div>
+
+  <!-- ===== TAB BAR (dekat pane, agar switch langsung terlihat) ===== -->
+  <div class="pg-section" style="padding:14px 18px;margin-bottom:12px">
+    <div style="font-size:13px;font-weight:600;color:#334155;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">
+      📑 Pilih Tab Panduan
+    </div>
+    <div class="pg-tabbar" style="margin-bottom:0;border-bottom:none">
+      <button class="pg-tab is-active" data-pgtab="inventory">📦 Tab Inventory</button>
+      <button class="pg-tab" data-pgtab="health">💊 Tab Health</button>
+    </div>
+  </div>
+
+  <!-- ===== PRINT-ONLY DIVIDER ===== -->
+  <div class="pg-print-only pg-print-only-title">Bagian A — Panduan Tab Inventory</div>
+
+  <!-- ===== PANE: INVENTORY ===== -->
+  <div class="pg-pane" data-pgpane="inventory">
+    <div class="pg-section">
+      <h2>📦 Panduan Tab Inventory</h2>
+
+      <h3>Cara Membaca</h3>
+      <ol>
+        <li><b>5 Cards di atas</b> menampilkan jumlah batch aktif per kategori. Klik card untuk memfilter tabel secara instan.</li>
+        <li><b>Filter Bar</b> memungkinkan penyaringan berdasarkan Owner, Kategori, Status, Aging, dan pencarian bebas.</li>
+        <li><b>Tabel Batch</b> menampilkan detail setiap batch material yang aktif di gudang.</li>
+      </ol>
+
+      <h3>Interpretasi Kolom Kuantitas</h3>
+      <p>Setiap batch memiliki 4 nilai kuantitas yang saling terkait:</p>
+      <div class="pg-formula">In (kuantitas awal masuk)
+  − Keep      (dikunci untuk keperluan khusus)
+  − Consumed  (sudah terpakai)
+  = Avail     (tersedia untuk alokasi baru)</div>
+
+      <h3>Interpretasi Aging</h3>
+      <table class="pg-table">
+        <thead><tr><th style="width:150px">Status Aging</th><th>Interpretasi</th></tr></thead>
+        <tbody>
+          <tr><td>🟢 Fresh (≤ 30 hari)</td><td>Material segar, prioritas rendah untuk didorong keluar.</td></tr>
+          <tr><td>🟡 Warning (31–60 hari)</td><td>Perhatikan pergerakannya, waspada <i>slow-moving</i>.</td></tr>
+          <tr><td>🔴 Kritis (&gt; 60 hari)</td><td>Material lama, perlu tindakan (produksi paksa / diskon / recycle).</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Use Case Umum</h3>
+      <table class="pg-table">
+        <thead><tr><th style="width:260px">Skenario</th><th>Tindakan</th></tr></thead>
+        <tbody>
+          <tr><td>Marketing menanyakan ketersediaan spec tertentu</td><td>Gunakan Filter → Search berdasarkan spec.</td></tr>
+          <tr><td>Audit fisik gudang</td><td>Filter Kategori + Status Available.</td></tr>
+          <tr><td>Identifikasi <i>dead stock</i></td><td>Filter Aging = Kritis.</td></tr>
+          <tr><td>Cross-check owner untuk billing</td><td>Filter Owner + Kategori.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== PRINT-ONLY DIVIDER ===== -->
+  <div class="pg-print-only pg-print-only-title">Bagian B — Panduan Tab Health</div>
+
+  <!-- ===== PANE: HEALTH ===== -->
+  <div class="pg-pane is-hidden" data-pgpane="health">
+    <div class="pg-section">
+      <h2>💊 Panduan Tab Health</h2>
+
+      <h3>Cara Membaca</h3>
+      <p>Tab Health menjawab satu pertanyaan utama:</p>
+      <blockquote>"Apakah stok kita cukup untuk memenuhi seluruh permintaan yang ada?"</blockquote>
+      <p>Untuk menjawabnya, sistem membandingkan <b>Supply</b> (Fisik + Mother) dengan <b>Demand</b> (SO + Stamping Request), lalu memberikan status per material.</p>
+
+      <h3>Sumber Data</h3>
+      <table class="pg-table">
+        <thead><tr><th style="width:150px">Elemen</th><th>Sumber</th></tr></thead>
+        <tbody>
+          <tr><td>Demand</td><td>Sales Order (SO) + Stamping Request (STP)</td></tr>
+          <tr><td>Fisik Item</td><td>Stok_Sheet + Stok_WIP + Stok_FG</td></tr>
+          <tr><td>Mother</td><td>Stok_Coil</td></tr>
+          <tr><td>Committed</td><td>Alokasi dari SPK yang sedang berjalan atau ter-<i>booked</i></td></tr>
+          <tr><td>FFS</td><td>Mother − Committed</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Interpretasi Status</h3>
+      <table class="pg-table">
+        <thead><tr><th style="width:150px">Status</th><th style="width:280px">Arti</th><th>Tindakan yang Disarankan</th></tr></thead>
+        <tbody>
+          <tr><td><span class="pg-badge pg-badge-ready">🟢 Ready</span></td><td>Stok Fisik cukup untuk memenuhi Demand tanpa produksi.</td><td>Alokasikan langsung, jadwalkan pengiriman.</td></tr>
+          <tr><td><span class="pg-badge pg-badge-prod">🟡 Producible</span></td><td>Fisik belum cukup, namun Mother Coil tersedia untuk diproses.</td><td>Terbitkan SPK CTL/SHR sesuai kebutuhan.</td></tr>
+          <tr><td><span class="pg-badge pg-badge-short">🔴 Short</span></td><td>Fisik + Mother tidak mencukupi Demand.</td><td>Segera lakukan Purchase Order material baru.</td></tr>
+          <tr><td><span class="pg-badge pg-badge-ffs">🔵 All FFS</span></td><td>Tidak ada Demand aktif; seluruh Mother Coil bebas dijual.</td><td>Prioritaskan penjualan atau kampanye komersial.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Interpretasi Net Gap</h3>
+      <ul>
+        <li><b>Positif (+)</b> — Surplus. Aman, namun ada potensi <i>over-stock</i> jika terlalu tinggi.</li>
+        <li><b>Nol (0)</b> — <i>Balance</i>. Ketat, tidak ada ruang untuk order baru.</li>
+        <li><b>Negatif (−)</b> — Defisit. Perlu tindakan produksi atau pengadaan.</li>
+      </ul>
+
+      <h3>Interpretasi DoC (Days of Cover)</h3>
+      <p>Perkiraan berapa hari stok akan bertahan berdasarkan konsumsi rata-rata historis.</p>
+      <table class="pg-table">
+        <thead><tr><th style="width:220px">Kondisi</th><th>Interpretasi</th></tr></thead>
+        <tbody>
+          <tr><td>DoC &lt; Lead Time</td><td>🚨 <i>Reorder Alert</i> — segera Purchase Order.</td></tr>
+          <tr><td>Lead Time ≤ DoC &lt; 1,5 × Lead Time</td><td>Waspada, mulai siapkan Purchase Order.</td></tr>
+          <tr><td>DoC ≥ 1,5 × Lead Time</td><td>Aman.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Use Case Umum</h3>
+      <table class="pg-table">
+        <thead><tr><th style="width:260px">Skenario</th><th>Tindakan</th></tr></thead>
+        <tbody>
+          <tr><td>Perencanaan PO bulanan</td><td>Filter Status = Short + Reorder Alert.</td></tr>
+          <tr><td>Kampanye penjualan</td><td>Filter Status = All FFS, cek Total FFS.</td></tr>
+          <tr><td>Review coverage sebelum meeting sales</td><td>Period = Current + M+1, urutkan Net Gap.</td></tr>
+          <tr><td>Analisa aging Mother Coil</td><td>Klik row → drill-down batch FIFO.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== SECTION 5: CATATAN PENTING (COMMON) ===== -->
+  <div class="pg-section">
+    <h2>⚠️ Catatan Penting</h2>
+    <ol>
+      <li><b>Data ter-refresh saat tombol Refresh ditekan</b>, bukan otomatis <i>real-time</i>. Untuk keputusan kritis, tekan Refresh terlebih dahulu.</li>
+      <li><b>Grouping Tab Health berdasarkan Equivalent + Ketebalan saja.</b> Artinya, <i>sheet</i> standar (contoh: 2.0 × 1219 × 2438) dan <i>sheet</i> ukuran turunan digabung dalam satu baris. Konsultasikan dengan PPIC bila memerlukan detail ukuran per lembar.</li>
+      <li><b>Kolom Fisik Item mencakup Sheet, WIP, dan FG.</b> Angka ini menunjukkan total <i>material match</i>, belum tentu semuanya siap kirim (WIP masih perlu proses lanjut).</li>
+      <li><b>FFS = Free For Sale.</b> Angka ini adalah acuan utama untuk tim Sales dalam menerima order baru tanpa mengganggu komitmen yang sudah ada.</li>
+      <li><b>Bila terjadi ketidaksesuaian data dengan fisik gudang</b>, laporkan ke tim PPIC untuk investigasi. Sistem berpedoman pada input SPK dan GR (<i>Goods Receipt</i>).</li>
+    </ol>
+  </div>
+
+  <div class="pg-footer">
+    Panduan Live Inventory · COS v1 · PT Flambindo Cortama<br>
+    Bila ada pertanyaan atau usulan perbaikan, hubungi tim PPIC.
+  </div>
+
+</div>
+
+<script>
+(function() {
+  // Auto-switch berdasarkan URL param ?tab=inventory|health
+  function getUrlParam(name) {
+    var m = window.location.search.match(new RegExp('[?&]' + name + '=([^&]+)'));
+    return m ? decodeURIComponent(m[1]) : null;
+  }
+
+  function switchPgTab(tabName) {
+    document.querySelectorAll('.pg-tab').forEach(function(b) {
+      b.classList.toggle('is-active', b.getAttribute('data-pgtab') === tabName);
+    });
+    document.querySelectorAll('.pg-pane').forEach(function(p) {
+      p.classList.toggle('is-hidden', p.getAttribute('data-pgpane') !== tabName);
+    });
+  }
+
+  document.querySelectorAll('.pg-tab').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      switchPgTab(this.getAttribute('data-pgtab'));
+    });
+  });
+
+  var initTab = getUrlParam('tab');
+  if (initTab === 'health' || initTab === 'inventory') {
+    switchPgTab(initTab);
+  }
+})();
+</script>

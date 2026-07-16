@@ -7,15 +7,22 @@
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
+/* Modifikasi Header & Tabbar agar sejajar */
 .ls-header {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #e2e8f0;
+  display: flex; justify-content: space-between; align-items: flex-end;
+  margin-bottom: 12px; border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 0; /* Dihilangkan agar tab nempel ke garis bawah */
+}
+.ls-title-wrap {
+  display: flex; align-items: flex-end; gap: 32px;
 }
 .ls-title {
   font-size: 20px; font-weight: 600; color: #1a3a6e;
   display: flex; align-items: center; gap: 8px;
+  margin-bottom: 8px; /* Memberi jarak dengan garis bawah border header */
+  line-height: 1;
 }
-.ls-meta { display: flex; align-items: center; gap: 14px; font-size: 12px; color: #64748b; }
+.ls-meta { display: flex; align-items: center; gap: 14px; font-size: 12px; color: #64748b; margin-bottom: 8px; }
 .ls-btn-refresh {
   background: #1a3a6e; color: #fff; border: none;
   padding: 6px 14px; border-radius: 4px; font-size: 12px; font-weight: 500;
@@ -25,8 +32,9 @@
 .ls-btn-refresh:disabled { background: #94a3b8; cursor: not-allowed; }
 
 .ls-tabbar {
-  display: flex; gap: 4px; margin-bottom: 14px;
-  border-bottom: 1px solid #e2e8f0;
+  display: flex; gap: 4px; 
+  margin-bottom: -1px; /* Ditarik kebawah untuk menutupi border header */
+  border-bottom: none; 
 }
 .ls-tab {
   background: transparent; color: #64748b; border: 1px solid transparent;
@@ -40,6 +48,15 @@
   background: #fff; color: #1a3a6e; border-color: #e2e8f0;
   border-bottom-color: #fff; font-weight: 600;
 }
+.ls-btn-panduan {
+  background: transparent; color: #64748b; border: 1px solid transparent;
+  border-bottom: none; padding: 9px 18px;
+  border-radius: 6px 6px 0 0; font-size: 13px; font-weight: 500;
+  cursor: pointer; display: flex; align-items: center; gap: 6px;
+  margin-bottom: -1px; font-family: inherit;
+}
+.ls-btn-panduan:hover { background: #f1f5f9; color: #1a3a6e; }
+
 .ls-tab-badge {
   background: #fef3c7; color: #92400e; font-size: 10px;
   padding: 1px 6px; border-radius: 8px; font-weight: 600;
@@ -81,8 +98,12 @@
 .ls-card-icon { font-size: 14px; }
 .ls-card-batch { font-size: 22px; font-weight: 700; color: #0f172a; line-height: 1; }
 .ls-card-batch-lbl { font-size: 10px; color: #94a3b8; font-weight: 400; margin-left: 4px; }
-.ls-card-kg { font-size: 12px; color: #1b6b45; font-weight: 600; margin-top: 4px; }
-.ls-card-alert { display: flex; gap: 8px; margin-top: 6px; font-size: 11px; min-height: 16px; }
+
+/* Wrapper baru agar Avail dan Alert sejajar */
+.ls-card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
+.ls-card-kg { font-size: 12px; color: #1b6b45; font-weight: 600; }
+.ls-card-alert { display: flex; gap: 8px; font-size: 11px; }
+
 .ls-alert-warn { color: #b78103; font-weight: 600; }
 .ls-alert-crit { color: #c62828; font-weight: 600; }
 .ls-alert-none { color: #cbd5e1; }
@@ -313,13 +334,20 @@
 .lh-section-filters { display:flex; gap:6px; }
 .lh-section-filters select { height:26px; padding:0 6px; font-size:11px; border:1px solid #cbd5e1; border-radius:4px; background:#fff; color:#0f172a; font-family:inherit; }
 
+.lh-matrix-scroll { max-height: calc(100vh - 340px); overflow-y: auto; border: 1px solid #f1f5f9; border-radius: 4px; }
 .lh-matrix { width:100%; border-collapse:collapse; font-size:12px; }
-.lh-matrix thead th { text-align:left; padding:7px 6px; font-weight:600; font-size:10px; color:#64748b; letter-spacing:0.3px; text-transform:uppercase; border-bottom:1px solid #e2e8f0; white-space:nowrap; }
+.lh-matrix thead { position: sticky; top: 0; background: #f8fafc; z-index: 2; }
+.lh-matrix thead th { text-align:left; padding:7px 6px; font-weight:600; font-size:10px; color:#64748b; letter-spacing:0.3px; text-transform:uppercase; border-bottom:1px solid #e2e8f0; white-space:nowrap; background: #f8fafc; }
+/* Tambahan baru untuk meratakan kanan header angka */
+.lh-matrix thead th.lh-num { text-align:right; } 
+
 .lh-matrix tbody td { padding:8px 6px; border-bottom:1px solid #f1f5f9; vertical-align:middle; color:#1e293b; font-size:12px; }
 .lh-matrix tbody tr { cursor:pointer; }
 .lh-matrix tbody tr:hover { background:#f0f9ff; }
-.lh-mat-name { font-family:'SF Mono',Menlo,monospace; font-size:11px; font-weight:600; color:#0f172a; }
-.lh-num { text-align:right; font-variant-numeric:tabular-nums; font-family:'SF Mono',Menlo,monospace; font-size:11px; }
+.lh-mat-name { font-family:'SF Mono',Menlo,monospace; font-size:12px; font-weight:600; color:#0f172a; }
+
+/* font-size:11px dihapus, font-family disamakan persis dengan ls-num di inventory */
+.lh-num { text-align:right; font-variant-numeric:tabular-nums; font-family:'SF Mono', Menlo, Consolas, monospace; }
 .lh-num.lh-ok { color:#059669; font-weight:600; }
 .lh-num.lh-warn { color:#b45309; font-weight:600; }
 .lh-num.lh-crit { color:#991b1b; font-weight:600; }
@@ -363,17 +391,20 @@
 
   <!-- ===== HEADER ===== -->
   <div class="ls-header">
-    <div class="ls-title">📦 Live Stok</div>
+    <div class="ls-title-wrap">
+      <div class="ls-title">📦 Live Stok</div>
+      <!-- ===== TAB BAR ===== (Dipindah ke samping Title) -->
+      <div class="ls-tabbar">
+        <button class="ls-tab is-active" data-tab="inventory">📦 Inventory</button>
+        <button class="ls-tab" data-tab="health">💊 Health</button>
+        <button class="ls-btn-panduan" id="ls-btn-panduan" title="Buka panduan pembacaan di tab baru">📖 Panduan</button>
+      </div>
+    </div>
+    
     <div class="ls-meta">
       <span id="ls-meta-info">Loading...</span>
       <button class="ls-btn-refresh" id="ls-btn-refresh">🔄 Refresh</button>
     </div>
-  </div>
-
-  <!-- ===== TAB BAR ===== -->
-  <div class="ls-tabbar">
-    <button class="ls-tab is-active" data-tab="inventory">📦 Inventory</button>
-    <button class="ls-tab" data-tab="health">💊 Health <span class="ls-tab-badge">Sprint 3</span></button>
   </div>
 
   <!-- ===== TAB 1: INVENTORY ===== -->
@@ -419,7 +450,7 @@
           </select>
         </div>
 
-        <div class="ls-filter-group">
+        <div class="ls-filter-group" title="🟢 Fresh ≤30 hari | 🟡 Warning 31-60 hari | 🔴 Kritis >60 hari">
           <label>Aging</label>
           <select id="ls-flt-aging">
             <option value="all">Semua</option>
@@ -447,16 +478,16 @@
       <table class="ls-table">
         <thead>
           <tr>
-            <th style="width:52px">Kat</th>
-            <th style="width:56px">Age</th>
-            <th style="width:108px">Batch ID</th>
-            <th style="min-width:220px">Spec / Vendor</th>
-            <th style="width:42px">Own</th>
-            <th style="width:82px" class="ls-num">In <span class="ls-th-sub">Qty / Kg</span></th>
-            <th style="width:82px" class="ls-num">Keep <span class="ls-th-sub">Qty / Kg</span></th>
-            <th style="width:82px" class="ls-num">Consumed <span class="ls-th-sub">Qty / Kg</span></th>
-            <th style="width:92px" class="ls-num ls-col-avail">Avail <span class="ls-th-sub">Qty / Kg</span></th>
-            <th style="width:74px">Status</th>
+            <th style="width:52px" title="Kategori material: Coil, Sheet, WIP, FG, atau NG">Kat</th>
+            <th style="width:70px" title="Umur batch sejak diterima gudang. Hijau ≤30 hari, Kuning 31-60 hari, Merah >60 hari.">Age</th>
+            <th style="width:140px" title="Nomor unik penelusuran material sejak diterima hingga terkirim">Batch ID</th>
+            <th style="min-width:220px" title="Spesifikasi material dan vendor pemasok">Spec / Vendor</th>
+            <th style="width:42px" title="Owner: FC (PT Flambindo Cortama) atau DRC (PT Dian Raya Cipta)">Own</th>
+            <th style="width:82px" class="ls-num" title="Kuantitas awal saat batch pertama kali dicatat">In <span class="ls-th-sub">Qty / Kg</span></th>
+            <th style="width:82px" class="ls-num" title="Kuantitas yang sedang di-hold / dikunci, belum bisa dialokasikan">Keep <span class="ls-th-sub">Qty / Kg</span></th>
+            <th style="width:82px" class="ls-num" title="Kuantitas yang telah terpakai untuk produksi atau pengiriman">Consumed <span class="ls-th-sub">Qty / Kg</span></th>
+            <th style="width:92px" class="ls-num ls-col-avail" title="Kuantitas tersedia untuk dialokasikan. Rumus: In − Keep − Consumed">Avail <span class="ls-th-sub">Qty / Kg</span></th>
+            <th style="width:74px" title="Kondisi batch: Available, Keep, atau Habis">Status</th>
           </tr>
         </thead>
         <tbody id="ls-tbody">
@@ -490,7 +521,7 @@
     <div class="lh-matrix-section">
       <div class="lh-section-head">
         <div>
-          <div class="lh-section-title">📊 Coverage matrix (per Material Fingerprint = Equivalent + T)</div>
+          <div class="lh-section-title">📊 Coverage matrix (Equal + T)</div>
           <div class="lh-section-desc">Klik row → drill-down batch mother coil (FIFO allocation)</div>
         </div>
         <div class="lh-section-filters">
@@ -507,24 +538,26 @@
           </select>
         </div>
       </div>
-      <table class="lh-matrix">
-        <thead>
-          <tr>
-            <th style="width:130px">Material</th>
-            <th class="lh-num" style="width:80px">Demand</th>
-            <th class="lh-num" style="width:80px">Fisik Item</th>
-            <th class="lh-num" style="width:80px">Mother</th>
-            <th class="lh-num" style="width:80px">Committed</th>
-            <th class="lh-num" style="width:80px" title="Free For Sale">FFS 💰</th>
-            <th class="lh-num" style="width:70px">Net Gap</th>
-            <th class="lh-num" style="width:60px">DoC</th>
-            <th style="width:100px;text-align:center">Status</th>
-          </tr>
-        </thead>
-        <tbody id="lh-matrix-body">
-          <tr><td colspan="9" class="ls-loading">Klik "Refresh" atau switch tab Health untuk load data.</td></tr>
-        </tbody>
-      </table>
+      <div class="lh-matrix-scroll">
+        <table class="lh-matrix">
+          <thead>
+            <tr>
+              <th style="width:130px" title="Identitas material berdasarkan Equivalent + Ketebalan (contoh: SD270 1,0 mm)">Material</th>
+              <th class="lh-num" style="width:80px" title="Total kebutuhan dari SO + Stamping Request pada periode terpilih (Kg)">Demand</th>
+              <th class="lh-num" style="width:80px" title="Stok jadi yang match Equivalent + Ketebalan, gabungan Stok_Sheet + Stok_WIP + Stok_FG">Fisik Item</th>
+              <th class="lh-num" style="width:80px" title="Total Mother Coil (Stok_Coil) yang match Equivalent + Ketebalan. Perlu diproses (CTL/SHR) untuk memenuhi Demand.">Mother</th>
+              <th class="lh-num" style="width:80px" title="Kuantitas Mother Coil yang sudah dialokasikan / booked untuk SO tertentu">Committed</th>
+              <th class="lh-num" style="width:80px" title="Free For Sale — Mother Coil bebas komitmen, siap untuk order baru">FFS 💰</th>
+              <th class="lh-num" style="width:70px" title="Selisih Supply − Demand. Positif = surplus, negatif = kekurangan.">Net Gap</th>
+              <th class="lh-num" style="width:60px" title="Days of Cover — perkiraan berapa hari stok mencukupi berdasarkan konsumsi rata-rata">DoC</th>
+              <th style="width:100px;text-align:center" title="🟢 Ready = Fisik cukup | 🟡 Producible = perlu produksi | 🔴 Short = perlu PO | 🔵 All FFS = tidak ada demand">Status</th>
+            </tr>
+          </thead>
+          <tbody id="lh-matrix-body">
+            <tr><td colspan="9" class="ls-loading">Klik "Refresh" atau switch tab Health untuk load data.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
   </div>
@@ -662,7 +695,9 @@
       var cs = s[c.key] || {};
       var warnHtml = (cs.warn_count > 0) ? '<span class="ls-alert-warn">🟡 ' + cs.warn_count + '</span>' : '';
       var critHtml = (cs.crit_count > 0) ? '<span class="ls-alert-crit">🔴 ' + cs.crit_count + '</span>' : '';
-      var alertHtml = (warnHtml || critHtml) ? (warnHtml + ' ' + critHtml) : '<span class="ls-alert-none">— no aging alert</span>';
+      
+      /* Perubahan Mod 2: Teks placeholder dihilangkan jika tidak ada alert agar card ringkas */
+      var alertHtml = (warnHtml || critHtml) ? (warnHtml + ' ' + critHtml) : '';
       var activeClass = (LS_FILTER.cat === c.key) ? ' ls-card-active' : '';
 
       html +=
@@ -670,8 +705,13 @@
           '<div class="ls-card-head"><span class="ls-card-icon">' + c.icon + '</span><span>' + c.name + '</span></div>' +
           '<div class="ls-card-batch">' + ls_formatNum(cs.total_batch || 0) +
             '<span class="ls-card-batch-lbl">batch</span></div>' +
-          '<div class="ls-card-kg">' + ls_formatKg(cs.kg_avail || 0) + ' avail</div>' +
-          '<div class="ls-card-alert">' + alertHtml + '</div>' +
+          
+          /* Wrapper dipasang agar qty dan alert sejajar dalam 1 baris */
+          '<div class="ls-card-footer">' + 
+            '<div class="ls-card-kg">' + ls_formatKg(cs.kg_avail || 0) + ' avail</div>' +
+            '<div class="ls-card-alert">' + alertHtml + '</div>' +
+          '</div>' +
+
         '</div>';
     });
 
@@ -1161,14 +1201,47 @@
     if (ev.key === 'Escape' && LH_MODAL_FP) lh_closeBatchModal();
   });
 
-  /* ===== TAB 2 HEALTH (Sprint 3) ===== */
+  /* ===== TAB 2 HEALTH ===== */
   var LH_DATA = null;
   var LH_LOADING = false;
   var LH_PERIOD = 'current_next';
   var LH_MODAL_FP = null;
   var LH_FILTER = { status:'all', alert:'all' };
 
-  function lh_load() {
+  // Cache per-period, TTL 1 jam
+  var LH_CACHE = {}; // { period: { data, ts } }
+  var LH_CACHE_TTL_MS = 60 * 60 * 1000;
+
+  function _lhCacheGet(period) {
+    var c = LH_CACHE[period];
+    if (!c) return null;
+    if (Date.now() - c.ts > LH_CACHE_TTL_MS) { delete LH_CACHE[period]; return null; }
+    return c;
+  }
+  function _lhFormatCacheAge(ts) {
+    var mins = Math.floor((Date.now() - ts) / 60000);
+    if (mins < 1) return 'baru saja';
+    if (mins < 60) return mins + ' menit lalu';
+    return Math.floor(mins / 60) + ' jam lalu';
+  }
+
+  function lh_load(opts) {
+    opts = opts || {};
+    var force = !!opts.force;
+
+    // Cek cache dulu (kecuali force refresh)
+    if (!force) {
+      var cached = _lhCacheGet(LH_PERIOD);
+      if (cached) {
+        LH_DATA = cached.data;
+        lh_render();
+        // Tambahin catatan usia cache di meta
+        var metaEl = document.getElementById('lh-meta');
+        if (metaEl) metaEl.textContent = (metaEl.textContent || '') + ' · cache ' + _lhFormatCacheAge(cached.ts);
+        return;
+      }
+    }
+
     if (LH_LOADING) return;
     LH_LOADING = true;
     var btn = document.getElementById('lh-btn-refresh');
@@ -1176,6 +1249,7 @@
     document.getElementById('lh-meta').textContent = 'Memuat...';
     document.getElementById('lh-matrix-body').innerHTML = '<tr><td colspan="9" class="ls-loading">⏳ Menghitung coverage per material...</td></tr>';
 
+    var reqPeriod = LH_PERIOD;
     google.script.run
       .withSuccessHandler(function(res) {
         LH_LOADING = false;
@@ -1185,8 +1259,13 @@
             '<tr><td colspan="9" class="ls-error">⚠️ ' + ls_escapeHtml(res ? (res.message||'Gagal') : 'No response') + '</td></tr>';
           return;
         }
-        LH_DATA = res;
-        lh_render();
+        // Simpan ke cache
+        LH_CACHE[reqPeriod] = { data: res, ts: Date.now() };
+        // Hanya render kalau period masih sama (user tidak keburu klik period lain)
+        if (reqPeriod === LH_PERIOD) {
+          LH_DATA = res;
+          lh_render();
+        }
       })
       .withFailureHandler(function(e) {
         LH_LOADING = false;
@@ -1194,7 +1273,7 @@
         document.getElementById('lh-matrix-body').innerHTML =
           '<tr><td colspan="9" class="ls-error">⚠️ ' + ls_escapeHtml(e.message||String(e)) + '</td></tr>';
       })
-      .getStockHealth({ period: LH_PERIOD });
+      .getStockHealth({ period: reqPeriod });
   }
 
   function lh_render() {
@@ -1227,11 +1306,34 @@
     document.getElementById('lh-kpi').innerHTML = html;
   }
 
+  function _lh_priorityEq(eq) {
+    var s = String(eq || '').toUpperCase();
+    if (s === 'PH440') return 0;
+    if (s === 'PO270') return 1;
+    if (s === 'SD270') return 2;
+    if (s.indexOf('HC') === 0) return 3;
+    return 999;
+  }
+  function _lh_formatDisplay(eq, t) {
+    var tv = parseFloat(t) || 0;
+    var tStr = (tv % 1 === 0) ? tv.toFixed(1) : String(tv);
+    return String(eq || '') + ' ' + tStr.replace('.', ',') + ' mm';
+  }
+
   function lh_renderMatrix() {
     var arr = (LH_DATA.materials || []).filter(function(m) {
       if (LH_FILTER.status !== 'all' && m.status !== LH_FILTER.status) return false;
       if (LH_FILTER.alert === 'reorder' && !m.reorder_alert) return false;
       return true;
+    });
+    // Format ulang display + sort by priority equivalent, lalu T terkecil
+    arr.forEach(function(m) { m.display = _lh_formatDisplay(m.equivalent, m.t); });
+    arr.sort(function(a, b) {
+      var pa = _lh_priorityEq(a.equivalent), pb = _lh_priorityEq(b.equivalent);
+      if (pa !== pb) return pa - pb;
+      var ea = String(a.equivalent || '').toUpperCase(), eb = String(b.equivalent || '').toUpperCase();
+      if (ea !== eb) return ea < eb ? -1 : 1;
+      return (parseFloat(a.t) || 0) - (parseFloat(b.t) || 0);
     });
     var tbody = document.getElementById('lh-matrix-body');
     if (arr.length === 0) {
@@ -1359,11 +1461,15 @@
       LH_PERIOD = this.getAttribute('data-period');
       document.querySelectorAll('.lh-period-btn').forEach(function(b) { b.classList.remove('is-active'); });
       this.classList.add('is-active');
-      LH_DATA = null;
+      // JANGAN reset LH_DATA — biar lh_load bisa render dari cache instan
       lh_load();
     });
   });
-  document.getElementById('lh-btn-refresh').addEventListener('click', function() { LH_DATA = null; lh_load(); });
+  document.getElementById('lh-btn-refresh').addEventListener('click', function() {
+    LH_CACHE = {}; // clear semua cache
+    LH_DATA = null;
+    lh_load({ force: true });
+  });
   document.getElementById('lh-flt-status').addEventListener('change', function() { LH_FILTER.status = this.value; if (LH_DATA) lh_renderMatrix(); });
   document.getElementById('lh-flt-alert').addEventListener('change', function() { LH_FILTER.alert = this.value; if (LH_DATA) lh_renderMatrix(); });
   document.getElementById('lh-matrix-body').addEventListener('click', function(ev) {
@@ -1386,6 +1492,28 @@
     _origSwitch(tabName);
     if (tabName === 'health' && !LH_DATA && !LH_LOADING) lh_load();
   };
+
+  // Tombol Panduan — buka di tab baru, kirim tab aktif sebagai param
+  document.getElementById('ls-btn-panduan').addEventListener('click', function() {
+    var btn = this;
+    var activeTab = document.querySelector('.ls-tab.is-active');
+    var tabName = activeTab ? activeTab.getAttribute('data-tab') : 'inventory';
+    btn.disabled = true;
+    btn.textContent = '⏳ Membuka...';
+    google.script.run
+      .withSuccessHandler(function(baseUrl) {
+        btn.disabled = false;
+        btn.textContent = '📖 Panduan';
+        var url = baseUrl + '?v=panduan_live_stok&tab=' + encodeURIComponent(tabName);
+        window.open(url, '_blank');
+      })
+      .withFailureHandler(function(err) {
+        btn.disabled = false;
+        btn.textContent = '📖 Panduan';
+        alert('Gagal buka panduan: ' + err.message);
+      })
+      .getWebAppUrl();
+  });
 
   ls_load();
 

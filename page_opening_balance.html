@@ -104,12 +104,19 @@ td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle
     </div>
   </div>
 
-  <div style="display:flex; justify-content:space-between; align-items:center; padding: 8px 12px; background:#fff; border:1px solid var(--border-color); border-radius:4px 4px 0 0; border-bottom:none;">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap: 12px; padding: 8px 12px; background:#fff; border:1px solid var(--border-color); border-radius:4px 4px 0 0; border-bottom:none; flex-wrap: wrap;">
     <div class="chip-bar" id="chip-filter">
       <div class="chip active" data-f="ALL"   onclick="setFilter('ALL')">All</div>
       <div class="chip"        data-f="COIL"  onclick="setFilter('COIL')">Coil</div>
       <div class="chip"        data-f="SHEET" onclick="setFilter('SHEET')">Sheet</div>
       <div class="chip"        data-f="WIP"   onclick="setFilter('WIP')">WIP</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:6px; flex-grow:1; justify-content:flex-end;">
+      <input type="text" id="fb-search"
+             placeholder="🔍 Cari: batch / item / spec (3,2/1219/2438) / no coil..."
+             oninput="onSearchInput()"
+             style="border:1px solid var(--border-color); border-radius:3px; padding:4px 10px; font-size:12px; height:28px; min-width:320px;">
+      <button style="padding:0 10px; height:28px; border-radius:3px; background:#fef2f2; color:var(--danger-red); border:1px solid #fecaca; font-size:11px; font-weight:700; cursor:pointer;" onclick="clearSearch()">✖ Reset</button>
     </div>
     <div id="dash-counter" style="font-size:11px; color:var(--text-muted); font-weight:600;">0 batch</div>
   </div>
@@ -281,7 +288,7 @@ td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle
 // ================================================================
 var OPN = {
   items: [],                 // master items dari M_ITEM
-  dash: { data: [], allData: [], page: 1, total: 1, filter: 'ALL' },
+  dash: { data: [], allData: [], page: 1, total: 1, filter: 'ALL', search: '', searchTimer: null },
   mode: 'COIL',              // COIL | SHEET | WIP
   rowSeq: 0,                 // counter untuk row_id unik
   currentDetail: null        // batch yg lagi dilihat di view-detail
@@ -392,11 +399,61 @@ function setFilter(f) {
 }
 
 function applyFilter() {
-  var f = OPN.dash.filter;
-  OPN.dash.data = (f === 'ALL')
-    ? OPN.dash.allData
-    : OPN.dash.allData.filter(function(r){ return r.mode === f; });
+  var f = OPN.dash.filter, q = OPN.dash.search;
+  OPN.dash.data = (OPN.dash.allData || []).filter(function(r){
+    if (f !== 'ALL' && r.mode !== f) return false;
+    if (!rowMatchesSearch(r, q)) return false;
+    return true;
+  });
   renderDashboard();
+}
+
+// ── Live search dengan debounce ──
+function onSearchInput() {
+  clearTimeout(OPN.dash.searchTimer);
+  OPN.dash.searchTimer = setTimeout(function() {
+    OPN.dash.search = document.getElementById('fb-search').value || '';
+    applyFilter();
+  }, 200);
+}
+
+function clearSearch() {
+  document.getElementById('fb-search').value = '';
+  OPN.dash.search = '';
+  applyFilter();
+}
+
+// ── Parser dimensi: "3,2/1219/2438" atau "3,2x1219x2438" ──
+function parseDim(q) {
+  var s = String(q || '').replace(/,/g, '.').replace(/\s+/g, '');
+  if (!s) return null;
+  var parts = s.split(/[\/x×]/i);
+  if (parts.length !== 3) return null;
+  var t = parseFloat(parts[0]);
+  var p = parseFloat(parts[1]);
+  var l = parseFloat(parts[2]);
+  if (isNaN(t) || isNaN(p) || isNaN(l)) return null;
+  return { t: t, p: p, l: l };
+}
+
+function rowMatchesSearch(r, q) {
+  if (!q) return true;
+  var qLow = String(q).toLowerCase().trim();
+  if (!qLow) return true;
+
+  var dim = parseDim(qLow);
+  if (dim) {
+    var tol = 0.001;
+    return Math.abs((r.t || 0) - dim.t) < tol
+        && Math.abs((r.p || 0) - dim.p) < tol
+        && Math.abs((r.l || 0) - dim.l) < tol;
+  }
+
+  var hay = [
+    r.batch_id, r.item_code, r.description, r.spec,
+    r.no_coil, r.owner
+  ].join(' ').toLowerCase();
+  return hay.indexOf(qLow) !== -1;
 }
 
 function renderDashboard() {
