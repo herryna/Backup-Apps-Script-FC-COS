@@ -45,40 +45,248 @@ td{padding:8px 12px;border-bottom:1px solid #e2e8f0;vertical-align:middle;overfl
 /* === DETAIL VIEW === */
 .detail-section{background:var(--bg-panel);border:1px solid var(--border-color);border-radius:4px;margin-bottom:8px;flex-shrink:0;}
 
-/* ==== Sesi 2A: Ref Panel Drawer ==== */
-#rpd-backdrop {
-  display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,0.35); z-index: 1900;
+/* ==== Sesi 2D: MOCKUP-MATCH CSS ==== */
+/* Tokens shortcut untuk konsistensi mockup */
+.v2-scope {
+  --v2-surface-1: var(--surface-sunken, #f1f5f9);
+  --v2-surface-2: var(--surface-2, #ffffff);
+  --v2-border: var(--border-default, #e2e8f0);
+  --v2-border-strong: var(--border-strong, #cbd5e1);
+  --v2-text-primary: var(--text-primary, #0f172a);
+  --v2-text-secondary: var(--text-secondary, #475569);
+  --v2-text-muted: var(--text-tertiary, #64748b);
+  --v2-text-accent: var(--accent-primary, #2563eb);
+  --v2-bg-accent: var(--accent-primary-soft, #dbeafe);
+  --v2-border-accent: var(--accent-primary, #2563eb);
+  --v2-bg-success: var(--status-success-soft, #d1fae5);
+  --v2-text-success: var(--status-success-soft-fg, #065f46);
+  --v2-bg-warning: var(--status-warning-soft, #fef3c7);
+  --v2-text-warning: var(--status-warning-soft-fg, #92400e);
+  --v2-border-warning: var(--status-warning, #d97706);
+  --v2-bg-danger: var(--status-danger-soft, #fee2e2);
+  --v2-text-danger: var(--status-danger-soft-fg, #991b1b);
+  --v2-bg-pro: #f5f3ff;
+  --v2-border-pro: #8b5cf6;
+  --v2-text-pro: #6d28d9;
+  --v2-fill-primary: var(--accent-primary, #2563eb);
+  --v2-on-primary: #ffffff;
+  --v2-fill-disabled: var(--surface-sunken, #f1f5f9);
 }
-#rpd-backdrop.open { display: block; }
-#rpd-drawer {
-  position: fixed; top: 0; right: -560px; bottom: 0;
-  width: 540px; max-width: 90vw;
-  background: var(--surface-2, #fff);
-  box-shadow: -4px 0 20px rgba(0,0,0,0.15);
-  z-index: 1901;
+
+/* Top bar */
+.v2-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px; margin-bottom: 8px;
+  background: var(--v2-surface-2); border: 0.5px solid var(--v2-border);
+  border-radius: 8px; flex-shrink: 0;
+}
+.v2-topbar-left { display: flex; align-items: center; gap: 12px; }
+.v2-topbar-title { font-size: 13px; font-weight: 500; color: var(--v2-text-primary); }
+.v2-topbar-meta { font-size: 10px; color: var(--v2-text-secondary); }
+.v2-topbar-meta .v2-spkno { color: var(--v2-text-accent); font-weight: 500; }
+.v2-topbar-right { display: flex; gap: 6px; align-items: center; }
+
+.v2-btn {
+  height: 24px; padding: 0 10px; font-size: 10px; font-weight: 500;
+  border: 0.5px solid var(--v2-border); border-radius: 4px;
+  background: var(--v2-surface-2); color: var(--v2-text-primary);
+  cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+  font-family: inherit; white-space: nowrap;
+}
+.v2-btn:hover { background: var(--v2-surface-1); }
+.v2-btn-icon { padding: 0 8px; }
+.v2-btn-primary { background: var(--v2-fill-primary); color: var(--v2-on-primary); border-color: var(--v2-fill-primary); padding: 0 12px; }
+.v2-btn-primary:hover { background: var(--accent-primary-hover, #1d4ed8); }
+.v2-btn-warning { background: var(--v2-bg-warning); color: var(--v2-text-warning); border-color: var(--v2-border-warning); }
+.v2-btn-warning:hover { filter: brightness(0.95); }
+.v2-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Split layout: form + refpanel toggle */
+.v2-split {
+  display: grid; grid-template-columns: minmax(0,1fr) 460px;
+  gap: 8px; flex: 1; overflow: hidden; min-height: 0;
+}
+.v2-split.panel-closed { grid-template-columns: minmax(0,1fr); }
+.v2-split.panel-closed .v2-refpanel-wrap { display: none; }
+.v2-form-scroll {
+  overflow-y: auto; padding-right: 4px; min-width: 0;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.v2-refpanel-wrap {
+  overflow: hidden; border-radius: 8px;
+  background: var(--v2-surface-2); border: 0.5px solid var(--v2-border);
   display: flex; flex-direction: column;
-  transition: right 0.3s ease;
 }
-#rpd-drawer.open { right: 0; }
-#rpd-header {
-  padding: 12px 16px;
-  background: var(--surface-sunken, #f1f5f9);
-  border-bottom: 1px solid var(--border-default, #e2e8f0);
-  color: var(--text-primary, #0f172a);
-  font-weight: 600; font-size: 14px;
-  display: flex; justify-content: space-between; align-items: center;
+.v2-refpanel-body { flex: 1; overflow: hidden; padding: 6px; }
+@media (max-width: 1200px) { .v2-split { grid-template-columns: 1fr; } .v2-refpanel-wrap { display: none; } }
+
+/* Card generic */
+.v2-card {
+  background: var(--v2-surface-2); border: 0.5px solid var(--v2-border);
+  border-radius: 8px; padding: 10px;
 }
-#rpd-header button {
-  background: transparent; border: 0; font-size: 18px;
-  cursor: pointer; color: var(--text-secondary, #475569);
-  padding: 2px 8px; border-radius: 4px;
+.v2-card-label {
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--v2-text-muted); margin-bottom: 6px; font-weight: 500;
 }
-#rpd-header button:hover { background: var(--border-default, #e2e8f0); }
-#rpd-body { flex: 1; overflow: hidden; padding: 12px; }
-#rpd-toggle-btn.active {
-  background: var(--accent-primary, #2563eb) !important;
-  color: #fff !important; border-color: var(--accent-primary, #2563eb) !important;
+
+/* Header form grid */
+.v2-header-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.v2-field-label { font-size: 9px; color: var(--v2-text-secondary); margin-bottom: 2px; }
+.v2-search-wrap { position: relative; }
+.v2-search-icon { position: absolute; left: 8px; top: 6px; color: var(--v2-text-muted); font-size: 14px; }
+.v2-input, .v2-select {
+  height: 26px; font-size: 11px; width: 100%; padding: 0 8px;
+  font-family: inherit; color: var(--v2-text-primary);
+  background: var(--v2-surface-2); border: 0.5px solid var(--v2-border);
+  border-radius: 4px; box-sizing: border-box;
+}
+.v2-input:focus, .v2-select:focus {
+  outline: none; border-color: var(--v2-border-accent);
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+}
+.v2-input[readonly], .v2-input:disabled { background: var(--v2-fill-disabled); }
+.v2-input.pad-search { padding-left: 26px; }
+
+.v2-info-bar {
+  display: flex; gap: 8px; margin-top: 6px; padding: 6px 8px;
+  background: var(--v2-surface-1); border-radius: 4px; font-size: 10px;
+}
+.v2-info-bar > div { min-width: 0; }
+.v2-info-bar > div + div { border-left: 0.5px solid var(--v2-border); padding-left: 8px; }
+.v2-info-bar .lbl { color: var(--v2-text-secondary); font-size: 9px; }
+.v2-info-bar .val { font-weight: 500; color: var(--v2-text-primary); }
+.v2-info-bar .val.accent { color: var(--v2-text-accent); }
+
+.v2-header-right-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+.v2-header-right-grid > div { min-width: 0; }
+.v2-pill-warning-check {
+  display: flex; align-items: center; gap: 4px;
+  padding: 0 8px; background: var(--v2-bg-warning);
+  color: var(--v2-text-warning);
+  border-radius: 4px; font-size: 10px; cursor: pointer;
+}
+.v2-pill-warning-check input { margin: 0; }
+.v2-pill-success {
+  background: var(--v2-bg-success); border-radius: 4px;
+  padding: 3px 8px; text-align: right;
+}
+.v2-pill-success .lbl { font-size: 9px; color: var(--v2-text-success); }
+.v2-pill-success .val { font-weight: 500; color: var(--v2-text-success); font-size: 12px; }
+
+/* Sisa Stok Coil strip */
+.v2-sisa-strip {
+  padding: 6px 10px; border-radius: 4px;
+  display: flex; align-items: center; justify-content: space-between;
+  transition: background 0.15s;
+}
+.v2-sisa-strip.state-normal  { background: var(--v2-bg-success); color: var(--v2-text-success); }
+.v2-sisa-strip.state-warning { background: var(--v2-bg-warning); color: var(--v2-text-warning); }
+.v2-sisa-strip.state-danger  { background: var(--v2-bg-danger);  color: var(--v2-text-danger); }
+.v2-sisa-strip-content { display: flex; align-items: center; gap: 6px; font-size: 10px; }
+.v2-sisa-strip-value { font-weight: 500; font-size: 12px; }
+
+/* Instruksi banner */
+.v2-banner-instruksi {
+  background: #2c5282; color: #fff;
+  padding: 6px 12px; border-radius: 6px;
+  font-size: 11px; font-weight: 500;
+  display: flex; align-items: center; gap: 6px;
+}
+
+/* OUT CTL card */
+.out-ctl-block {
+  border: 0.5px solid var(--v2-border); border-radius: 8px;
+  overflow: hidden; margin: 0;
+}
+.v2-out-head {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 10px; background: var(--v2-surface-1);
+  border-bottom: 0.5px solid var(--v2-border);
+  flex-wrap: wrap; cursor: pointer; user-select: none;
+}
+.v2-out-head:hover { background: var(--v2-bg-accent); }
+.v2-out-head .v2-chev { color: var(--v2-text-secondary); font-size: 14px; transition: transform 0.2s; }
+.v2-out-head .v2-out-title { font-weight: 500; font-size: 11px; color: var(--v2-text-primary); }
+.v2-out-head .v2-lbl { font-size: 9px; color: var(--v2-text-secondary); }
+.v2-out-head input {
+  height: 22px; font-size: 10px; padding: 0 6px;
+  border: 0.5px solid var(--v2-border); border-radius: 3px;
+  background: var(--v2-surface-2); color: var(--v2-text-primary);
+  font-family: inherit;
+}
+.v2-out-head input:focus { outline: none; border-color: var(--v2-border-accent); }
+.v2-out-head .v2-out-actions { margin-left: auto; display: flex; gap: 3px; }
+.v2-out-head .v2-out-actions button {
+  height: 22px; padding: 0 6px; font-size: 10px;
+  background: var(--v2-surface-2); border: 0.5px solid var(--v2-border);
+  border-radius: 3px; cursor: pointer;
+}
+.v2-out-head .v2-out-actions button:hover { background: var(--v2-surface-1); }
+.owner-badge {
+  padding: 1px 6px; border-radius: 2px;
+  font-size: 10px; font-weight: 500; color: #fff;
+  cursor: pointer;
+}
+.owner-badge.badge-fc  { background: #1565c0; }
+.owner-badge.badge-drc { background: #e65100; }
+
+.v2-out-body {
+  padding: 8px 10px; background: var(--v2-surface-2);
+  transition: max-height 0.25s ease, padding 0.25s;
+  max-height: 3000px; overflow: hidden;
+}
+.v2-out-body.collapsed { max-height: 0; padding-top: 0; padding-bottom: 0; }
+.v2-out-collapsed-summary {
+  padding: 6px 10px; font-size: 10px; color: var(--v2-text-secondary);
+  display: flex; align-items: center; gap: 6px;
+}
+
+.v2-ctl-table {
+  width: 100%; font-size: 10px; border-collapse: collapse;
+}
+.v2-ctl-table thead tr { background: var(--v2-surface-1); }
+.v2-ctl-table th {
+  text-align: left; padding: 4px 6px;
+  font-weight: 500; color: var(--v2-text-secondary); font-size: 9px;
+}
+.v2-ctl-table th.num { text-align: center; }
+.v2-ctl-table td { padding: 3px 6px; }
+.v2-ctl-table input, .v2-ctl-table select {
+  height: 22px; font-size: 10px; width: 100%; padding: 0 6px;
+  border: 0.5px solid var(--v2-border); border-radius: 3px;
+  background: var(--v2-surface-2); color: var(--v2-text-primary);
+  font-family: inherit; box-sizing: border-box;
+}
+.v2-ctl-table input:focus, .v2-ctl-table select:focus {
+  outline: none; border-color: var(--v2-border-accent);
+}
+.v2-ctl-table input[readonly] { background: var(--v2-fill-disabled); }
+.v2-ctl-table input.num { text-align: center; }
+
+/* Add OUT CTL button */
+.v2-btn-add-out {
+  height: 32px; font-size: 11px; width: 100%;
+  border: 0.5px dashed var(--v2-border-strong);
+  background: transparent; color: var(--v2-text-secondary);
+  border-radius: 6px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+}
+.v2-btn-add-out:hover { background: var(--v2-surface-1); color: var(--v2-text-primary); }
+
+/* Legend footer */
+.v2-legend {
+  background: var(--v2-surface-1); border: 0.5px solid var(--v2-border);
+  border-radius: 8px; padding: 8px 10px;
+  font-size: 10px; color: var(--v2-text-secondary);
+  display: flex; align-items: center; gap: 8px;
+}
+.v2-legend .v2-text-accent { color: var(--v2-text-accent); font-weight: 500; }
+.v2-legend .v2-text-pro    { color: var(--v2-text-pro);    font-weight: 500; }
+
+/* SHR section placeholder (Sesi 2E akan rewrite) */
+.v2-shr-section {
+  border-top: 1px dashed var(--v2-border); padding-top: 8px; margin-top: 8px;
 }
 .detail-section-head{font-weight:700;padding:8px 14px;background:#f8fafc;border-bottom:1px solid var(--border-color);border-radius:4px 4px 0 0;display:flex;justify-content:space-between;align-items:center;}
 .detail-section-body{padding:10px 14px;}
@@ -310,140 +518,152 @@ td{padding:8px 12px;border-bottom:1px solid #e2e8f0;vertical-align:middle;overfl
   </div>
 </div>
 
-<div id="view-create" class="view-container">
-  <!-- ==== Sesi 2A: Ref Panel Drawer ==== -->
-  <div id="rpd-backdrop" onclick="closeRefPanel()"></div>
-  <div id="rpd-drawer">
-    <div id="rpd-header">
-      <span><i class="ti ti-layout-sidebar-right"></i> &nbsp;Referensi Demand &amp; Stok</span>
-      <button onclick="closeRefPanel()" title="Tutup">✕</button>
+<div id="view-create" class="view-container v2-scope">
+  <!-- Top bar compact -->
+  <div class="v2-topbar">
+    <div class="v2-topbar-left">
+      <span class="v2-topbar-title">SPK CTL baru</span>
+      <span class="v2-topbar-meta">SPK No <span class="v2-spkno" id="hdr-spkno">(auto)</span> · <span id="hdr-date-display">-</span></span>
     </div>
-    <div id="rpd-body"></div>
-  </div>
-  <!-- ==== End Ref Panel Drawer ==== -->
-  <div class="dash-header" style="flex-shrink:0;">
-    <div>
-      <h1 class="dash-title" id="create-title">➕ Buat SPK CTL Baru</h1>
-      <div class="dash-sub" id="create-subtitle">Nomor SPK akan digenerate otomatis saat simpan</div>
-    </div>
-    <div style="display:flex; gap:8px;">
-      <button class="btn btn-outline" onclick="toggleRefPanel()" id="rpd-toggle-btn">📊 Panel Referensi</button>
-      <button class="btn btn-outline" onclick="backFromCreate()">✖ Batal / Kembali</button>
+    <div class="v2-topbar-right">
+      <button class="v2-btn v2-btn-icon" onclick="toggleRefPanelV2()" title="Panel referensi"><i class="ti ti-layout-sidebar-right"></i></button>
+      <button class="v2-btn" onclick="resetForm()"><i class="ti ti-rotate"></i> Reset</button>
+      <button class="v2-btn" onclick="backFromCreate()">Cancel</button>
+      <button class="v2-btn v2-btn-warning" id="btn-save-draft" onclick="saveSPKAsDraft()"><i class="ti ti-file-pencil"></i> Save as Draft</button>
+      <button class="v2-btn v2-btn-primary" id="btn-save" onclick="saveSPK()"><i class="ti ti-device-floppy"></i> Simpan SPK</button>
     </div>
   </div>
 
-  <div style="flex:1;overflow-y:auto;">
-    <div id="spk-ctl-wrap">
-      <!-- Boks Tersembunyi (Agar JS tetap jalan) -->
-      <div class="hidden-data">
+  <!-- Split area: form kiri + refpanel kanan (toggle) -->
+  <div class="v2-split" id="v2-split">
+    <div class="v2-form-scroll">
+
+      <!-- Hidden inputs preserve for JS -->
+      <div class="hidden-data" style="display:none;">
         <input id="hdr-supplier" readonly/>
         <input id="hdr-nocoil" readonly/>
         <span id="hdr-date"></span>
+        <input id="hdr-batch"/>
+        <input id="hdr-item"/>
+        <input id="hdr-spec"/>
+        <input type="checkbox" id="hdr-is-habis" onchange="updateWeightTotal()"/>
       </div>
 
-      <div class="form-section">
-        <div class="form-section-title">
-          <div>📦 Input Coil & Parameter CTL</div>
-          <div style="font-size:11px; font-weight:normal; color:var(--text-muted);">
-            SPK No: <span id="hdr-spkno" style="font-weight:600; color:var(--primary-blue);" title="Nomor digenerate saat simpan">(auto)</span> | Date: <span id="hdr-date-display"></span>
-          </div>
-        </div>
-        
-        <div class="header-split">
-          <!-- BAGIAN KIRI (60%) -->
-          <div class="header-left">
-            <div class="form-field">
-              <label class="form-label">Batch ID * (Ketik mencari)</label>
-              <div style="position:relative;width:100%;">
-                <input id="hdr-batch-search" type="text" class="form-input"
-                  placeholder="🔍 Ketik Batch / Spec / T / P / L..."
-                  autocomplete="off"
-                  oninput="onBatchSearchInput(this.value)"
-                  onkeydown="onBatchSearchKey(event)"
-                  onfocus="onBatchSearchInput(this.value)"/>
-                <div id="hdr-batch-dropdown"
-                  style="display:none;position:fixed;background:#eaf0fb;border:1px solid #1a3a6e;border-radius:0 0 4px 4px;max-height:240px;overflow-y:auto;z-index:99999;box-shadow:0 4px 16px rgba(26,58,110,0.18);min-width:400px;">
-                </div>
+      <!-- Header Card: Input coil & parameter CTL -->
+      <div class="v2-card">
+        <div class="v2-card-label">Input coil &amp; parameter CTL</div>
+        <div class="v2-header-grid">
+
+          <!-- Kiri: Batch ID search + info bar -->
+          <div>
+            <div class="v2-field-label">Batch ID (ketik mencari)</div>
+            <div class="v2-search-wrap">
+              <i class="ti ti-search v2-search-icon"></i>
+              <input id="hdr-batch-search" type="text" class="v2-input pad-search"
+                placeholder="Ketik Batch / Spec / T / P / L..."
+                autocomplete="off"
+                oninput="onBatchSearchInput(this.value)"
+                onkeydown="onBatchSearchKey(event)"
+                onfocus="onBatchSearchInput(this.value)"/>
+              <div id="hdr-batch-dropdown"
+                style="display:none;position:fixed;background:#eaf0fb;border:1px solid #1a3a6e;border-radius:0 0 4px 4px;max-height:240px;overflow-y:auto;z-index:99999;box-shadow:0 4px 16px rgba(26,58,110,0.18);min-width:400px;">
               </div>
-              <input type="hidden" id="hdr-batch"/>
-              <input type="hidden" id="hdr-item"/>
             </div>
-            
-            <div class="info-bar">
-              <div class="info-item">
-                <span class="info-label">Item / No.Coil</span>
-                <span class="info-val"><span id="display-item">-</span> <span style="color:var(--text-muted); font-weight:normal;" id="display-nocoil"></span></span>
+            <div class="v2-info-bar">
+              <div>
+                <div class="lbl">Item · No.Coil</div>
+                <div class="val"><span id="display-item">-</span> <span id="display-nocoil" style="color:var(--v2-text-muted);"></span></div>
               </div>
-              <div class="info-item" style="border-left: 1px solid #cbd5e1; padding-left: 16px;">
-                <span class="info-label">Spec / Supplier</span>
-                <input type="hidden" id="hdr-spec"/>
-                <span class="info-val"><span id="display-spec">-</span> <span style="color:var(--text-muted); font-weight:normal;" id="display-supplier"></span></span>
+              <div>
+                <div class="lbl">Spec · Supp</div>
+                <div class="val"><span id="display-spec">-</span> <span id="display-supplier" style="color:var(--v2-text-muted);"></span></div>
               </div>
-              <div class="info-item" style="border-left: 1px solid #cbd5e1; padding-left: 16px;">
-                <span class="info-label">T × W</span>
-                <span class="info-val"><span id="hdr-t">--</span> × <span id="hdr-w">--</span> mm</span>
+              <div>
+                <div class="lbl">T × W</div>
+                <div class="val"><span id="hdr-t">--</span> × <span id="hdr-w">--</span></div>
               </div>
-              <div class="info-item" style="border-left: 1px solid #cbd5e1; padding-left: 16px;">
-                <span class="info-label">Stok Avail</span>
-                <span class="info-val" style="color: var(--primary-blue);"><span id="hdr-kg-avail">0</span> kg</span>
+              <div>
+                <div class="lbl">Stok Avail</div>
+                <div class="val accent"><span id="hdr-kg-avail">0</span> kg</div>
               </div>
             </div>
           </div>
 
-          <!-- BAGIAN KANAN (40%) -->
-          <div class="header-right">
-            <div class="header-right-row">
-              <div class="form-field">
-                <label class="form-label">Machine</label>
-                <input id="hdr-machine" class="form-input" value="CTL-01" readonly style="cursor:not-allowed;"/>
-              </div>
-              <div class="form-field">
-                <label class="form-label">Priority</label>
-                <select id="hdr-priority" class="form-select">
-                  <option>Normal</option><option>High</option><option>Urgent</option>
-                </select>
-              </div>
-              <div class="form-field">
-                <label class="form-label">Operator</label>
-                <input id="hdr-op" class="form-input" placeholder="Nama OP"/>
-              </div>
+          <!-- Kanan: 3x2 grid mesin/prio/op/loc + pill coil habis + pill total -->
+          <div class="v2-header-right-grid">
+            <div>
+              <div class="v2-field-label">Machine</div>
+              <input id="hdr-machine" class="v2-input" value="CTL-01" readonly/>
             </div>
-
-            <div class="header-right-row" style="height: 100%;">
-              <div class="form-field" style="flex: 0.8;">
-                <label class="form-label">Source Loc</label>
-                <select id="hdr-source-loc" class="form-select">
-                  <option value="Stok Coil">Stok Coil</option>
-                </select>
-              </div>
-              <label class="checkbox-wrap" title="Centang kalau SPK ini menghabiskan coil. KG_Actual akan di-lock ke Target_KG saat selesai.">
-                <input type="checkbox" id="hdr-is-habis" onchange="updateWeightTotal()"/>
-                <span>🔒 Coil habis</span>
-              </label>
-              <div class="info-bar-recoil">
-                <span class="info-label">TOTAL PROCESS WT.</span>
-                <span class="info-val"><span id="hdr-weight">0</span> kg</span>
-                <span style="font-size:9px; color:#166534; margin-top:2px;">∑ Aktual Rencana</span>
-              </div>
+            <div>
+              <div class="v2-field-label">Priority</div>
+              <select id="hdr-priority" class="v2-select">
+                <option>Normal</option><option>High</option><option>Urgent</option>
+              </select>
+            </div>
+            <div>
+              <div class="v2-field-label">Operator</div>
+              <input id="hdr-op" class="v2-input" placeholder="Nama OP"/>
+            </div>
+            <div>
+              <div class="v2-field-label">Source Loc</div>
+              <select id="hdr-source-loc" class="v2-select">
+                <option value="Stok Coil">Stok Coil</option>
+              </select>
+            </div>
+            <label class="v2-pill-warning-check" title="Centang kalau SPK ini menghabiskan coil.">
+              <input type="checkbox" onchange="document.getElementById('hdr-is-habis').checked=this.checked; updateWeightTotal();"/>
+              <i class="ti ti-lock"></i> Coil habis
+            </label>
+            <div class="v2-pill-success">
+              <div class="lbl">Total Process</div>
+              <div class="val"><span id="hdr-weight">0</span> kg</div>
             </div>
           </div>
+
         </div>
       </div>
 
-      <div class="section-instruksi">instruksi proses</div>
-      <div id="out-ctl-list"></div>
-      <div class="btn-add-ctl-wrap" onclick="addOutCtl()">
-        <span class="btn-add-ctl-txt">ADD OUT CTL</span>
+      <!-- Sisa Stok Coil strip (3-state, di-update oleh updateWeightTotal) -->
+      <div class="v2-sisa-strip state-normal" id="v2-sisa-strip">
+        <div class="v2-sisa-strip-content">
+          <i class="ti ti-circle-check" id="v2-sisa-icon"></i>
+          <span id="v2-sisa-msg">Sisa stok coil setelah proses</span>
+        </div>
+        <div class="v2-sisa-strip-value" id="v2-sisa-value">-- kg</div>
       </div>
 
-      <div class="spk-action-bar">
-        <button class="btn-save-spk" id="btn-save" onclick="saveSPK()">💾 Simpan SPK</button>
-        <button class="btn-reset-spk" onclick="resetForm()">↺ Reset</button>
+      <!-- Instruksi proses banner -->
+      <div class="v2-banner-instruksi">
+        <i class="ti ti-clipboard-list"></i> Instruksi proses
       </div>
-      <div class="save-feedback" id="save-feedback"></div>
+
+      <!-- OUT CTL list (di-generate by addOutCtl) -->
+      <div id="spk-ctl-wrap">
+        <div id="out-ctl-list"></div>
+        <div class="v2-btn-add-out" onclick="addOutCtl()">
+          <i class="ti ti-plus"></i> Tambah OUT CTL
+        </div>
+        <div class="save-feedback" id="save-feedback" style="margin-top:8px;"></div>
+      </div>
+
+      <!-- Legend footer -->
+      <div class="v2-legend">
+        <i class="ti ti-info-circle"></i>
+        <span>Legend: <span class="v2-text-accent">Multy</span> = 2 Req SHR parallel di 1 mesin · <span class="v2-text-pro">Stage 2</span> = SHR serial chain (output Stage 1 → input Stage 2) · Mutually exclusive</span>
+      </div>
+
+    </div><!-- .v2-form-scroll -->
+
+    <!-- Panel Referensi (toggle) -->
+    <div class="v2-refpanel-wrap" id="v2-refpanel-wrap">
+      <div class="v2-refpanel-body" id="v2-refpanel-host"></div>
     </div>
-  </div>
+
+  </div><!-- .v2-split -->
 </div>
+
+<div id="view-detail" class="view-container">
 
 <div id="view-detail" class="view-container">
   <div class="dash-header" style="flex-shrink:0;">
@@ -1342,45 +1562,30 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
     google.script.run.withSuccessHandler(function(m){ window._shrMachines = Array.isArray(m) ? m : []; }).getMachinesByType('SHR', true);
     document.getElementById('hdr-spkno').textContent = '(auto)';
     _spkNo = '';
-    // Sesi 2A: reset ref panel filter saat form fresh
+    // Sesi 2B: reset filter, auto-mount ref panel permanent
     window._spkCtlRefFilter = null;
-    closeRefPanel();
+    setTimeout(mountV2RefPanel, 100);
   }
 
-  // ==== Sesi 2A: Ref Panel Drawer Controllers ====
-  window._rpdInstance = null;
-  window.toggleRefPanel = function() {
-    var drawer = document.getElementById('rpd-drawer');
-    if (!drawer) return;
-    if (drawer.classList.contains('open')) closeRefPanel();
-    else openRefPanel();
-  };
-  window.openRefPanel = function() {
-    var drawer   = document.getElementById('rpd-drawer');
-    var backdrop = document.getElementById('rpd-backdrop');
-    var btn      = document.getElementById('rpd-toggle-btn');
-    var body     = document.getElementById('rpd-body');
-    if (!drawer || !backdrop || !body) return;
-    drawer.classList.add('open');
-    backdrop.classList.add('open');
-    if (btn) btn.classList.add('active');
-    if (!window._rpdInstance && typeof window.renderRefPanel === 'function') {
-      window._rpdInstance = window.renderRefPanel(body, {
-        defaultTab: 'demand',
-        initialFilter: window._spkCtlRefFilter || null,
-        onRowClick: function(row, tab) { console.log('[RefPanel click]', tab, row); }
-      });
-    } else if (window._rpdInstance && window._spkCtlRefFilter) {
-      window._rpdInstance.setFilter(window._spkCtlRefFilter);
+  // ==== Sesi 2B: Auto-mount Ref Panel ke split-panel kanan ====
+  window._v2RpInstance = null;
+  window.mountV2RefPanel = function() {
+    var host = document.getElementById('v2-refpanel-host');
+    if (!host) return;
+    if (window._v2RpInstance) {
+      if (window._spkCtlRefFilter) window._v2RpInstance.setFilter(window._spkCtlRefFilter);
+      return;
     }
-  };
-  window.closeRefPanel = function() {
-    var drawer   = document.getElementById('rpd-drawer');
-    var backdrop = document.getElementById('rpd-backdrop');
-    var btn      = document.getElementById('rpd-toggle-btn');
-    if (drawer)   drawer.classList.remove('open');
-    if (backdrop) backdrop.classList.remove('open');
-    if (btn)      btn.classList.remove('active');
+    if (typeof window.renderRefPanel !== 'function') {
+      host.innerHTML = '<div style="padding:20px; color:#64748b; text-align:center; font-size:12px;">⏳ Panel referensi loading...</div>';
+      setTimeout(mountV2RefPanel, 500);
+      return;
+    }
+    window._v2RpInstance = window.renderRefPanel(host, {
+      defaultTab: 'demand',
+      initialFilter: window._spkCtlRefFilter || null,
+      onRowClick: function(row, tab) { console.log('[v2 RefPanel click]', tab, row); }
+    });
   };
 
   window.onBatchChange=function(sel){
@@ -1399,7 +1604,7 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
         var _equiv = (_cache.itemToEquiv || {})[r.Item_Code] || '';
         var _tVal  = r.T || '';
         window._spkCtlRefFilter = { equiv: _equiv, t: _tVal };
-        if (window._rpdInstance) window._rpdInstance.setFilter(window._spkCtlRefFilter);
+        if (window._v2RpInstance) window._v2RpInstance.setFilter(window._spkCtlRefFilter);
       } catch(e) { console.warn('Ref panel filter sync failed:', e); }
       document.getElementById('display-item').textContent = r.Item_Code || '-';
       document.getElementById('display-nocoil').textContent = (r.No_Coil || r.Coil_No || '') ? '('+(r.No_Coil || r.Coil_No)+')' : '';
@@ -1431,78 +1636,120 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
   function roInput(id,w){ return '<input id="'+id+'" readonly class="dummy-id" style="width:'+(w||'76px')+'" tabindex="-1">'; }
 
   /* DYNAMIC DOM BUILDING */
+  // ==== Sesi 2D: Mockup-match addOutCtl (table 6-col) ====
   window.addOutCtl=function(){
     _ctlCount++;
     var n=_ctlCount;
-    var ltr=String.fromCharCode(64+n);
     var idp= window._editingSpkNo ? '???' : ('OUT-'+n);
     var dId='ctl-desc-'+n, icId='ctl-item-'+n;
+    var stop = 'event.stopPropagation();';
 
     var block=document.createElement('div');
-    block.className='out-ctl-block'; block.id='ctl-block-'+n;
-    block.innerHTML=
-      '<div class="ctl-inner">'+
-        '<div class="ctl-left-panel">'+
-          '<div class="ctl-head-row">'+
-            '<span class="ctl-head-label">OUT CTL '+n+'</span>'+
-            '<input type="hidden" id="ctl-owner-'+n+'" value="FC">'+
-            '<span class="so-lbl">UsedBy:</span>'+
-            '<span class="owner-badge badge-fc" id="ctl-badge-'+n+'" onclick="toggleCtlOwner('+n+')">FC</span>'+
-            '<input type="hidden" id="ctl-owner-used-'+n+'" value="FC">'+
-            '<input type="hidden" id="ctl-wgpce-'+n+'" value="0">'+
-            '<span class="so-lbl">SO No</span>'+
-            '<input class="so-inp" style="width:130px;" id="ctl-so-'+n+'" placeholder="SO No" onchange="handleSoChange(\'ctl\','+n+')">'+
-            '<span class="so-lbl">Cust</span>'+
-            '<input class="so-inp" style="width:65px;" id="ctl-cust-'+n+'" placeholder="Cust" >'+
-            '<div class="action-group">'+
-              '<button type="button" class="btn-lbl" title="Print Label" onclick="printLabel('+n+')">🏷️</button>'+
-              '<button type="button" class="btn-duplicate" title="Duplikat" onclick="duplicateCtl('+n+')">⧉</button>'+
-              '<button type="button" class="btn-hps" title="Hapus / Cancel" onclick="removeCtl('+n+')">🗑️</button>'+
-            '</div>'+
-          '</div>'+
-          '<table class="ctl-tbl">'+
-            '<thead><tr>'+
-              '<th style="width:65px">ID_Proc</th>'+
-              '<th style="width:80px">Item_Code</th>'+
-              '<th style="width:100%">Description</th>'+
-              '<th style="width:65px; text-align:center;">QTY_Plan</th>'+
-              '<th style="width:65px; text-align:center;">KG_Plan</th>'+
-              '<th style="width:105px">Target_Loc</th>'+
-            '</tr></thead>'+
-            '<tbody><tr>'+
-              '<td><input id="ctl-idp-'+n+'" value="'+idp+'" readonly style="width:100%" class="dummy-id"></td>'+
-              '<td>'+roInput(icId,'100%')+'</td>'+
-              '<td>'+descInput(dId,icId,'100%')+'</td>'+
-              '<td><input id="ctl-qty-'+n+'" type="number" style="width:100%; text-align:center;" min="0" oninput="calcCtlKg('+n+')"></td>'+
-              '<td>'+roInput('ctl-kg-'+n,'100%')+'</td>'+
-              '<td><select id="ctl-target-'+n+'" style="width:100%" onchange="handleCtlTargetChange('+n+')">'+
-                '<option value="FG_Cust">FG_Cust</option>'+
-                '<option value="WIP_Cust">WIP_Cust</option>'+
-                '<option value="WIP_Stamping">WIP_Stamping</option>'+
-                '<option value="FG_RM_Stamping">FG_RM_Stamping</option>'+
-                '<option value="Stok_Sheet">Stok_Sheet</option>'+
-              '</select></td>'+
-            '</tr></tbody>'+
-          '</table>'+
+    block.className='out-ctl-block';
+    block.id='ctl-block-'+n;
+    block.innerHTML =
+      '<div class="v2-out-head" onclick="toggleCtlAcc('+n+')">'+
+        '<i class="ti ti-chevron-down v2-chev" id="ctl-chev-'+n+'"></i>'+
+        '<span class="v2-out-title">OUT CTL '+n+'</span>'+
+        '<input type="hidden" id="ctl-owner-'+n+'" value="FC">'+
+        '<span class="v2-lbl">UsedBy:</span>'+
+        '<span class="owner-badge badge-fc" id="ctl-badge-'+n+'" onclick="'+stop+'toggleCtlOwner('+n+')">FC</span>'+
+        '<input type="hidden" id="ctl-owner-used-'+n+'" value="FC">'+
+        '<input type="hidden" id="ctl-wgpce-'+n+'" value="0">'+
+        '<span class="v2-lbl">SO No</span>'+
+        '<input style="width:110px;" id="ctl-so-'+n+'" placeholder="SO No" onclick="'+stop+'" onchange="handleSoChange(\'ctl\','+n+')">'+
+        '<span class="v2-lbl">Cust</span>'+
+        '<input style="width:55px;" id="ctl-cust-'+n+'" placeholder="Cust" onclick="'+stop+'">'+
+        '<div class="v2-out-actions">'+
+          '<button type="button" title="Print Label" onclick="'+stop+'printLabel('+n+')"><i class="ti ti-tag"></i></button>'+
+          '<button type="button" title="Duplikat"    onclick="'+stop+'duplicateCtl('+n+')"><i class="ti ti-copy"></i></button>'+
+          '<button type="button" class="btn-hps" title="Hapus / Cancel" onclick="'+stop+'removeCtl('+n+')"><i class="ti ti-trash"></i></button>'+
         '</div>'+
-        '<div class="btn-add-shr-wrap" id="shr-btn-'+n+'" onclick="addSHR('+n+')"><span class="btn-add-shr-txt">Add Req SHR</span></div>'+
-        '<div class="ctl-right-panel">'+
-          '<div class="shr-placeholder" id="shr-ph-'+n+'">Jika tidak add berarti proses langsung dari CTL</div>'+
+      '</div>'+
+      '<div class="v2-out-body" id="ctl-acc-body-'+n+'">'+
+        '<table class="v2-ctl-table ctl-tbl">'+
+          '<thead><tr>'+
+            '<th style="width:65px">ID_Proc</th>'+
+            '<th style="width:100px">Item Code</th>'+
+            '<th>Description</th>'+
+            '<th class="num" style="width:60px">QTY Plan</th>'+
+            '<th class="num" style="width:60px">KG Plan</th>'+
+            '<th style="width:110px">Target Loc</th>'+
+          '</tr></thead>'+
+          '<tbody><tr>'+
+            '<td><input id="ctl-idp-'+n+'" value="'+idp+'" readonly class="dummy-id"></td>'+
+            '<td>'+roInput(icId,'100%')+'</td>'+
+            '<td>'+descInput(dId,icId,'100%')+'</td>'+
+            '<td><input id="ctl-qty-'+n+'" type="number" min="0" class="num" oninput="calcCtlKg('+n+')"></td>'+
+            '<td>'+roInput('ctl-kg-'+n,'100%')+'</td>'+
+            '<td><select id="ctl-target-'+n+'" onchange="handleCtlTargetChange('+n+')">'+
+              '<option value="FG_Cust">FG_Cust</option>'+
+              '<option value="WIP_Cust">WIP_Cust</option>'+
+              '<option value="WIP_Stamping">WIP_Stamping</option>'+
+              '<option value="FG_RM_Stamping">FG_RM_Stamping</option>'+
+              '<option value="Stok_Sheet">Stok_Sheet</option>'+
+            '</select></td>'+
+          '</tr></tbody>'+
+        '</table>'+
+        '<div class="v2-shr-section">'+
+          '<div class="btn-add-shr-wrap" id="shr-btn-'+n+'" onclick="addSHR('+n+')"><span class="btn-add-shr-txt">+ Add Req SHR</span></div>'+
+          '<div class="shr-placeholder" id="shr-ph-'+n+'">Jika tidak add berarti proses langsung dari CTL (direct, no SHR)</div>'+
           '<div class="shr-panels-wrap" id="shr-wrap-'+n+'"></div>'+
         '</div>'+
       '</div>';
     document.getElementById('out-ctl-list').appendChild(block);
-    
+
     var inpOwner = document.getElementById('ctl-owner-'+n);
     var inpUsed  = document.getElementById('ctl-owner-used-'+n);
     var badge    = document.getElementById('ctl-badge-'+n);
     if(inpOwner) inpOwner.value = _coilOwner;
     if(inpUsed)  inpUsed.value  = _coilOwner;
     if(badge){
-        badge.textContent = _coilOwner;
-        badge.className   = 'owner-badge ' + (_coilOwner==='DRC' ? 'badge-drc' : 'badge-fc');
+      badge.textContent = _coilOwner;
+      badge.className   = 'owner-badge ' + (_coilOwner==='DRC' ? 'badge-drc' : 'badge-fc');
     }
     if (typeof window.updateCtlRemoveButtonsState === 'function') window.updateCtlRemoveButtonsState();
+  };
+
+  window.toggleCtlAcc = function(n) {
+    var body = document.getElementById('ctl-acc-body-'+n);
+    var chev = document.getElementById('ctl-chev-'+n);
+    if (!body) return;
+    if (body.classList.contains('collapsed')) {
+      body.classList.remove('collapsed');
+      if (chev) chev.className = 'ti ti-chevron-down v2-chev';
+    } else {
+      body.classList.add('collapsed');
+      if (chev) chev.className = 'ti ti-chevron-right v2-chev';
+    }
+  };
+
+  window.toggleRefPanelV2 = function() {
+    var split = document.getElementById('v2-split');
+    if (!split) return;
+    split.classList.toggle('panel-closed');
+  };
+
+  window.saveSPKAsDraft = function() {
+    if (typeof showToast === 'function') {
+      showToast('Save as Draft belum diaktifkan — akan dibuat di Sesi 2E', 'warning');
+    } else {
+      alert('Save as Draft belum diaktifkan (Sesi 2E).');
+    }
+  };
+
+  // ==== Sesi 2C: Toggle accordion CTL-OUT ====
+  window.toggleCtlAcc = function(n) {
+    var body = document.getElementById('ctl-acc-body-'+n);
+    var icon = document.getElementById('ctl-acc-icon-'+n);
+    if (!body) return;
+    if (body.classList.contains('collapsed')) {
+      body.classList.remove('collapsed');
+      if (icon) icon.textContent = '▼';
+    } else {
+      body.classList.add('collapsed');
+      if (icon) icon.textContent = '▶';
+    }
   };
 
   window.duplicateCtl = function(sourceN) {

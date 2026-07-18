@@ -1,0 +1,93 @@
+<div style="padding:16px; height: calc(100vh - 100px); display:flex; flex-direction:column; gap:12px;">
+
+  <div class="u-card u-p-3">
+    <h3 class="u-text-lg u-fw-semibold u-mb-3">🧪 Test Reference Panel (Sesi 1)</h3>
+
+    <div class="u-flex u-gap-2 u-flex-wrap u-mb-3">
+      <button class="u-btn u-btn--primary" onclick="TestRP.mount()">
+        <i class="ti ti-player-play"></i> Mount Panel
+      </button>
+      <button class="u-btn" onclick="TestRP.unmount()">
+        <i class="ti ti-x"></i> Unmount
+      </button>
+      <button class="u-btn" onclick="TestRP.refresh()">
+        <i class="ti ti-refresh"></i> Force Refresh
+      </button>
+    </div>
+
+    <div class="u-flex u-gap-2 u-flex-wrap u-items-end">
+      <div>
+        <label class="u-label">Filter Equiv</label>
+        <input id="tf-equiv" class="u-input" placeholder="mis. SPCC" style="width:140px;" />
+      </div>
+      <div>
+        <label class="u-label">Filter T</label>
+        <input id="tf-t" class="u-input" placeholder="mis. 1.2" style="width:100px;" type="number" step="0.1" />
+      </div>
+      <button class="u-btn u-btn--success" onclick="TestRP.applyFilter()">
+        <i class="ti ti-filter"></i> Apply Filter
+      </button>
+      <button class="u-btn u-btn--ghost" onclick="TestRP.clearFilter()">
+        Clear
+      </button>
+    </div>
+
+    <div class="u-mt-3">
+      <span class="u-text-tertiary u-text-sm">Last row clicked:</span>
+      <code id="tf-log" style="display:inline-block; padding:2px 8px; background:var(--surface-sunken); border-radius:4px; margin-left:8px; font-size:12px;">-</code>
+    </div>
+  </div>
+
+  <div id="ref-panel-host" style="flex:1; min-height:0;">
+    <div class="u-card u-p-6 u-text-center u-text-tertiary">
+      Klik <b>Mount Panel</b> untuk memulai test.
+    </div>
+  </div>
+
+</div>
+
+<script>
+window.TestRP = (function(){
+  var instance = null;
+
+  return {
+    mount: function() {
+      if (instance) { showToast && showToast('Panel sudah aktif — Unmount dulu', 'warning'); return; }
+      instance = window.renderRefPanel('ref-panel-host', {
+        defaultTab: 'stok',
+        onRowClick: function(row, tab) {
+          var summary;
+          if (tab === 'stok') {
+            summary = '[STOK] ' + row.Batch_ID + ' · ' + row.Item_Code + ' · ' + row.KG_Avail + ' kg';
+          } else {
+            summary = '[' + row.tipe + '] ' + row.ref_no + ' · ' + row.item_code + ' · Net ' + row.net_req;
+          }
+          document.getElementById('tf-log').textContent = summary;
+          console.log('Row clicked:', row);
+        }
+      });
+    },
+    unmount: function() {
+      if (instance) { instance.destroy(); instance = null; }
+      document.getElementById('ref-panel-host').innerHTML =
+        '<div class="u-card u-p-6 u-text-center u-text-tertiary">Panel un-mounted. Klik Mount lagi.</div>';
+    },
+    refresh: function() {
+      if (!instance) { showToast && showToast('Panel belum di-mount', 'warning'); return; }
+      instance.refresh();
+    },
+    applyFilter: function() {
+      if (!instance) { showToast && showToast('Panel belum di-mount', 'warning'); return; }
+      var eq = document.getElementById('tf-equiv').value.trim();
+      var t  = document.getElementById('tf-t').value.trim();
+      instance.setFilter({ equiv: eq, t: t });
+    },
+    clearFilter: function() {
+      if (!instance) return;
+      instance.clearFilter();
+      document.getElementById('tf-equiv').value = '';
+      document.getElementById('tf-t').value = '';
+    }
+  };
+})();
+</script>

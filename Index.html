@@ -6,6 +6,18 @@
 <title>FC CORE OPERATIONS SYSTEM (COS)</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <?!= include('shared_css'); ?>
+<?!= include('shared_css_v2'); ?>
+<?!= include('ref_panel'); ?>
+<script>
+// Anti-FOUC: apply saved theme BEFORE body renders
+(function() {
+  try {
+    if (localStorage.getItem('cos-theme') === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  } catch(e) {}
+})();
+</script>
 </head>
 <body>
 
@@ -16,6 +28,10 @@
       <img src="https://i.ibb.co.com/RG55ZR0R/FC-COS-1-1.png" alt="FC COS SSC">
     </div>
     <div class="header-main">
+      <button id="theme-toggle-btn" class="theme-toggle" onclick="toggleTheme()" title="Ganti tema terang/gelap">
+        <i class="ti ti-moon" id="theme-toggle-icon"></i>
+        <span id="theme-toggle-label">Dark</span>
+      </button>
       <div id="conn-status" class="conn loading">
         <i class="ti ti-loader spin-anim"></i>
       </div>
@@ -34,6 +50,7 @@
       </div>
       <div class="sub-menu" id="ops-sub">
         <div class="sub-item on" onclick="goSubPage('dashboard', this)">Operations Dashboard</div>
+        
       </div>
 
       <div class="nav-divider"></div>
@@ -75,6 +92,7 @@
         <div class="sub-item" onclick="goSubPage('live_board', this)">Live SPK Board</div>
         <div class="sub-item" onclick="goSubPage('spk_alloc', this)">Allocated Material</div>
         <div class="sub-item" onclick="goSubPage('spk_ctl', this)">SPK CTL</div>
+        <div class="sub-item" onclick="goSubPage('spk_ctl_v2', this)" style="background:#dbeafe; color:#1e40af; font-weight:600;">📋 SPK CTL v2 (Preview)</div>
         <div class="sub-item" onclick="goSubPage('spk_shr', this)">SPK SHR</div>
         <div class="sub-item" onclick="goSubPage('spk_slt', this)">SPK SLT</div>
         <div class="sub-item" onclick="goSubPage('stock_audit', this)">Stock Audit</div>
@@ -157,6 +175,38 @@ function toggleSubMenu(id, el) {
     if(el) el.classList.add('on');
   }
 }
+
+// ==========================================
+// THEME TOGGLE (Sesi 0.5)
+// ==========================================
+function toggleTheme() {
+  var root = document.documentElement;
+  var icon = document.getElementById('theme-toggle-icon');
+  var label = document.getElementById('theme-toggle-label');
+  var isDark = root.getAttribute('data-theme') === 'dark';
+
+  if (isDark) {
+    root.removeAttribute('data-theme');
+    try { localStorage.setItem('cos-theme', 'light'); } catch(e) {}
+    icon.className = 'ti ti-moon';
+    label.textContent = 'Dark';
+  } else {
+    root.setAttribute('data-theme', 'dark');
+    try { localStorage.setItem('cos-theme', 'dark'); } catch(e) {}
+    icon.className = 'ti ti-sun';
+    label.textContent = 'Light';
+  }
+}
+
+// Sync icon/label saat page pertama load (theme sudah di-apply oleh anti-FOUC script)
+(function syncThemeToggleUI() {
+  if (document.documentElement.getAttribute('data-theme') === 'dark') {
+    var icon = document.getElementById('theme-toggle-icon');
+    var label = document.getElementById('theme-toggle-label');
+    if (icon) icon.className = 'ti ti-sun';
+    if (label) label.textContent = 'Light';
+  }
+})();
 
 function goSubPage(pageName, el) {
   // Tandai sub-menu yang aktif saja

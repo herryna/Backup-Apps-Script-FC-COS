@@ -1,0 +1,385 @@
+<style>
+/* =========================================================
+   REF PANEL — Reusable Demand + Stok reference panel
+   Sesi 1 · Depends on shared_css_v2.html tokens
+========================================================= */
+.ref-panel {
+  display: flex; flex-direction: column;
+  height: 100%; min-height: 300px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  font-family: var(--font-family-base);
+  font-size: var(--fs-base);
+  color: var(--text-primary);
+}
+.ref-panel__tabs {
+  display: flex; align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-2) 0;
+  background: var(--surface-sunken);
+  border-bottom: 1px solid var(--border-default);
+}
+.ref-panel__tab {
+  padding: 6px var(--space-3);
+  font-family: inherit;
+  font-size: var(--fs-base);
+  font-weight: var(--fw-medium);
+  color: var(--text-secondary);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+.ref-panel__tab:hover { color: var(--text-primary); }
+.ref-panel__tab--active {
+  color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary);
+}
+.ref-panel__count {
+  display: inline-block;
+  min-width: 20px; padding: 1px 6px;
+  margin-left: 6px;
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold);
+  background: var(--status-neutral-soft);
+  color: var(--status-neutral-soft-fg);
+  border-radius: var(--radius-full);
+}
+.ref-panel__tab--active .ref-panel__count {
+  background: var(--accent-primary-soft);
+  color: var(--accent-primary);
+}
+.ref-panel__spacer { flex: 1; }
+.ref-panel__refresh {
+  padding: 4px 8px; margin-bottom: 4px;
+  font-size: 14px; color: var(--text-secondary);
+  background: transparent; border: 0; border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.ref-panel__refresh:hover { background: var(--surface-2); color: var(--accent-primary); }
+.ref-panel__refresh.spinning i { animation: refspin 0.8s linear infinite; }
+@keyframes refspin { to { transform: rotate(360deg); } }
+
+.ref-panel__toolbar {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+}
+.ref-panel__search {
+  flex: 1;
+  padding: 5px var(--space-3);
+  font-family: inherit; font-size: var(--fs-base);
+  color: var(--text-primary);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+.ref-panel__search:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: var(--shadow-focus);
+}
+.ref-panel__filter-info { display: flex; gap: var(--space-1); }
+
+.ref-panel__body {
+  flex: 1; overflow: auto;
+  background: var(--surface-2);
+}
+.ref-panel__body table {
+  width: 100%; border-collapse: collapse;
+  font-size: var(--fs-base);
+}
+.ref-panel__body th {
+  position: sticky; top: 0; z-index: 2;
+  padding: 6px var(--space-2);
+  text-align: left;
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold);
+  color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.3px;
+  background: var(--surface-sunken);
+  border-bottom: 1px solid var(--border-default);
+  white-space: nowrap;
+}
+.ref-panel__body td {
+  padding: 5px var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.ref-panel__body tbody tr { cursor: pointer; transition: background var(--transition-fast); }
+.ref-panel__body tbody tr:hover { background: var(--accent-primary-soft); }
+.ref-panel__body td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.ref-panel__body td.mono { font-family: var(--font-family-mono); font-size: var(--fs-sm); }
+
+.ref-panel__empty,
+.ref-panel__loading {
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: var(--fs-base);
+}
+.ref-panel__empty i, .ref-panel__loading i { font-size: 32px; display: block; margin-bottom: var(--space-2); }
+.ref-panel__loading i { animation: refspin 1s linear infinite; }
+
+.ref-panel__badge-tipe {
+  display: inline-block; padding: 1px 6px;
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold);
+  border-radius: var(--radius-sm);
+}
+.ref-panel__badge-tipe--SO  { background: var(--status-info-soft);    color: var(--status-info-soft-fg); }
+.ref-panel__badge-tipe--STP { background: var(--status-warning-soft); color: var(--status-warning-soft-fg); }
+</style>
+
+<script>
+(function(){
+  'use strict';
+  var CACHE_TTL = 5 * 60 * 1000;
+  window._refPanelCache = window._refPanelCache || { stok: null, demand: null, itemToEquiv: null, ts: 0 };
+
+  function esc(s) {
+    if (s == null) return '';
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  function fmt(n, d) {
+    if (n === '' || n == null || isNaN(n)) return '';
+    return Number(n).toLocaleString('id-ID', { minimumFractionDigits: d||0, maximumFractionDigits: d||0 });
+  }
+
+  function loadData(force, cb) {
+    var cache = window._refPanelCache;
+    var fresh = cache.ts && (Date.now() - cache.ts) < CACHE_TTL;
+    if (!force && fresh && cache.stok && cache.demand && cache.itemToEquiv) {
+      cb({ stok: cache.stok, demand: cache.demand, itemToEquiv: cache.itemToEquiv });
+      return;
+    }
+    var pending = 3;
+    var result = { stok: [], demand: [], itemToEquiv: {} };
+    function done() {
+      pending--;
+      if (pending === 0) {
+        cache.stok = result.stok;
+        cache.demand = result.demand;
+        cache.itemToEquiv = result.itemToEquiv;
+        cache.ts = Date.now();
+        cb(result);
+      }
+    }
+    google.script.run
+      .withSuccessHandler(function(d){ result.stok = Array.isArray(d) ? d : []; done(); })
+      .withFailureHandler(function(){ done(); }).getSheetData('Stok_Coil');
+    google.script.run
+      .withSuccessHandler(function(d){ result.demand = (d && Array.isArray(d.demands)) ? d.demands : []; done(); })
+      .withFailureHandler(function(){ done(); }).getDemandData();
+    google.script.run
+      .withSuccessHandler(function(d){
+        var map = {};
+        (Array.isArray(d) ? d : []).forEach(function(row){
+          var ic = String(row.Item_Code || '').trim();
+          var eq = String(row.Equivalent || '').trim();
+          if (ic) map[ic] = eq;
+        });
+        result.itemToEquiv = map; done();
+      })
+      .withFailureHandler(function(){ done(); }).getSheetData('M_ITEM');
+  }
+
+  window.renderRefPanel = function(target, options) {
+    options = options || {};
+    var el = typeof target === 'string' ? document.getElementById(target) : target;
+    if (!el) { console.error('renderRefPanel: target not found'); return null; }
+
+    var state = {
+      tab: options.defaultTab || 'stok',
+      filter: options.initialFilter || null,
+      q: '',
+      stok: [], demand: [], itemToEquiv: {}
+    };
+    var onRowClick = options.onRowClick || function(){};
+
+    el.innerHTML =
+      '<div class="ref-panel">' +
+        '<div class="ref-panel__tabs">' +
+          '<button class="ref-panel__tab" data-tab="stok">Stok Coil<span class="ref-panel__count" data-count="stok">0</span></button>' +
+          '<button class="ref-panel__tab" data-tab="demand">Demand<span class="ref-panel__count" data-count="demand">0</span></button>' +
+          '<div class="ref-panel__spacer"></div>' +
+          '<button class="ref-panel__refresh" title="Refresh data"><i class="ti ti-refresh"></i></button>' +
+        '</div>' +
+        '<div class="ref-panel__toolbar">' +
+          '<input class="ref-panel__search" placeholder="🔍 Ketik untuk filter..." />' +
+          '<div class="ref-panel__filter-info"></div>' +
+        '</div>' +
+        '<div class="ref-panel__body"><div class="ref-panel__loading"><i class="ti ti-loader"></i>Memuat data referensi...</div></div>' +
+      '</div>';
+
+    var $tabs = el.querySelectorAll('.ref-panel__tab');
+    var $search = el.querySelector('.ref-panel__search');
+    var $body = el.querySelector('.ref-panel__body');
+    var $refresh = el.querySelector('.ref-panel__refresh');
+    var $filterInfo = el.querySelector('.ref-panel__filter-info');
+
+    function updateTabsUI() {
+      $tabs.forEach(function(b){
+        if (b.dataset.tab === state.tab) b.classList.add('ref-panel__tab--active');
+        else b.classList.remove('ref-panel__tab--active');
+      });
+    }
+    function updateCounts(stokCnt, demCnt) {
+      var s = el.querySelector('[data-count="stok"]');
+      var d = el.querySelector('[data-count="demand"]');
+      if (s) s.textContent = stokCnt;
+      if (d) d.textContent = demCnt;
+    }
+    function updateFilterInfo() {
+      if (state.filter && (state.filter.equiv || state.filter.t)) {
+        var parts = [];
+        if (state.filter.equiv) parts.push('Equiv: ' + state.filter.equiv);
+        if (state.filter.t != null && state.filter.t !== '') parts.push('T: ' + state.filter.t);
+        $filterInfo.innerHTML = '<span class="u-badge u-badge--info">Filter · ' + esc(parts.join(' · ')) + '</span>';
+      } else {
+        $filterInfo.innerHTML = '';
+      }
+    }
+
+    function filterRows(rows, tab) {
+      var q = state.q;
+      var f = state.filter;
+      return rows.filter(function(r){
+        if (f && f.equiv) {
+          var eq = tab === 'stok'
+            ? String(state.itemToEquiv[r.Item_Code] || '').toLowerCase()
+            : String(r.equivalent || '').toLowerCase();
+          if (eq !== String(f.equiv).toLowerCase()) return false;
+        }
+        if (f && f.t != null && f.t !== '') {
+          var tv = tab === 'stok' ? Number(r.T) : Number(r.t);
+          if (isNaN(tv) || Math.abs(tv - Number(f.t)) > 0.001) return false;
+        }
+        if (q) {
+          var hay = tab === 'stok'
+            ? [r.Batch_ID, r.Item_Code, r.Description, r.Spec, r.No_Coil, r.Supplier, r.Owner].join(' ').toLowerCase()
+            : [r.ref_no, r.item_code, r.description, r.spec, r.cust, r.tipe].join(' ').toLowerCase();
+          if (hay.indexOf(q) === -1) return false;
+        }
+        return true;
+      });
+    }
+
+    function renderStok(rows) {
+      if (!rows.length) {
+        $body.innerHTML = '<div class="ref-panel__empty"><i class="ti ti-inbox"></i>Tidak ada stok coil yang cocok</div>';
+        return;
+      }
+      var html = '<table><thead><tr>' +
+        '<th>Batch</th><th>Item Code</th><th>Spec</th><th>T</th><th>P</th>' +
+        '<th class="num">KG Avail</th><th>Owner</th><th>Status</th>' +
+        '</tr></thead><tbody>';
+      rows.slice(0, 500).forEach(function(r, i){
+        html += '<tr data-idx="'+i+'">' +
+          '<td class="mono">' + esc(r.Batch_ID) + '</td>' +
+          '<td>' + esc(r.Item_Code) + '</td>' +
+          '<td>' + esc(r.Spec) + '</td>' +
+          '<td class="num">' + esc(r.T) + '</td>' +
+          '<td class="num">' + esc(r.P) + '</td>' +
+          '<td class="num">' + fmt(r.KG_Avail, 0) + '</td>' +
+          '<td>' + esc(r.Owner) + '</td>' +
+          '<td>' + esc(r.Status) + '</td>' +
+        '</tr>';
+      });
+      html += '</tbody></table>';
+      $body.innerHTML = html;
+      $body.querySelectorAll('tbody tr').forEach(function(tr){
+        tr.addEventListener('click', function(){
+          var idx = Number(tr.dataset.idx);
+          onRowClick(rows[idx], 'stok');
+        });
+      });
+    }
+
+    function renderDemand(rows) {
+      if (!rows.length) {
+        $body.innerHTML = '<div class="ref-panel__empty"><i class="ti ti-inbox"></i>Tidak ada demand yang cocok</div>';
+        return;
+      }
+      var html = '<table><thead><tr>' +
+        '<th>Tipe</th><th>Ref No</th><th>Cust</th><th>Item</th><th>Spec</th><th>T</th>' +
+        '<th class="num">Qty</th><th class="num">Net Req</th><th>Tgl Butuh</th>' +
+        '</tr></thead><tbody>';
+      rows.slice(0, 500).forEach(function(r, i){
+        html += '<tr data-idx="'+i+'">' +
+          '<td><span class="ref-panel__badge-tipe ref-panel__badge-tipe--' + esc(r.tipe) + '">' + esc(r.tipe) + '</span></td>' +
+          '<td class="mono">' + esc(r.ref_no) + '</td>' +
+          '<td>' + esc(r.cust) + '</td>' +
+          '<td>' + esc(r.item_code) + '</td>' +
+          '<td>' + esc(r.spec) + '</td>' +
+          '<td class="num">' + esc(r.t) + '</td>' +
+          '<td class="num">' + fmt(r.qty_demand, 0) + '</td>' +
+          '<td class="num">' + fmt(r.net_req, 0) + '</td>' +
+          '<td>' + esc(r.tgl_needed) + '</td>' +
+        '</tr>';
+      });
+      html += '</tbody></table>';
+      $body.innerHTML = html;
+      $body.querySelectorAll('tbody tr').forEach(function(tr){
+        tr.addEventListener('click', function(){
+          var idx = Number(tr.dataset.idx);
+          onRowClick(rows[idx], 'demand');
+        });
+      });
+    }
+
+    function render() {
+      updateTabsUI();
+      updateFilterInfo();
+      var stokFiltered   = filterRows(state.stok,   'stok');
+      var demandFiltered = filterRows(state.demand, 'demand');
+      updateCounts(stokFiltered.length, demandFiltered.length);
+      if (state.tab === 'stok') renderStok(stokFiltered);
+      else renderDemand(demandFiltered);
+    }
+
+    function load(force) {
+      $body.innerHTML = '<div class="ref-panel__loading"><i class="ti ti-loader"></i>Memuat data referensi...</div>';
+      $refresh.classList.add('spinning');
+      loadData(force, function(data){
+        state.stok = data.stok;
+        state.demand = data.demand;
+        state.itemToEquiv = data.itemToEquiv;
+        $refresh.classList.remove('spinning');
+        render();
+      });
+    }
+
+    // Wire
+    $tabs.forEach(function(b){
+      b.addEventListener('click', function(){
+        state.tab = b.dataset.tab;
+        state.q = ''; $search.value = '';
+        render();
+      });
+    });
+    $search.addEventListener('input', function(){
+      state.q = $search.value.trim().toLowerCase();
+      render();
+    });
+    $refresh.addEventListener('click', function(){ load(true); });
+
+    load(false);
+
+    // Public API
+    return {
+      setFilter: function(f) {
+        state.filter = (f && (f.equiv || f.t)) ? { equiv: f.equiv || '', t: (f.t == null ? '' : f.t) } : null;
+        render();
+      },
+      clearFilter: function(){ state.filter = null; render(); },
+      setTab: function(tab){ state.tab = tab; render(); },
+      refresh: function(){ load(true); },
+      destroy: function(){ el.innerHTML = ''; }
+    };
+  };
+})();
+</script>

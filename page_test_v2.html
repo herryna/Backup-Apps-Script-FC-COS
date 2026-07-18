@@ -1,0 +1,147 @@
+<div style="padding:24px; max-width:900px; margin:0 auto;">
+
+  <h2 style="margin-bottom:24px;">🎨 Test Design System v2</h2>
+
+  <!-- Test 1: Text Colors -->
+  <div class="u-card u-mb-6">
+    <div class="u-card__header">
+      <h3 class="u-card__title">1. Text Colors</h3>
+    </div>
+    <div class="u-card__body">
+      <div class="u-text-primary u-mb-2">Primary — Item SPCC-1.2x1219x2438</div>
+      <div class="u-text-secondary u-mb-2">Secondary — Owner FC · Cust SUP</div>
+      <div class="u-text-tertiary u-mb-2">Tertiary — updated 2 menit lalu</div>
+      <div class="u-text-disabled">Disabled — field locked</div>
+    </div>
+  </div>
+
+  <!-- Test 2: Badges -->
+  <div class="u-card u-mb-6">
+    <div class="u-card__header">
+      <h3 class="u-card__title">2. Badges (Status + Owner)</h3>
+    </div>
+    <div class="u-card__body">
+      <div class="u-flex u-gap-2 u-flex-wrap u-mb-3">
+        <span class="u-badge">DEFAULT</span>
+        <span class="u-badge u-badge--success">DONE</span>
+        <span class="u-badge u-badge--warning">RUNNING</span>
+        <span class="u-badge u-badge--danger">CANCELLED</span>
+        <span class="u-badge u-badge--info">DRAFT</span>
+      </div>
+      <div class="u-flex u-gap-2 u-flex-wrap u-mb-3">
+        <span class="u-badge u-badge--solid u-badge--success">SOLID DONE</span>
+        <span class="u-badge u-badge--solid u-badge--warning">SOLID RUN</span>
+        <span class="u-badge u-badge--solid u-badge--danger">SOLID CXL</span>
+      </div>
+      <div class="u-flex u-gap-2">
+        <span class="u-badge u-badge--owner-fc">FC</span>
+        <span class="u-badge u-badge--owner-drc">DRC</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 3: Buttons -->
+  <div class="u-card u-mb-6">
+    <div class="u-card__header">
+      <h3 class="u-card__title">3. Buttons</h3>
+    </div>
+    <div class="u-card__body">
+      <div class="u-flex u-gap-2 u-flex-wrap u-mb-3">
+        <button class="u-btn">Default</button>
+        <button class="u-btn u-btn--primary">Primary Save</button>
+        <button class="u-btn u-btn--success">Success</button>
+        <button class="u-btn u-btn--danger">Delete</button>
+        <button class="u-btn u-btn--ghost">Ghost</button>
+      </div>
+      <div class="u-flex u-gap-2">
+        <button class="u-btn u-btn--sm">Small</button>
+        <button class="u-btn">Medium</button>
+        <button class="u-btn u-btn--lg u-btn--primary">Large Primary</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 4: Form -->
+  <div class="u-card u-mb-6">
+    <div class="u-card__header">
+      <h3 class="u-card__title">4. Form Inputs</h3>
+    </div>
+    <div class="u-card__body">
+      <div class="u-mb-3">
+        <label class="u-label u-label--required">Item Code</label>
+        <input class="u-input" placeholder="SPCC-1.2x1219x2438" />
+      </div>
+      <div class="u-mb-3">
+        <label class="u-label">Owner</label>
+        <select class="u-select">
+          <option>FC</option>
+          <option>DRC</option>
+        </select>
+      </div>
+      <div class="u-mb-3">
+        <label class="u-label">Quantity Error</label>
+        <input class="u-input u-input--error" value="9999" />
+        <span class="u-hint u-hint--error">Melebihi stok tersedia (2500 kg)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 5: Table -->
+  <div class="u-card u-mb-6">
+    <div class="u-card__header">
+      <h3 class="u-card__title">5. Table</h3>
+    </div>
+    <table class="u-table">
+      <thead>
+        <tr>
+          <th>SPK No</th>
+          <th>Item</th>
+          <th>Owner</th>
+          <th>Qty (kg)</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="u-text-mono">CTL-260029-01</td>
+          <td>SPCC-1.2x1219</td>
+          <td><span class="u-badge u-badge--owner-fc">FC</span></td>
+          <td class="u-text-tabular u-text-right">2,450</td>
+          <td><span class="u-badge u-badge--warning">RUNNING</span></td>
+        </tr>
+        <tr>
+          <td class="u-text-mono">CTL-260029-02</td>
+          <td>SPCC-1.0x1000</td>
+          <td><span class="u-badge u-badge--owner-drc">DRC</span></td>
+          <td class="u-text-tabular u-text-right">1,800</td>
+          <td><span class="u-badge u-badge--success">DONE</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Test 6: Dark Mode Toggle -->
+  <div class="u-card u-mb-6">
+    <div class="u-card__header">
+      <h3 class="u-card__title">6. Dark Mode Toggle</h3>
+    </div>
+    <div class="u-card__body">
+      <button class="u-btn u-btn--primary" onclick="toggleTestTheme()">
+        🌙 Toggle Dark Mode
+      </button>
+      <div class="u-hint u-mt-2">Klik → semua card, badge, tabel harus flip ke tema gelap. Klik lagi → balik terang.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggleTestTheme() {
+  const root = document.documentElement;
+  if (root.getAttribute('data-theme') === 'dark') {
+    root.removeAttribute('data-theme');
+  } else {
+    root.setAttribute('data-theme', 'dark');
+  }
+}
+</script>
