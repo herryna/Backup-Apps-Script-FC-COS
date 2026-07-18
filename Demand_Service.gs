@@ -108,6 +108,23 @@ function _demReadSheet(sheetName) {
 // =========================================================================
 // 3. LOOKUP BUILDERS
 // =========================================================================
+
+// UoM di-derive dari kolom TYPE di M_ITEM (bukan dari "Unit of Measure").
+// Alasan: untuk customer SUP & HKB, kolom "Unit of Measure" di M_ITEM di-set KG
+// (karena SO mereka beli by berat), padahal system COS butuh satuan fisik sesuai
+// bentuk material.
+//   Part  → PCS
+//   Sheet → LBR
+//   Coil  → KG
+// Fallback '' kalau TYPE kosong/nggak dikenal — biar cepet ketahuan item bermasalah.
+function _demUomFromType(type) {
+  var t = String(type || '').trim().toLowerCase();
+  if (t === 'part')  return 'PCS';
+  if (t === 'sheet') return 'LBR';
+  if (t === 'coil')  return 'KG';
+  return '';
+}
+
 function _demBuildItemMap(mItemRows) {
   // { item_code: { description, spec, t, p, l, uom, equivalent, wg_pce } }
   var map = {};
@@ -120,7 +137,8 @@ function _demBuildItemMap(mItemRows) {
       t:           _demNum(row['T']),
       p:           _demNum(row['P']),
       l:           _demNum(row['L']),
-      uom:         String(row['Unit of Measure'] || 'Pcs').trim(),
+      type:        String(row['TYPE'] || '').trim(),
+      uom:         _demUomFromType(row['TYPE']),
       equivalent:  String(row['Equivalent'] || '').trim(),
       wg_pce:      _demNum(row['Wg/Pce FC'])
     };
@@ -251,7 +269,7 @@ function _demBuildFromSO(soRow, itemMap, spkIndex, fgIndex, sheetIndex) {
     t:                t,
     p:                _demNum(soRow['P']) || mi.p || 0,
     l:                _demNum(soRow['L']) || mi.l || 0,
-    uom:              String(soRow['UoM'] || mi.uom || '').trim(),
+    uom:              mi.uom || '',
     qty_demand:       qtyDemand,
     kg_demand:        kgDemand,
     spk_list:         spkListDisplay,
@@ -343,7 +361,7 @@ function _demBuildFromSTP(stpRow, itemMap, spkIndex, fgIndex, sheetIndex) {
     t:                t,
     p:                _demNum(stpRow['P']) || mi.p || 0,
     l:                _demNum(stpRow['L']) || mi.l || 0,
-    uom:              String(stpRow['UoM'] || mi.uom || '').trim(),
+    uom:              mi.uom || '',
     qty_demand:       qtyDemand,
     kg_demand:        kgDemand,
     spk_list:         spkListDisplay,

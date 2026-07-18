@@ -864,11 +864,12 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
     var ref  = String(refNo).trim().toUpperCase();
     var item = String(itemCode || '').trim().toUpperCase();
     return _demandData.find(function(r) {
-      var rRef  = String(r.Ref_No    || '').trim().toUpperCase();
-      var rItem = String(r.Item_Code || '').trim().toUpperCase();
-      var rSheet= String(r.Item_Sheet|| '').trim().toUpperCase();
-      var refMatch  = rRef === ref || rRef.indexOf(ref) > -1;
-      var itemMatch = !item || rItem === item || rSheet === item;
+      // 🔒 Pilihan A: field lowercase (mirror SHR standalone)
+      var rRef  = String(r.ref_no    || '').trim().toUpperCase();
+      var rItem = String(r.item_code || '').trim().toUpperCase();
+      // Bi-directional prefix match (mirror SHR standalone)
+      var refMatch  = rRef === ref || rRef.indexOf(ref) === 0 || ref.indexOf(rRef) === 0;
+      var itemMatch = !item || rItem === item;
       return refMatch && itemMatch;
     });
   }
@@ -881,11 +882,12 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
 
     var custVal = '';
     if (soVal && _demandData.length > 0) {
+      // 🔒 Pilihan A: field lowercase, bi-directional match (mirror SHR standalone)
       var found = _demandData.find(function(r) {
-        var rRef = String(r.Ref_No || '').trim().toUpperCase();
-        return rRef === soVal || rRef.indexOf(soVal) > -1;
+        var rRef = String(r.ref_no || '').trim().toUpperCase();
+        return rRef === soVal || rRef.indexOf(soVal) === 0 || soVal.indexOf(rRef) === 0;
       });
-      if (found) custVal = String(found.Cust || '').trim();
+      if (found) custVal = String(found.cust || '').trim();
     }
 
     if (type === 'ctl') {
@@ -900,10 +902,14 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
         shr1So.value   = inputEl.value;
         shr1Cust.value = custVal;
         validateShrItem(ctlN, 1, 1);
+        // 🔒 Step 2: Re-apply owner lock setelah cust auto-fill
+        if (typeof applyShrChildOwnerLock === 'function') applyShrChildOwnerLock(ctlN, 1, 1);
       }
     } else {
       document.getElementById('shr-cust-'+ctlN+'-'+shrIdx+'-'+subI).value = custVal;
       validateShrItem(ctlN, shrIdx, subI);
+      // 🔒 Step 2: Re-apply owner lock setelah cust berubah
+      if (typeof applyShrChildOwnerLock === 'function') applyShrChildOwnerLock(ctlN, shrIdx, subI);
     }
   };
 
@@ -922,11 +928,13 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
     if (!needsVal || !soVal || !itemVal) return true;
     if (typeof _demandData === 'undefined' || _demandData.length === 0) return true;
 
+    // 🔒 Pilihan A: field lowercase
     var demandRow = _demandData.find(function(r) {
-      var rRef  = String(r.Ref_No || '').trim().toUpperCase();
-      var rItem = String(r.Item_Code || '').trim().toUpperCase();
-      var rSheet= String(r.Item_Sheet || '').trim().toUpperCase();
-      return (rRef === soVal || rRef.indexOf(soVal) > -1) && (rItem === itemVal || rSheet === itemVal);
+      var rRef  = String(r.ref_no    || '').trim().toUpperCase();
+      var rItem = String(r.item_code || '').trim().toUpperCase();
+      var refMatch  = (rRef === soVal || rRef.indexOf(soVal) === 0 || soVal.indexOf(rRef) === 0);
+      var itemMatch = (rItem === itemVal);
+      return refMatch && itemMatch;
     });
 
     if (!demandRow) {
@@ -979,7 +987,8 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
 
     var demandRow = findDemandRow(getCleanStr(soEl.value), getCleanStr(itemEl.value));
     if (!demandRow) return true;
-    var netReq  = parseFloat(demandRow.Net_Req) || 0;
+    // 🔒 Pilihan A: field lowercase
+    var netReq  = parseFloat(demandRow.net_req) || 0;
     var qtyPlan = parseFloat(qtyEl.value) || 0;
     if (netReq <= 0 || qtyPlan <= 0) return true;
 
@@ -1273,7 +1282,13 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
     document.getElementById('hdr-date').textContent = new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
     loadStokCoil();
     google.script.run.withSuccessHandler(function(items){ _masterItems = Array.isArray(items) ? items : []; }).getSheetData('M_ITEM');
-    google.script.run.withSuccessHandler(function(d){ _demandData = Array.isArray(d) ? d : []; }).getSheetData('Demand_View');
+    // 🔒 Pilihan A: pakai getDemandData() service (Demand_View sheet sudah dihapus)
+    google.script.run.withSuccessHandler(function(d){
+      _demandData = (d && Array.isArray(d.demands)) ? d.demands : [];
+    }).withFailureHandler(function(err){
+      console.error('getDemandData failed:', err);
+      _demandData = [];
+    }).getDemandData();
     // 🟢 Step 2 — Fetch SHR machines list dari M_MC (active only)
     google.script.run.withSuccessHandler(function(m){ window._shrMachines = Array.isArray(m) ? m : []; }).getMachinesByType('SHR', true);
     document.getElementById('hdr-spkno').textContent = '(auto)';
@@ -1544,7 +1559,13 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
     var isDrc = (cust === 'DRC' || cust.indexOf('DRC') === 0);
     if (!isDrc) return;
     var targetEl = document.getElementById('ctl-target-'+n);
-    if (targetEl && targetEl.value === 'Scrap_Area') return;
+    // 🔒 Step 3 (Bug A): guard locked targets — WIP/Scrap/Stok_Sheet ikut material Owner, jangan di-force DRC
+    if (targetEl && (
+        targetEl.value === 'Scrap_Area' ||
+        targetEl.value === 'WIP_Cust' ||
+        targetEl.value === 'WIP_Stamping' ||
+        targetEl.value === 'Stok_Sheet'
+    )) return;
     var ownerUsedInp = document.getElementById('ctl-owner-used-'+n);
     var badge        = document.getElementById('ctl-badge-'+n);
     if (!ownerUsedInp || !badge) return;
@@ -1552,6 +1573,73 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
     badge.textContent  = 'DRC'; badge.className    = 'owner-badge badge-drc';
     badge.style.cursor = 'default'; badge.style.pointerEvents = 'none'; badge.style.opacity = '0.75';
     badge.title = 'Terkunci — customer DRC';
+  };
+
+  /* ═════════════════════════════════════════════════════════════
+   * STEP 2 — CHILD SHR (Stage 1 & Stage 2) OWNER AUTO-LOCK
+   * ─────────────────────────────────────────────────────────────
+   * Rule:
+   *   - WIP_* / Scrap_Area / Stok_Sheet / Stok_NG → LOCK ke coilOwner
+   *   - FG_* + Cust=DRC                          → LOCK ke DRC
+   *   - FG_* + Cust≠DRC                          → default coilOwner, UNLOCK (toggle)
+   * ═════════════════════════════════════════════════════════════ */
+  window.applyShrChildOwnerLock = function(ctlN, shrIdx, subI) {
+    var targetEl    = document.getElementById('shr-target-'+ctlN+'-'+shrIdx+'-'+subI);
+    var custEl      = document.getElementById('shr-cust-'+ctlN+'-'+shrIdx+'-'+subI);
+    var ownerInp    = document.getElementById('shr-owner-'+ctlN+'-'+shrIdx+'-'+subI);
+    var badge       = document.getElementById('shr-badge-'+ctlN+'-'+shrIdx+'-'+subI);
+    var coilOwnerEl = document.getElementById('ctl-owner-'+ctlN);
+    if (!targetEl || !ownerInp || !badge || !coilOwnerEl) return;
+
+    var target    = targetEl.value;
+    var coilOwner = coilOwnerEl.value || 'FC';
+    var cust      = custEl ? String(custEl.value || '').trim().toUpperCase() : '';
+    var isDrc     = (cust === 'DRC' || cust.indexOf('DRC') === 0);
+
+    // Locked targets: Owner_Used = coilOwner (material asal)
+    var isLockedTarget = (
+      target === 'WIP_Cust' ||
+      target === 'WIP_Stamping' ||
+      target === 'WIP_Transit_Shearing' ||
+      target === 'Scrap_Area' ||
+      target === 'Stok_Sheet' ||
+      target === 'Stok_NG'
+    );
+
+    if (isLockedTarget) {
+      ownerInp.value    = coilOwner;
+      badge.textContent = coilOwner;
+      badge.className   = 'owner-badge ' + (coilOwner === 'DRC' ? 'badge-drc' : 'badge-fc');
+      badge.style.cursor        = 'default';
+      badge.style.pointerEvents = 'none';
+      badge.style.opacity       = '0.65';
+      badge.title = '🔒 Terkunci — target ' + target + ' ikut owner material (' + coilOwner + ')';
+      return;
+    }
+
+    // FG_* target: depends on Cust
+    if (isDrc) {
+      ownerInp.value    = 'DRC';
+      badge.textContent = 'DRC';
+      badge.className   = 'owner-badge badge-drc';
+      badge.style.cursor        = 'default';
+      badge.style.pointerEvents = 'none';
+      badge.style.opacity       = '0.75';
+      badge.title = '🔒 Terkunci — customer DRC';
+    } else {
+      // FG_* + non-DRC cust → default coilOwner, UNLOCK (bisa toggle FC↔DRC)
+      if (!ownerInp.value) ownerInp.value = coilOwner;
+      badge.textContent = ownerInp.value;
+      badge.className   = 'owner-badge ' + (ownerInp.value === 'DRC' ? 'badge-drc' : 'badge-fc');
+      badge.style.cursor        = 'pointer';
+      badge.style.pointerEvents = '';
+      badge.style.opacity       = '1';
+      badge.title = 'Klik untuk toggle FC ↔ DRC';
+    }
+  };
+
+  window.handleShrChildTarget = function(ctlN, shrIdx, subI) {
+    applyShrChildOwnerLock(ctlN, shrIdx, subI);
   };
 
   window.addSHR=function(ctlN){
@@ -1632,7 +1720,7 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
             '<span class="so-lbl">SO No</span>'+
             '<input class="so-inp" style="width:125px; margin-right:4px;" id="shr-so-'+ctlN+'-'+shrIdx+'-'+i+'" value="'+iniSo+'" placeholder="SO No" onchange="handleSoChange(\'shr\','+ctlN+','+shrIdx+','+i+')">'+
             '<span class="so-lbl">Cust</span>'+
-            '<input class="so-inp" style="width:65px;" id="shr-cust-'+ctlN+'-'+shrIdx+'-'+i+'" value="'+iniCust+'" placeholder="Cust" >'+
+            '<input class="so-inp" style="width:65px;" id="shr-cust-'+ctlN+'-'+shrIdx+'-'+i+'" value="'+iniCust+'" placeholder="Cust" onchange="handleShrChildTarget('+ctlN+','+shrIdx+','+i+')">'+
             actionGroupHtml + 
           '</div>'+
           '<table class="ctl-tbl">'+
@@ -1655,7 +1743,7 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
               '</td>'+
               '<td>'+roInput('shr-qty-'+ctlN+'-'+shrIdx+'-'+i,'100%')+'</td>'+
               '<td>'+roInput('shr-kg-'+ctlN+'-'+shrIdx+'-'+i,'100%')+'</td>'+
-              '<td><select id="shr-target-'+ctlN+'-'+shrIdx+'-'+i+'" style="width:100%" >'+
+              '<td><select id="shr-target-'+ctlN+'-'+shrIdx+'-'+i+'" style="width:100%" onchange="handleShrChildTarget('+ctlN+','+shrIdx+','+i+')">'+
                 '<option value="FG_Cust">FG_Cust</option>'+
                 '<option value="WIP_Cust">WIP_Cust</option>'+
                 '<option value="WIP_Stamping">WIP_Stamping</option>'+
@@ -1668,6 +1756,10 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
     }
     content.innerHTML=html;
     for(var j=1;j<=total;j++) calcShrQty(ctlN,shrIdx,j);
+    // 🔒 Step 2: Init owner lock untuk tiap sub-panel
+    for(var k=1;k<=total;k++) {
+      if (typeof applyShrChildOwnerLock === 'function') applyShrChildOwnerLock(ctlN, shrIdx, k);
+    }
   };
 
   // ============================================================
@@ -1744,7 +1836,7 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
           '<span class="so-lbl">SO No</span>'+
           '<input class="so-inp" style="width:125px; margin-right:4px;" id="shr-so-'+ctlN+'-2-1" value="'+defaultSo+'" placeholder="SO No" onchange="handleSoChange(\'shr\','+ctlN+',2,1)">'+
           '<span class="so-lbl">Cust</span>'+
-          '<input class="so-inp" style="width:65px;" id="shr-cust-'+ctlN+'-2-1" value="'+defaultCust+'" placeholder="Cust">'+
+          '<input class="so-inp" style="width:65px;" id="shr-cust-'+ctlN+'-2-1" value="'+defaultCust+'" placeholder="Cust" onchange="handleShrChildTarget('+ctlN+',2,1)">'+
           '<div class="action-group">'+
             mcDropdown +
             '<button type="button" class="btn-hps" title="Hapus Stage 2" onclick="toggleStage2('+ctlN+')">🗑️</button>'+
@@ -1770,7 +1862,7 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
             '</td>'+
             '<td>'+roInput('shr-qty-'+ctlN+'-2-1','100%')+'</td>'+
             '<td>'+roInput('shr-kg-'+ctlN+'-2-1','100%')+'</td>'+
-            '<td><select id="shr-target-'+ctlN+'-2-1" style="width:100%">'+
+            '<td><select id="shr-target-'+ctlN+'-2-1" style="width:100%" onchange="handleShrChildTarget('+ctlN+',2,1)">'+
               '<option value="FG_Cust">FG_Cust</option>'+
               '<option value="WIP_Cust">WIP_Cust</option>'+
               '<option value="WIP_Stamping">WIP_Stamping</option>'+
@@ -1783,6 +1875,8 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
       '</div>';
 
     panel.innerHTML = html;
+    // 🔒 Step 2: Init owner lock Stage 2
+    if (typeof applyShrChildOwnerLock === 'function') applyShrChildOwnerLock(ctlN, 2, 1);
   };
 
   // Recalc qty Stage 2 = qty Stage 1 OUT × cut_p × cut_l (parent dari Req SHR 1)
@@ -2200,6 +2294,8 @@ function populateFormFromSpk(res) {
           if (shrIdInput && shr.spk_no) shrIdInput.value = shr.spk_no; // SHOW REAL ID
 
           calcShrQty(n, 1, i);
+          // 🔒 Step 2: Re-apply owner lock setelah restore edit mode
+          if (typeof applyShrChildOwnerLock === 'function') applyShrChildOwnerLock(n, 1, i);
         });
 
         // 🟢 Step 3.B — Restore Stage 2 kalau ada di SPK existing
@@ -2245,6 +2341,8 @@ function populateFormFromSpk(res) {
             if (s2.spk_no) panel2.dataset.existingStage2HeaderNo = s2.spk_no;
 
             calcShrStage2Qty(n);
+            // 🔒 Step 2: Re-apply owner lock Stage 2 setelah restore edit mode
+            if (typeof applyShrChildOwnerLock === 'function') applyShrChildOwnerLock(n, 2, 1);
           }
         }
       }

@@ -882,8 +882,9 @@ function saveBoardActualData(payload) {
           });
         }
 
-        // Rekap ICT: Owner ≠ Owner_Used
-        if (owner && ownerUsed && owner !== ownerUsed) {
+        // Rekap ICT: Owner ≠ Owner_Used DAN Target_Loc = FG
+        // 🔒 GUARD: hanya trigger cross-billing kalau hasilnya sudah jadi FG (FG_Cust / FG_RM_Stamping)
+        if (owner && ownerUsed && owner !== ownerUsed && isFG) {
           writeRekapICT({
             tgl        : timestamp,
             spk_no     : payload.spk_no,
@@ -3597,8 +3598,9 @@ function saveAndRefreshBoard(payload, machineNo) {
           _propagateShtBatchToShrChildren(spkSheet, rows, headers, I, payload.spk_no, ctlNewBatch);
         }
 
-        // Cross-billing kalau owner ≠ owner_used (FC↔DRC)
-        if (owner && ownerUsed && owner !== ownerUsed) {
+        // Cross-billing kalau owner ≠ owner_used (FC↔DRC) DAN target_loc = FG
+        // 🔒 GUARD: hanya trigger kalau hasilnya sudah jadi FG (FG_Cust / FG_RM_Stamping)
+        if (owner && ownerUsed && owner !== ownerUsed && ctlIsFG) {
           writeRekapICT({
             tgl : timestamp, spk_no : payload.spk_no, item_code : itemCode,
             description : mi.desc, dari_owner : owner, ke_owner : ownerUsed,
@@ -3640,7 +3642,8 @@ function saveAndRefreshBoard(payload, machineNo) {
             owner : owner, owner_used : ownerUsed
           });
         }
-        if (owner && ownerUsed && owner !== ownerUsed) {
+        // 🔒 GUARD FG-only: hanya trigger cross-billing kalau hasilnya sudah jadi FG
+        if (owner && ownerUsed && owner !== ownerUsed && isFG) {
           writeRekapICT({
             tgl : timestamp, spk_no : payload.spk_no, item_code : itemCode,
             description : mi.desc, dari_owner : owner, ke_owner : ownerUsed,
@@ -4402,8 +4405,9 @@ function finalizeShrBatch(payload, machineNo) {
             owner        : owner, owner_used: ownerUsed
           });
 
-          // Cross-billing Rekap_ICT (Owner ≠ Owner_Used)
-          if (owner && ownerUsed && owner !== ownerUsed && typeof writeRekapICT === 'function') {
+          // Cross-billing Rekap_ICT (Owner ≠ Owner_Used) — 🔒 GUARD FG-only
+          // hanya trigger kalau hasilnya sudah jadi FG (FG_Cust / FG_RM_Stamping)
+          if (owner && ownerUsed && owner !== ownerUsed && isFG && typeof writeRekapICT === 'function') {
             writeRekapICT({
               tgl: timestamp, spk_no: oSpk, item_code: itemCode,
               description: mi.desc, dari_owner: owner, ke_owner: ownerUsed,

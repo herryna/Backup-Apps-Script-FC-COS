@@ -694,6 +694,24 @@ td { padding:8px 12px; border-bottom:1px solid #e2e8f0; vertical-align:middle;
     if (!r) return;
     if (field === 'qty_jalur') r[field] = Number(val) || 0;
     else r[field] = String(val || '');
+
+    // 🔒 Step 5 (Bug F): auto-lock owner_used untuk target locked (Stok_Coil = sisa coil, ikut owner material)
+    if (field === 'target_loc') {
+      var coilOwner = (_selectedCoil ? _selectedCoil.owner : 'FC') || 'FC';
+      if (r.target_loc === 'Stok_Coil') {
+        r.owner_used = coilOwner;
+      }
+      renderJalurTable(settingNo);
+    }
+
+    // Guard: kalau user coba ubah owner_used sementara target locked → revert
+    if (field === 'owner_used' && r.target_loc === 'Stok_Coil') {
+      var lockOwner = (_selectedCoil ? _selectedCoil.owner : 'FC') || 'FC';
+      r.owner_used = lockOwner;
+      alert('🔒 Owner_Used ter-lock ke ' + lockOwner + ' karena target Stok_Coil (sisa coil ikut owner material).');
+      renderJalurTable(settingNo);
+    }
+
     computeSummary();
   };
 
@@ -776,7 +794,13 @@ td { padding:8px 12px; border-bottom:1px solid #e2e8f0; vertical-align:middle;
     var r = rows.find(function(x){ return x.id === rowId; });
     if (!r) return;
     r.so_ref = so.so_no; r.cust = so.cust;
-    if (String(so.cust||'').toUpperCase() === 'DRC') r.owner_used = 'DRC';
+    // 🔒 Step 5B: guard Stok_Coil — sisa coil ikut owner material, tidak override ke DRC
+    if (String(so.cust||'').toUpperCase() === 'DRC' && r.target_loc !== 'Stok_Coil') {
+      r.owner_used = 'DRC';
+    } else if (r.target_loc === 'Stok_Coil') {
+      var coilOwner = (_selectedCoil ? _selectedCoil.owner : 'FC') || 'FC';
+      r.owner_used = coilOwner;
+    }
     document.getElementById('ac-so-' + rowId).classList.remove('show');
     renderJalurTable(settingNo); computeSummary();
   };

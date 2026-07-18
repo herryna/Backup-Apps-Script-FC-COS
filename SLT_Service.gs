@@ -1606,8 +1606,12 @@ function sltCloseSpkFinal(payload) {
       }
 
       // ═══ WRITE REKAP_ICT (kalau Owner ≠ Owner_Used) ═══
+      // 🔒 GUARD FG-only: valid FG targets = Stok_FG, FG_RM_Stamping, FG_Cust
+      // Skip: Stok_Coil (sisa coil), WIP_*, Stok_Sheet — belum jadi FG
+      var sltIsFG = (tgtLoc === 'Stok_FG' || (tgtLoc && tgtLoc.indexOf('FG_') === 0));
       if (ownerHeader && ownerUsed &&
           ownerHeader.toUpperCase() !== ownerUsed.toUpperCase() &&
+          sltIsFG &&
           typeof writeRekapICT === 'function') {
         try {
           writeRekapICT({

@@ -1008,13 +1008,18 @@ document.addEventListener('keydown', function(e) {
     if (!targetEl||!ownerInp||!ownerUsedInp||!badge) return;
     var target   = targetEl.value;
     var matOwner = ownerInp.value;
-    if (target==='WIP_Cust'||target==='WIP_Stamping') {
+    if (target==='WIP_Cust'||target==='WIP_Stamping'||target==='Stok_Sheet') {
+      // 🔒 Step 4B (Bug E): Stok_Sheet ikut Owner material (formula-derived di sheet)
       ownerUsedInp.value=matOwner; badge.textContent=matOwner;
       badge.className='owner-badge '+(matOwner==='DRC'?'badge-drc':'badge-fc');
       badge.style.cursor='default'; badge.style.pointerEvents='none'; badge.style.opacity='0.65';
+      badge.title='🔒 Terkunci — target '+target+' ikut owner material ('+matOwner+')';
     } else if (target==='Scrap_Area') {
-      ownerUsedInp.value='FC'; badge.textContent='FC'; badge.className='owner-badge badge-fc';
-      badge.style.cursor='pointer'; badge.style.pointerEvents=''; badge.style.opacity='1';
+      // 🔒 Step 4A (Bug D): scrap ikut Owner material asal (bukan force FC)
+      ownerUsedInp.value=matOwner; badge.textContent=matOwner;
+      badge.className='owner-badge '+(matOwner==='DRC'?'badge-drc':'badge-fc');
+      badge.style.cursor='default'; badge.style.pointerEvents='none'; badge.style.opacity='0.65';
+      badge.title='🔒 Terkunci — scrap ikut owner material ('+matOwner+')';
     } else {
       badge.style.cursor='pointer'; badge.style.pointerEvents=''; badge.style.opacity='1';
     }
@@ -1078,8 +1083,13 @@ document.addEventListener('keydown', function(e) {
     var cust=String(custVal||'').trim().toUpperCase();
     var isDrc=(cust==='DRC'||cust.indexOf('DRC')===0);
     var targetEl=document.getElementById('shr-target-'+n);
-    // Skip kalau target Scrap/WIP — sudah di-handle handleShrTargetChange
-    if (targetEl && (targetEl.value==='Scrap_Area'||targetEl.value==='WIP_Cust'||targetEl.value==='WIP_Stamping')) return;
+    // 🔒 Step 4C: Skip kalau target locked — sudah di-handle handleShrTargetChange
+    if (targetEl && (
+        targetEl.value==='Scrap_Area'||
+        targetEl.value==='WIP_Cust'||
+        targetEl.value==='WIP_Stamping'||
+        targetEl.value==='Stok_Sheet'
+    )) return;
     var ownerUsedInp=document.getElementById('shr-owner-used-'+n);
     var badge=document.getElementById('shr-badge-'+n);
     if (!ownerUsedInp||!badge) return;

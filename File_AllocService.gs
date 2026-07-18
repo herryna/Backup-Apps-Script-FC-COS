@@ -276,7 +276,8 @@ function saveSPK_ALLOC(data) {
             case 'Tgl_Transfer': return ts;
             case 'SPK_No'      : return outNo;
             case 'Item_Code'   : return out.item_code || data.batch_item_code || '';
-            case 'Spec'        : return out.description || data.batch_spec || '';
+            // 🔒 Step 6 (Bug H): header sheet Rekap_ICT = "Description" bukan "Spec"
+            case 'Description' : return out.description || data.batch_spec || '';
             case 'Dari_Owner'  : return bOwner;
             case 'Ke_Owner'    : return oUsed;
             case 'Qty_Sht'     : return oQty;
