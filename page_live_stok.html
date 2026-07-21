@@ -135,6 +135,16 @@
   font-size: 12px; font-weight: 500; cursor: pointer;
 }
 .ls-btn-clear:hover { background: #f1f5f9; border-color: #1a3a6e; color: #1a3a6e; }
+.ls-btn-export-daily {
+  margin-left: auto;
+  background: #16a34a; color: #fff; border: none;
+  padding: 6px 12px; height: 28px; border-radius: 4px;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+  white-space: nowrap;
+}
+.ls-btn-export-daily:hover:not(:disabled) { background: #15803d; }
+.ls-btn-export-daily:disabled { background: #94a3b8; cursor: not-allowed; }
 .ls-filter-info {
   margin-top: 10px; padding-top: 8px; border-top: 1px dashed #e2e8f0;
   font-size: 11px; color: #64748b;
@@ -842,6 +852,12 @@
         (cntCrit > 0 ? ' <b style="color:#c62828">🔴 ' + cntCrit + '</b>' : '') +
       '</span>';
     }
+
+    // Tombol Export Harian — selalu di ujung kanan info bar
+    html += '<button class="ls-btn-export-daily" id="ls-btn-export-daily" ' +
+            'title="Export laporan stok harian per kategori (Excel, status Available, respect filter Kat/Owner/Aging/Search)">' +
+            '📥 Export Harian</button>';
+
     document.getElementById('ls-filter-info').innerHTML = html;
   }
 
@@ -1163,6 +1179,242 @@
     ls_renderStrip();
     ls_renderTable();
   }
+
+  // ======================================================================
+  // EXPORT HARIAN — Excel per kategori (status=Available, respect filter)
+  // ======================================================================
+  var LS_EXPORT_RUNNING = false;
+
+  function ls_loadSheetJS(cb) {
+    if (window.XLSX) { cb(); return; }
+    var btn = document.getElementById('ls-btn-export-daily');
+    var ORIG = btn ? btn.innerHTML : '';
+    if (btn) { btn.innerHTML = '⏳ Loading…'; btn.disabled = true; }
+    var s = document.createElement('script');
+    s.src = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+    s.onload  = function() { if (btn) { btn.innerHTML = ORIG; btn.disabled = false; } cb(); };
+    s.onerror = function() {
+      if (btn) { btn.innerHTML = ORIG; btn.disabled = false; }
+      alert('Gagal load library SheetJS. Cek koneksi internet.');
+    };
+    document.head.appendChild(s);
+  }
+
+  function ls_getMonthLabelID(m) {
+    var MID = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    return MID[m] || '';
+  }
+
+  function ls_getExportFilename() {
+    var d = new Date();
+    var pad = function(n) { return n < 10 ? '0' + n : String(n); };
+    var yy  = String(d.getFullYear()).slice(-2);
+    var mmm = ls_getMonthLabelID(d.getMonth());
+    var dd  = pad(d.getDate());
+    var hh  = pad(d.getHours());
+    var mn  = pad(d.getMinutes());
+    return 'Check Stok harian_' + yy + '-' + mmm + '-' + dd + ' ' + hh + '-' + mn + '.xlsx';
+  }
+
+  function ls_getExportTimestampLabel() {
+    var d = new Date();
+    var pad = function(n) { return n < 10 ? '0' + n : String(n); };
+    return pad(d.getDate()) + '-' + ls_getMonthLabelID(d.getMonth()) + '-' + d.getFullYear() +
+           ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  function ls_exportHarian() {
+    if (LS_EXPORT_RUNNING) return;
+    if (!LS_DATA) { alert('Data belum dimuat. Klik Refresh dulu.'); return; }
+
+    var num = function(v) { return parseFloat(v) || 0; };
+
+    // ABAIKAN filter UI — ambil semua batch dari 5 kategori
+    // Formula AVAIL fisik = IN − CONSUMED (KEEP tidak dikurangi, karena
+    // KEEP = SPK sudah dibuat tapi belum RUNNING → fisik masih ada di gudang)
+    var filtered = [];
+    ['coil','sheet','wip','fg','ng'].forEach(function(cat) {
+      var arr = LS_DATA.batches[cat] || [];
+      arr.forEach(function(b) {
+        b._category = cat;
+        var qAvail = num(b.qty_in) - ls_computeKonsumsi(b, 'qty');
+        var kAvail = num(b.kg_in)  - ls_computeKonsumsi(b, 'kg');
+        // Hanya batch yang masih ada fisiknya di gudang
+        if (qAvail > 0 || kAvail > 0) {
+          b._exportAvailQty = Math.max(0, qAvail);
+          b._exportAvailKg  = Math.max(0, kAvail);
+          filtered.push(b);
+        }
+      });
+    });
+
+    if (filtered.length === 0) {
+      alert('Tidak ada batch dengan stok fisik (IN − CONSUMED > 0) untuk di-export.');
+      return;
+    }
+
+    LS_EXPORT_RUNNING = true;
+    ls_loadSheetJS(function() {
+      try {
+        ls_buildExport(filtered);
+      } catch (e) {
+        alert('Export gagal: ' + (e.message || e));
+      }
+      LS_EXPORT_RUNNING = false;
+    });
+  }
+
+  function ls_buildExport(rows) {
+    var CATS = [
+      { key:'coil',  label:'COIL'  },
+      { key:'sheet', label:'SHEET' },
+      { key:'wip',   label:'WIP'   },
+      { key:'fg',    label:'FG'    },
+      { key:'ng',    label:'NG'    }
+    ];
+
+    // Bucket per kategori
+    var byCat = { coil:[], sheet:[], wip:[], fg:[], ng:[] };
+    rows.forEach(function(b) {
+      var c = b._category;
+      if (byCat[c]) byCat[c].push(b);
+    });
+
+    // Sort tiap kategori: crit > warn > fresh, lalu age desc
+    var tierW = { crit:3, warn:2, fresh:1 };
+    Object.keys(byCat).forEach(function(c) {
+      byCat[c].sort(function(a, b) {
+        var ta = tierW[a.aging_tier] || 0;
+        var tb = tierW[b.aging_tier] || 0;
+        if (ta !== tb) return tb - ta;
+        return (b.age_days || 0) - (a.age_days || 0);
+      });
+    });
+
+    var wb = XLSX.utils.book_new();
+    var tsLabel = ls_getExportTimestampLabel();
+    var num = function(v) { return parseFloat(v) || 0; };
+    var sheetCount = 0;
+
+    CATS.forEach(function(catDef) {
+      var arr = byCat[catDef.key] || [];
+      if (arr.length === 0) return;  // Skip kategori kosong
+
+      var aoa = [];
+      // ===== Header sheet =====
+      aoa.push(['LAPORAN STOK HARIAN — ' + catDef.label + ' (fisik tersedia di gudang)']);
+      aoa.push(['Generated: ' + tsLabel]);
+      aoa.push(['Total batch: ' + arr.length + '   |   Formula AVAIL = IN − CONSUMED']);
+      aoa.push([]);
+      // Header tabel — 10 kolom (7 data sistem + 3 kolom kosong buat cek fisik)
+      aoa.push([
+        'Kat', 'Age (hari)', 'Batch ID', 'Description', 'Vendor',
+        'AVAIL_QTY', 'AVAIL_KG',
+        'ACTUAL_QTY', 'ACTUAL_KG', 'NOTE'
+      ]);
+
+      arr.forEach(function(b) {
+        var desc   = b.description || b.spec_composite || '—';
+        var vendor = String(b.supplier || '').trim();
+        var noCoil = String(b.no_coil || '').trim();
+        var vendorFull = (vendor && noCoil) ? (vendor + ' · ' + noCoil) : (vendor || noCoil || '—');
+
+        aoa.push([
+          catDef.label,
+          num(b.age_days),
+          b.batch_id || '',
+          desc,
+          vendorFull,
+          num(b._exportAvailQty),
+          num(b._exportAvailKg),
+          '', '', ''  // ACTUAL_QTY | ACTUAL_KG | NOTE — diisi manual saat cek fisik
+        ]);
+      });
+
+      // Total row
+      var totalQty = arr.reduce(function(s, b) { return s + num(b._exportAvailQty); }, 0);
+      var totalKg  = arr.reduce(function(s, b) { return s + num(b._exportAvailKg);  }, 0);
+      aoa.push([]);
+      aoa.push(['', '', '', '', 'TOTAL', totalQty, totalKg, '', '', '']);
+
+      // ===== Footer tanda tangan: PPIC | Warehouse | SPV =====
+      aoa.push([]);
+      aoa.push([]);
+
+      var labelRowIdx = aoa.length;
+      aoa.push(['PPIC', '', '', 'Warehouse', '', '', 'SPV', '', '', '']);
+
+      // 4 baris kosong sebagai area tanda tangan
+      aoa.push([]);
+      aoa.push([]);
+      aoa.push([]);
+      aoa.push([]);
+
+      var sigRowIdx = aoa.length;
+      aoa.push([
+        '( ________________ )', '', '',
+        '( ________________ )', '', '',
+        '( ________________ )', '', '', ''
+      ]);
+
+      var nameRowIdx = aoa.length;
+      aoa.push([
+        'Nama: ______________', '', '',
+        'Nama: ______________', '', '',
+        'Nama: ______________', '', '', ''
+      ]);
+
+      var ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws['!cols'] = [
+        { wch: 8  },  // Kat
+        { wch: 10 },  // Age
+        { wch: 22 },  // Batch ID
+        { wch: 42 },  // Description
+        { wch: 32 },  // Vendor
+        { wch: 14 },  // AVAIL_QTY
+        { wch: 14 },  // AVAIL_KG
+        { wch: 14 },  // ACTUAL_QTY
+        { wch: 14 },  // ACTUAL_KG
+        { wch: 30 }   // NOTE
+      ];
+
+      // Merges: title + 3 slot tanda tangan (label, garis, nama)
+      ws['!merges'] = [
+        { s:{r:0,             c:0}, e:{r:0,             c:9} }, // Title A1:J1
+        // Label peran
+        { s:{r:labelRowIdx,   c:0}, e:{r:labelRowIdx,   c:2} }, // PPIC
+        { s:{r:labelRowIdx,   c:3}, e:{r:labelRowIdx,   c:5} }, // Warehouse
+        { s:{r:labelRowIdx,   c:6}, e:{r:labelRowIdx,   c:9} }, // SPV
+        // Garis tanda tangan
+        { s:{r:sigRowIdx,     c:0}, e:{r:sigRowIdx,     c:2} },
+        { s:{r:sigRowIdx,     c:3}, e:{r:sigRowIdx,     c:5} },
+        { s:{r:sigRowIdx,     c:6}, e:{r:sigRowIdx,     c:9} },
+        // Baris nama
+        { s:{r:nameRowIdx,    c:0}, e:{r:nameRowIdx,    c:2} },
+        { s:{r:nameRowIdx,    c:3}, e:{r:nameRowIdx,    c:5} },
+        { s:{r:nameRowIdx,    c:6}, e:{r:nameRowIdx,    c:9} }
+      ];
+
+      XLSX.utils.book_append_sheet(wb, ws, catDef.label);
+      sheetCount++;
+    });
+
+    if (sheetCount === 0) {
+      alert('Tidak ada data yang bisa di-export.');
+      return;
+    }
+
+    XLSX.writeFile(wb, ls_getExportFilename());
+  }
+
+  // Delegasi klik untuk tombol Export Harian (button di-regenerate tiap render)
+  document.getElementById('ls-filter-info').addEventListener('click', function(ev) {
+    var t = ev.target;
+    while (t && t !== this) {
+      if (t.id === 'ls-btn-export-daily') { ls_exportHarian(); return; }
+      t = t.parentNode;
+    }
+  });
 
   document.getElementById('ls-btn-refresh').addEventListener('click', ls_load);
   document.getElementById('ls-btn-clear').addEventListener('click', ls_clearAllFilters);

@@ -92,7 +92,6 @@
         <div class="sub-item" onclick="goSubPage('live_board', this)">Live SPK Board</div>
         <div class="sub-item" onclick="goSubPage('spk_alloc', this)">Allocated Material</div>
         <div class="sub-item" onclick="goSubPage('spk_ctl', this)">SPK CTL</div>
-        <div class="sub-item" onclick="goSubPage('spk_ctl_v2', this)" style="background:#dbeafe; color:#1e40af; font-weight:600;">📋 SPK CTL v2 (Preview)</div>
         <div class="sub-item" onclick="goSubPage('spk_shr', this)">SPK SHR</div>
         <div class="sub-item" onclick="goSubPage('spk_slt', this)">SPK SLT</div>
         <div class="sub-item" onclick="goSubPage('stock_audit', this)">Stock Audit</div>
@@ -149,6 +148,8 @@
 <div id="toast" class="toast"></div>
 
 <?!= include('shared_js'); ?>
+    <?!= include('label_templates'); ?>
+    <?!= include('reprint_label_modal'); ?>
 
 <script>
 // ==========================================

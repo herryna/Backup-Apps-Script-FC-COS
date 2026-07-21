@@ -264,8 +264,9 @@ td{padding:8px 12px;border-bottom:1px solid #e2e8f0;vertical-align:middle;overfl
             </td>
             <td class="lbl">Source_Loc</td>
             <td>
-              <select id="hdr-source-loc" style="font-weight:700;color:var(--shr-green);width:100%">
+              <select id="hdr-source-loc" onchange="onSourceLocChangeShr(this.value)" style="font-weight:700;color:var(--shr-green);width:100%">
                 <option value="Stok_Sheet" selected>Stok_Sheet</option>
+                <option value="Stok_WIP">Stok_WIP</option>
                 <option value="WIP_Transit_Shearing">WIP_Transit_Shearing</option>
               </select>
             </td>
@@ -311,6 +312,7 @@ td{padding:8px 12px;border-bottom:1px solid #e2e8f0;vertical-align:middle;overfl
     <div style="display:flex;gap:8px;">
       <button class="btn btn-outline" onclick="showShrView('view-list')">◀ Kembali</button>
       <button class="btn btn-outline" onclick="reprintSHR()">🖨️ Re-Print SPK</button>
+      <button class="btn btn-outline" onclick="openReprintLabelModal(_detailShrNo)" style="background:#fef3c7;color:#78350f;border-color:#fbbf24;">🏷️ Reprint Label</button>
       <button class="btn btn-primary" id="btn-edit-shr" onclick="editFromDetailSHR()">✏️ Edit Data</button>
       <button class="btn" id="btn-cancel-shr" onclick="cancelFromDetailSHR()" style="background:#d32f2f;color:#fff;border:1px solid #b71c1c;font-weight:600;">🚫 Cancel SPK</button>
     </div>
@@ -815,6 +817,12 @@ document.addEventListener('keydown', function(e) {
   });
 
   window.refreshStokAvail = function() {
+    // 🟢 PATCH — Conditional sheet source berdasarkan dropdown Source_Loc.
+    //   Stok_WIP → load Stok_WIP; lainnya (Stok_Sheet / WIP_Transit_Shearing) → load Stok_Sheet.
+    var srcLocEl = document.getElementById('hdr-source-loc');
+    var srcLoc   = srcLocEl ? srcLocEl.value : 'Stok_Sheet';
+    var sheetName = (srcLoc === 'Stok_WIP') ? 'Stok_WIP' : 'Stok_Sheet';
+
     google.script.run.withSuccessHandler(function(stk){
       if (Array.isArray(stk)) _stokData = stk;
       else if (stk&&stk.sheet) _stokData = stk.sheet;
@@ -832,10 +840,36 @@ document.addEventListener('keydown', function(e) {
       if (!found) return;
       document.getElementById('hdr-qty-avail').textContent = Math.round(parseFloat(found.Qty_Avail||0));
       document.getElementById('hdr-kg-avail').textContent  = Math.round(parseFloat(found.Kg_Avail||found.KG_Avail||0));
-      var wgPce = parseFloat(found.Kg_Avail||0)/parseFloat(found.Qty_Avail||1);
+      var wgPce = parseFloat(found.Kg_Avail||found.KG_Avail||0)/parseFloat(found.Qty_Avail||1);
       document.getElementById('hdr-wgpce-input').value = isNaN(wgPce)?0:wgPce;
       calcHeaderKg();
-    }).getSheetData('Stok_Sheet');
+    }).getSheetData(sheetName);
+  };
+
+  // 🟢 PATCH — Handler saat user ganti dropdown Source_Loc di mode Create.
+  //   Reset field batch + reload data stok dari sheet yang sesuai.
+  //   Tidak jalan kalau dropdown lagi disabled (edit mode SHR Child).
+  window.onSourceLocChangeShr = function(newLoc) {
+    var srcEl = document.getElementById('hdr-source-loc');
+    if (srcEl && srcEl.disabled) return;
+
+    // Reset field batch + item + qty avail
+    var bidEl = document.getElementById('hdr-batch-id');       if (bidEl) bidEl.value = '';
+    var bSearch = document.getElementById('hdr-batch-search'); if (bSearch) bSearch.value = '';
+    var bDrop = document.getElementById('hdr-batch-dropdown'); if (bDrop) bDrop.style.display = 'none';
+    var itemEl = document.getElementById('hdr-item');          if (itemEl) itemEl.value = '';
+    var specEl = document.getElementById('hdr-spec');          if (specEl) specEl.value = '';
+    var qaEl = document.getElementById('hdr-qty-avail');       if (qaEl) qaEl.textContent = '0';
+    var kaEl = document.getElementById('hdr-kg-avail');        if (kaEl) kaEl.textContent = '0';
+    var wgEl = document.getElementById('hdr-wgpce-input');     if (wgEl) wgEl.value = 0;
+    var tEl  = document.getElementById('hdr-t');               if (tEl)  tEl.value = 0;
+
+    // Reset owner ke FC default
+    if (typeof _sheetOwner !== 'undefined') _sheetOwner = 'FC';
+    if (typeof setHeaderOwnerDisplay === 'function') setHeaderOwnerDisplay('FC');
+
+    // Reload data stok dari sheet yang sesuai
+    refreshStokAvail();
   };
 
   window.onBatchChangeShr = function(sel) {
@@ -1531,7 +1565,28 @@ function populateFormFromSpkShr(res) {
   document.getElementById('hdr-item').value=h.item_code||'';
   document.getElementById('hdr-spec').value=h.input_spec||'';
   document.getElementById('hdr-priority').value=h.priority||'Normal';
-  document.getElementById('hdr-source-loc').value=h.source_loc||'WIP_Transit_Shearing';
+  // 🟢 PATCH — Edit mode: auto-detect apakah SHR Child (batch dari WIP)
+  //   Kalau Batch_ID prefix "WIP-" → force Source_Loc=Stok_WIP + lock dropdown.
+  //   Kalau bukan → set dari h.source_loc (fallback Stok_Sheet).
+  //   Field lain (qty/mc/out) tetap bebas diedit — hanya dropdown ini yang lock.
+  (function(){
+    var srcEl = document.getElementById('hdr-source-loc');
+    var batchUp = String(h.batch_id||'').trim().toUpperCase();
+    var isWipBatch = batchUp.indexOf('WIP-') === 0;
+    if (isWipBatch) {
+      srcEl.value = 'Stok_WIP';
+      srcEl.disabled = true;
+      srcEl.title = 'Locked — SHR Child dari CTL (batch di Stok_WIP)';
+      srcEl.style.background = '#f5e8d0';
+      srcEl.style.cursor = 'not-allowed';
+    } else {
+      srcEl.value = h.source_loc || 'Stok_Sheet';
+      srcEl.disabled = false;
+      srcEl.title = '';
+      srcEl.style.background = '';
+      srcEl.style.cursor = '';
+    }
+  })();
   document.getElementById('hdr-op').value=h.op||'';
   document.getElementById('hdr-machine').value=h.mc_no||'SHR-01';
   document.getElementById('hdr-qty-input').value=h.qty_target||0;

@@ -1,0 +1,310 @@
+<style>
+  #rpl-modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(15, 23, 42, 0.55); z-index: 9999;
+    align-items: center; justify-content: center;
+    padding: 20px; font-family: 'Inter', -apple-system, sans-serif;
+  }
+  #rpl-modal-overlay.active { display: flex; }
+  .rpl-modal {
+    background: #fff; border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    width: 100%; max-width: 560px; max-height: 90vh;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .rpl-hd {
+    padding: 14px 18px; border-bottom: 1px solid #e2e8f0;
+    display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+  }
+  .rpl-hd h3 { margin: 0; font-size: 15px; font-weight: 800; color: #0f172a; }
+  .rpl-hd .rpl-close {
+    border: none; background: transparent; font-size: 22px; color: #64748b;
+    cursor: pointer; padding: 0 4px; line-height: 1;
+  }
+  .rpl-body { padding: 14px 18px; overflow-y: auto; flex: 1; }
+  .rpl-loading { text-align: center; padding: 40px 0; color: #64748b; font-size: 13px; }
+  .rpl-error {
+    background: #fee2e2; border: 1px solid #fecaca; color: #991b1b;
+    padding: 10px 14px; border-radius: 6px; font-size: 12px;
+  }
+  .rpl-sub { font-size: 12px; color: #64748b; margin-bottom: 12px; }
+
+  .rpl-item {
+    border: 1.5px solid #e2e8f0; border-radius: 8px;
+    padding: 10px 12px; margin-bottom: 8px; transition: border-color 0.15s, background 0.15s;
+  }
+  .rpl-item.checked { border-color: #0265dc; background: #eff6ff; }
+  .rpl-item-main { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  .rpl-item-main input[type="checkbox"] {
+    width: 16px; height: 16px; cursor: pointer; margin: 0; accent-color: #0265dc;
+  }
+  .rpl-item-info { flex: 1; min-width: 0; }
+  .rpl-item-title {
+    font-size: 13px; font-weight: 700; color: #0f172a;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .rpl-item-desc {
+    font-size: 11px; color: #64748b; margin-top: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .rpl-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  .rpl-badge.b-fg      { background: #dbeafe; color: #1e40af; }
+  .rpl-badge.b-wip     { background: #fef3c7; color: #92400e; }
+  .rpl-badge.b-stok    { background: #f1f5f9; color: #475569; }
+  .rpl-badge.b-fg-stp  { background: #dbeafe; color: #1e40af; }
+  .rpl-badge.b-wip-stp { background: #fef3c7; color: #92400e; }
+
+  .rpl-ng-row {
+    margin-top: 6px; padding-top: 6px; padding-left: 26px;
+    border-top: 1px dashed #e2e8f0;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; color: #7c2d12; cursor: pointer;
+  }
+  .rpl-ng-row input[type="checkbox"] {
+    width: 14px; height: 14px; cursor: pointer; margin: 0; accent-color: #ea580c;
+  }
+
+  .rpl-empty {
+    text-align: center; padding: 30px 20px; color: #94a3b8;
+    font-style: italic; font-size: 12px;
+  }
+  .rpl-select-all {
+    padding: 6px 12px; background: #f1f5f9; border: 1px solid #cbd5e1;
+    border-radius: 5px; font-size: 11px; font-weight: 600; color: #475569;
+    cursor: pointer; margin-bottom: 12px;
+  }
+  .rpl-select-all:hover { background: #e2e8f0; }
+
+  .rpl-ft {
+    padding: 12px 18px; border-top: 1px solid #e2e8f0;
+    display: flex; justify-content: flex-end; gap: 8px; flex-shrink: 0;
+    background: #f8fafc;
+  }
+  .rpl-btn {
+    padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 700;
+    cursor: pointer; border: 1px solid transparent; transition: all 0.15s;
+  }
+  .rpl-btn-cancel { background: #fff; border-color: #cbd5e1; color: #475569; }
+  .rpl-btn-cancel:hover { background: #f1f5f9; }
+  .rpl-btn-print { background: #0265dc; color: #fff; }
+  .rpl-btn-print:hover:not(:disabled) { background: #024ba8; }
+  .rpl-btn-print:disabled { background: #cbd5e1; cursor: not-allowed; }
+</style>
+
+<div id="rpl-modal-overlay">
+  <div class="rpl-modal">
+    <div class="rpl-hd">
+      <h3 id="rpl-title">🏷️ Reprint Label</h3>
+      <button class="rpl-close" onclick="closeReprintLabelModal()">×</button>
+    </div>
+    <div class="rpl-body" id="rpl-body">
+      <div class="rpl-loading">Memuat data SPK…</div>
+    </div>
+    <div class="rpl-ft">
+      <button class="rpl-btn rpl-btn-cancel" onclick="closeReprintLabelModal()">Cancel</button>
+      <button class="rpl-btn rpl-btn-print" id="rpl-btn-print" onclick="rpl_doPrint()" disabled>🖨️ Print</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  var _rplState = { spkNo: null, data: null, selected: {} };
+
+  window.openReprintLabelModal = function(parentSpkNo) {
+    if (!parentSpkNo) { alert('SPK No kosong.'); return; }
+    _rplState = { spkNo: parentSpkNo, data: null, selected: {} };
+    document.getElementById('rpl-title').textContent = '🏷️ Reprint Label — ' + parentSpkNo;
+    document.getElementById('rpl-body').innerHTML = '<div class="rpl-loading">Memuat data SPK…</div>';
+    document.getElementById('rpl-btn-print').disabled = true;
+    document.getElementById('rpl-btn-print').textContent = '🖨️ Print';
+    document.getElementById('rpl-modal-overlay').classList.add('active');
+
+    google.script.run
+      .withSuccessHandler(_rpl_onLoaded)
+      .withFailureHandler(_rpl_onError)
+      .getReprintLabelData(parentSpkNo);
+  };
+
+  window.closeReprintLabelModal = function() {
+    document.getElementById('rpl-modal-overlay').classList.remove('active');
+    _rplState = { spkNo: null, data: null, selected: {} };
+  };
+
+  function _rpl_onLoaded(res) {
+    if (!res || !res.ok) { _rpl_onError({ message: (res && res.msg) || 'Gagal load data' }); return; }
+    _rplState.data = res;
+    _rpl_render();
+  }
+
+  function _rpl_onError(err) {
+    var msg = (err && err.message) || 'Unknown error';
+    document.getElementById('rpl-body').innerHTML =
+      '<div class="rpl-error">⚠️ ' + msg + '</div>';
+  }
+
+  function _rpl_render() {
+    var d = _rplState.data;
+    var body = document.getElementById('rpl-body');
+    if (!d.outs || d.outs.length === 0) {
+      body.innerHTML = '<div class="rpl-empty">SPK ini tidak punya OUT / tidak ada label yang bisa di-print.</div>';
+      return;
+    }
+
+    var badgeMap = { FG:'b-fg', FG_STP:'b-fg-stp', WIP:'b-wip', WIP_STP:'b-wip-stp', STOK_SHT:'b-stok' };
+    var labelName = { FG:'FG', FG_STP:'FG STP', WIP:'WIP', WIP_STP:'WIP STP', STOK_SHT:'Stok SHT' };
+
+    var html = '<div class="rpl-sub">Status SPK: <b>' + (d.header.status || '-')
+      + '</b> · Total OUT: <b>' + d.outs.length + '</b></div>';
+    html += '<button class="rpl-select-all" onclick="rpl_selectAll()">☑ Pilih Semua</button>';
+
+    d.outs.forEach(function(o, idx){
+      var badgeCls = badgeMap[o.label_type] || 'b-fg';
+      var badgeTxt = labelName[o.label_type] || o.label_type;
+      var cust     = o.cust || o.item_code || '-';
+      var qty      = o.qty ? Math.round(o.qty) + ' lbr' : '(qty —)';
+      var disabled = !o.batch_available;
+      var disabledTag = disabled
+        ? ' <span style="background:#fee2e2;color:#991b1b;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;">⛔ Belum DONE</span>'
+        : '';
+      var disabledAttr = disabled ? ' disabled' : '';
+      var itemStyle = disabled ? ' style="opacity:0.55;"' : '';
+
+      html += '<div class="rpl-item" id="rpl-item-' + idx + '"' + itemStyle + '>';
+      html +=   '<label class="rpl-item-main"' + (disabled ? ' style="cursor:not-allowed;"' : '') + '>';
+      html +=     '<input type="checkbox" data-idx="' + idx + '" onchange="rpl_toggleMain(' + idx + ', this.checked)"' + disabledAttr + '>';
+      html +=     '<div class="rpl-item-info">';
+      html +=       '<div class="rpl-item-title">'
+                    + o.spk_no
+                    + ' <span class="rpl-badge ' + badgeCls + '">' + badgeTxt + '</span>'
+                    + disabledTag
+                    + '</div>';
+      html +=       '<div class="rpl-item-desc">' + cust + ' · ' + qty
+                    + (o.batch_available ? ' · Batch: ' + o.batch_id : '')
+                    + '</div>';
+      html +=     '</div>';
+      html +=   '</label>';
+      if (o.has_ng && !disabled) {
+        html += '<label class="rpl-ng-row">';
+        html +=   '<input type="checkbox" data-idx="' + idx + '" data-ng="1" onchange="rpl_toggleNG(' + idx + ', this.checked)">';
+        html +=   '+ Label NG (' + Math.round(o.ng.qty) + ' pcs / ' + Math.round(o.ng.kg) + ' kg)';
+        html += '</label>';
+      }
+      html += '</div>';
+    });
+
+    body.innerHTML = html;
+    _rpl_updatePrintBtn();
+  }
+
+  window.rpl_toggleMain = function(idx, checked) {
+    if (!_rplState.selected[idx]) _rplState.selected[idx] = { main: false, ng: false };
+    _rplState.selected[idx].main = !!checked;
+    var el = document.getElementById('rpl-item-' + idx);
+    if (el) el.classList.toggle('checked', !!checked);
+    _rpl_updatePrintBtn();
+  };
+
+  window.rpl_toggleNG = function(idx, checked) {
+    if (!_rplState.selected[idx]) _rplState.selected[idx] = { main: false, ng: false };
+    _rplState.selected[idx].ng = !!checked;
+    _rpl_updatePrintBtn();
+  };
+
+  window.rpl_selectAll = function() {
+    var d = _rplState.data;
+    if (!d || !d.outs) return;
+    d.outs.forEach(function(o, idx){
+      _rplState.selected[idx] = _rplState.selected[idx] || {};
+      _rplState.selected[idx].main = true;
+      var cb = document.querySelector('#rpl-item-' + idx + ' input[type="checkbox"]:not([data-ng])');
+      if (cb) cb.checked = true;
+      var itemEl = document.getElementById('rpl-item-' + idx);
+      if (itemEl) itemEl.classList.add('checked');
+    });
+    _rpl_updatePrintBtn();
+  };
+
+  function _rpl_updatePrintBtn() {
+    var btn = document.getElementById('rpl-btn-print');
+    var count = _rpl_countSelected();
+    btn.disabled = count === 0;
+    btn.textContent = count > 0 ? '🖨️ Print ' + count + ' Label' : '🖨️ Print';
+  }
+
+  function _rpl_countSelected() {
+    var c = 0;
+    Object.keys(_rplState.selected).forEach(function(k){
+      var s = _rplState.selected[k];
+      if (s.main) c++;
+      if (s.ng) c++;
+    });
+    return c;
+  }
+
+  window.rpl_doPrint = function() {
+    if (typeof window.printCosLabelBatch !== 'function') {
+      alert('printCosLabelBatch belum ter-load. Pastikan label_templates.html sudah di-include.');
+      return;
+    }
+    var d = _rplState.data;
+    if (!d) return;
+
+    var items = [];
+    d.outs.forEach(function(o, idx){
+      var s = _rplState.selected[idx];
+      if (!s) return;
+      if (s.main) items.push({ type: o.label_type, opts: _rpl_toLabelOpts(o) });
+      if (s.ng && o.has_ng) items.push({ type: 'NG', opts: _rpl_toNgOpts(o) });
+    });
+
+    if (items.length === 0) { alert('Belum ada label yang dipilih.'); return; }
+
+    closeReprintLabelModal();
+    setTimeout(function(){ window.printCosLabelBatch(items); }, 200);
+  };
+
+  function _rpl_toLabelOpts(o) {
+    var opts = {
+      cust:     o.cust,
+      itemCode: o.item_code,
+      spec:     o.spec,
+      t:        o.t,
+      p:        o.p,
+      l:        o.l,
+      qty:      o.qty,
+      uom:      'LBR',
+      lot:      o.lot,        // = SPK OUT No (= SPK_Ref di Trace_Log)
+      batchId:  o.batch_id,   // = Batch_ID child dari Trace_Log
+      tglProd:  o.tgl_prod
+    };
+    if (o.label_type === 'WIP' || o.label_type === 'WIP_STP') {
+      opts.shrChildren = (o.shr_children || []).map(function(c){
+        return { targetLoc: c.target_loc, p: c.p, l: c.l, qty: c.qty, cust: c.cust };
+      });
+    }
+    return opts;
+  }
+
+  function _rpl_toNgOpts(o) {
+    return {
+      spkNo:     o.ng.batch_id,       // batch NG dari Trace_Log (fallback: spk-NG)
+      sourceSpk: o.ng.source_spk,
+      spec:      o.spec,
+      t:         o.t,
+      p:         o.p,
+      l:         o.l,
+      qty:       o.ng.qty,
+      kg:        o.ng.kg,
+      owner:     o.ng.owner,
+      mc:        o.ng.mc,
+      tglProd:   o.tgl_prod
+    };
+  }
+})();
+</script>

@@ -315,58 +315,75 @@ function validateCoilAvailability(batchId, kgNeeded, excludeSpkNo) {
  *   - kgNeeded       : kg yang dibutuhkan
  *   - excludeSpkNo   : (opsional) SPK SHR yang sedang diedit
  * ========================================================================= */
-function validateSheetAvailability(batchId, qtyNeeded, kgNeeded, excludeSpkNo) {
-  var sheet = getSheet(SHEET_NAMES.STOK_SHEET);
-  var data  = sheet.getDataRange().getValues();
-  var hdr   = data[0].map(function(h){ return String(h).trim(); });
-  var colB  = hdr.indexOf('Batch_ID');
-  var colQA = hdr.indexOf('Qty_Avail');
-  var colKA = hdr.indexOf('KG_Avail');
-  if (colKA === -1) colKA = hdr.indexOf('Kg_Avail');
+function validateSheetAvailability(batchId, qtyNeeded, kgNeeded, excludeSpkNo, sourceLoc) {
+  // 🟢 PATCH — Stok_WIP support
+  //   Sebelumnya hardcode ke Stok_Sheet. Sekarang bisa juga cek Stok_WIP.
+  //   Priority: kalau sourceLoc='Stok_WIP' → cek Stok_WIP dulu, fallback Stok_Sheet.
+  //   Selain itu (default) → cek Stok_Sheet dulu, fallback Stok_WIP.
+  //   Ini defensive: batch yg pindah lokasi tetap ke-cover walau frontend telat kirim sourceLoc.
+  var sheetsToCheck = (sourceLoc === 'Stok_WIP')
+    ? ['Stok_WIP', SHEET_NAMES.STOK_SHEET]
+    : [SHEET_NAMES.STOK_SHEET, 'Stok_WIP'];
 
-  if (colQA === -1 && colKA === -1) return true; // tidak bisa cek
+  for (var s = 0; s < sheetsToCheck.length; s++) {
+    var sheet = getSheet(sheetsToCheck[s]);
+    if (!sheet) continue;
 
-  for (var i = 1; i < data.length; i++) {
-    if (String(data[i][colB]).trim() === String(batchId).trim()) {
-      var qtyAvail = colQA >= 0 ? (parseFloat(data[i][colQA]) || 0) : Infinity;
-      var kgAvail  = colKA >= 0 ? (parseFloat(data[i][colKA]) || 0) : Infinity;
+    var data = sheet.getDataRange().getValues();
+    if (data.length <= 1) continue;
 
-      // Edit mode: tambah balik konsumsi SPK yang sedang diedit
-      var ownQty = 0, ownKg = 0;
-      if (excludeSpkNo) {
-        var spkSheet  = getSheet("SPK");
-        var spkData   = spkSheet.getDataRange().getValues();
-        var spkHdr    = spkData[0].map(function(h){ return String(h).trim(); });
-        var iSpkNo    = spkHdr.indexOf("SPK_No");
-        var iQtyTgt   = spkHdr.indexOf("Qty_Target");
-        var iKgTgt    = spkHdr.indexOf("KG_Target");
-        var iStatus   = spkHdr.indexOf("Status");
+    var hdr  = data[0].map(function(h){ return String(h).trim(); });
+    var colB  = hdr.indexOf('Batch_ID');
+    var colQA = hdr.indexOf('Qty_Avail');
+    var colKA = hdr.indexOf('KG_Avail');
+    if (colKA === -1) colKA = hdr.indexOf('Kg_Avail');
 
-        for (var j = 1; j < spkData.length; j++) {
-          if (String(spkData[j][iSpkNo]).trim() === String(excludeSpkNo).trim() &&
-              String(spkData[j][iStatus]).toUpperCase() !== 'CANCELLED') {
-            ownQty = parseFloat(spkData[j][iQtyTgt]) || 0;
-            ownKg  = parseFloat(spkData[j][iKgTgt]) || 0;
-            break;
+    if (colB === -1) continue;
+    if (colQA === -1 && colKA === -1) return true; // tidak bisa cek
+
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][colB]).trim() === String(batchId).trim()) {
+        var qtyAvail = colQA >= 0 ? (parseFloat(data[i][colQA]) || 0) : Infinity;
+        var kgAvail  = colKA >= 0 ? (parseFloat(data[i][colKA]) || 0) : Infinity;
+
+        // Edit mode: tambah balik konsumsi SPK yang sedang diedit
+        var ownQty = 0, ownKg = 0;
+        if (excludeSpkNo) {
+          var spkSheet  = getSheet("SPK");
+          var spkData   = spkSheet.getDataRange().getValues();
+          var spkHdr    = spkData[0].map(function(h){ return String(h).trim(); });
+          var iSpkNo    = spkHdr.indexOf("SPK_No");
+          var iQtyTgt   = spkHdr.indexOf("Qty_Target");
+          var iKgTgt    = spkHdr.indexOf("KG_Target");
+          var iStatus   = spkHdr.indexOf("Status");
+
+          for (var j = 1; j < spkData.length; j++) {
+            if (String(spkData[j][iSpkNo]).trim() === String(excludeSpkNo).trim() &&
+                String(spkData[j][iStatus]).toUpperCase() !== 'CANCELLED') {
+              ownQty = parseFloat(spkData[j][iQtyTgt]) || 0;
+              ownKg  = parseFloat(spkData[j][iKgTgt]) || 0;
+              break;
+            }
           }
         }
-      }
 
-      var effQty = qtyAvail + ownQty;
-      var effKg  = kgAvail + ownKg;
+        var effQty = qtyAvail + ownQty;
+        var effKg  = kgAvail + ownKg;
+        var stokLabel = (sheetsToCheck[s] === 'Stok_WIP') ? 'WIP' : 'sheet';
 
-      if (effQty < qtyNeeded - 0.001) {
-        throw new Error('❌ Stok sheet tidak cukup.\nAvail: '
-          + effQty + ' sht, Dibutuhkan: ' + qtyNeeded + ' sht');
+        if (effQty < qtyNeeded - 0.001) {
+          throw new Error('❌ Stok ' + stokLabel + ' tidak cukup.\nAvail: '
+            + effQty + ' sht, Dibutuhkan: ' + qtyNeeded + ' sht');
+        }
+        if (effKg < kgNeeded - 0.001) {
+          throw new Error('❌ Stok ' + stokLabel + ' tidak cukup.\nAvail: '
+            + effKg.toFixed(2) + ' kg, Dibutuhkan: ' + kgNeeded.toFixed(2) + ' kg');
+        }
+        return true;
       }
-      if (effKg < kgNeeded - 0.001) {
-        throw new Error('❌ Stok sheet tidak cukup.\nAvail: '
-          + effKg.toFixed(2) + ' kg, Dibutuhkan: ' + kgNeeded.toFixed(2) + ' kg');
-      }
-      return true;
     }
   }
-  throw new Error('Batch tidak ditemukan di Stok_Sheet: ' + batchId);
+  throw new Error('Batch tidak ditemukan di Stok_Sheet maupun Stok_WIP: ' + batchId);
 }
 
 /* =========================================================================

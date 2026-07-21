@@ -1,0 +1,264 @@
+<script>
+/* ============================================================================
+ * label_templates.html — v1.1 (with batch print support)
+ * ========================================================================= */
+
+(function(){
+  'use strict';
+
+  function _fmtT(t) {
+    var n = parseFloat(t);
+    if (!isFinite(n)) return String(t || '-');
+    return n.toFixed(1).replace('.', ',');
+  }
+  function _fmtTgl(d) {
+    var dt = (d instanceof Date) ? d : (d ? new Date(d) : new Date());
+    if (isNaN(dt.getTime())) dt = new Date();
+    return dt.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'2-digit' });
+  }
+  function _n(v) {
+    return (v !== undefined && v !== null && v !== '') ? Math.round(v) : '-';
+  }
+  function _printHtml(html) {
+    var fr = document.createElement('iframe');
+    fr.style.cssText = 'position:fixed; right:0; bottom:0; width:0; height:0; border:0;';
+    document.body.appendChild(fr);
+    var doc = fr.contentDocument || fr.contentWindow.document;
+    doc.open(); doc.write(html); doc.close();
+    setTimeout(function(){
+      try { fr.contentWindow.focus(); fr.contentWindow.print(); }
+      catch(e) { console.error('printCosLabel error:', e); }
+      setTimeout(function(){ if (fr.parentNode) document.body.removeChild(fr); }, 3000);
+    }, 400);
+  }
+  function _baseCss(accent) {
+    return ''
+      + '@page { size: 80mm 80mm; margin: 0; }'
+      + '* { box-sizing: border-box; }'
+      + 'body { font-family: Arial, sans-serif; margin:0; padding:0; color:#000; }'
+      + '.lbl { width:80mm; height:80mm; padding:10mm 2mm; }'
+      + 'table.main { width:100%; height:100%; border-collapse:collapse; font-size:11px; line-height:1.2; }'
+      + 'table.main td { border:1px solid #333; padding:2px 4px; vertical-align:middle; }'
+      + '.hd-logo { color:' + accent + '; font-weight:900; font-size:18px; border:2px solid ' + accent + '; padding:0 5px; display:inline-block; line-height:1.05; }'
+      + '.hd-comp { font-weight:900; font-size:10px; text-align:center; font-style:italic; line-height:1.1; }'
+      + '.hd-title { background:' + accent + '; color:#fff; font-weight:900; font-size:13px; text-align:center; line-height:1.15; }'
+      + '.k { font-size:9px; color:#333; }'
+      + '.v { font-weight:bold; }'
+      + '.v-big { font-size:15px; font-weight:900; }'
+      + '.batch { text-align:center; font-weight:900; font-size:14px; letter-spacing:1px; }';
+  }
+  function _colgroup() {
+    return '<colgroup>'
+      + '<col style="width:22%;">'
+      + '<col style="width:33%;">'
+      + '<col style="width:20%;">'
+      + '<col style="width:25%;">'
+      + '</colgroup>';
+  }
+  function _tplFG(opts, title) {
+    var accent = '#1565c0';
+    var cust = opts.cust || '-';
+    var tglProd = _fmtTgl(opts.tglProd);
+    var spec = opts.spec || '-';
+    var size = _fmtT(opts.t) + ' x ' + (opts.p || '-') + ' x ' + (opts.l || '-') + ' mm';
+    var qty = _n(opts.qty);
+    var uom = opts.uom || 'LBR';
+    var lot = opts.lot || '-';
+    var batchId = opts.batchId || '-';
+    return ''
+    + '<html><head><title>' + title + ' - ' + batchId + '</title>'
+    + '<style>' + _baseCss(accent) + '</style></head><body>'
+    + '<div class="lbl"><table class="main">' + _colgroup()
+    + '<tr style="height:13%;">'
+      + '<td style="text-align:center;"><div class="hd-logo">F/C</div></td>'
+      + '<td class="hd-comp">FLAMBINDO<br>CORTAMA</td>'
+      + '<td colspan="2" class="hd-title">' + title + '</td>'
+    + '</tr>'
+    + '<tr style="height:14%;"><td class="k">Cust</td><td class="v v-big">: ' + cust + '</td><td class="k">Tgl Prod</td><td class="v">: ' + tglProd + '</td></tr>'
+    + '<tr style="height:12%;"><td class="k">Spec</td><td colspan="3" class="v">: ' + spec + '</td></tr>'
+    + '<tr style="height:12%;"><td class="k">Size (TxWxL)</td><td colspan="3" class="v">: ' + size + '</td></tr>'
+    + '<tr style="height:17%;"><td class="k">Qty</td><td colspan="3" class="v-big">: ' + qty + ' ' + uom + '</td></tr>'
+    + '<tr style="height:14%;"><td class="k">Lot</td><td colspan="3" class="v">: ' + lot + '</td></tr>'
+    + '<tr style="height:18%;"><td colspan="4" class="batch">' + batchId + '</td></tr>'
+    + '</table></div></body></html>';
+  }
+  function _tplWIP(opts, title) {
+    var accent = '#ca8a04';
+    var tglProd = _fmtTgl(opts.tglProd);
+    var spec = opts.spec || '-';
+    var size = _fmtT(opts.t) + ' x ' + (opts.p || '-') + ' x ' + (opts.l || '-') + ' mm';
+    var qty = _n(opts.qty);
+    var uom = opts.uom || 'LBR';
+    var lot = opts.lot || '-';
+    var batchId = opts.batchId || '-';
+    var shrList = Array.isArray(opts.shrChildren) ? opts.shrChildren : [];
+    var shrCount = shrList.length;
+    var custSet = {};
+    shrList.forEach(function(c){ if (c.cust) custSet[c.cust] = true; });
+    var custKeys = Object.keys(custSet);
+    var custHdr = opts.cust || '-';
+    if (custKeys.length > 1) custHdr = 'MIXED';
+    else if (custKeys.length === 1) custHdr = custKeys[0];
+    var kanFont = 10;
+    if (shrCount >= 4) kanFont = 9;
+    if (shrCount >= 5) kanFont = 8;
+    if (shrCount >= 7) kanFont = 7;
+    var kanBody = '';
+    // Prettify target_loc jadi label pendek
+    function _prettyTarget(tl) {
+      var s = String(tl || '').trim();
+      if (s === 'FG_Cust')         return 'FG Cust';
+      if (s === 'FG_RM_Stamping')  return 'FG STP';
+      if (s === 'WIP_Cust')        return 'WIP Cust';
+      if (s === 'WIP_Stamping')    return 'WIP STP';
+      if (s === 'Stok_Sheet')      return 'Stok SHT';
+      return s || '-';
+    }
+    if (shrCount === 0) {
+      kanBody = '<tr><td colspan="4" style="text-align:center; font-style:italic; color:#666; padding:6px;">(no SHR children)</td></tr>';
+    } else {
+      shrList.forEach(function(c){
+        kanBody += '<tr>'
+          + '<td style="text-align:center;">' + _prettyTarget(c.targetLoc) + '</td>'
+          + '<td style="text-align:center;">' + (c.p || '-') + ' × ' + (c.l || '-') + '</td>'
+          + '<td style="text-align:right;">' + _n(c.qty) + ' lbr</td>'
+          + '<td style="text-align:center;">' + (c.cust || '-') + '</td>'
+        + '</tr>';
+      });
+    }
+    return ''
+    + '<html><head><title>' + title + ' - ' + batchId + '</title><style>'
+      + _baseCss(accent)
+      + '.lbl { padding:2mm; }'
+      + 'table.main { font-size:10px; line-height:1.15; }'
+      + '.hd-title { font-size:12px; }'
+      + '.hd-logo { font-size:16px; }'
+      + '.k { font-size:8px; }'
+      + '.v-big { font-size:13px; }'
+      + '.batch { font-size:13px; }'
+      + '.sec { background:#fef3c7; color:#7c2d12; font-weight:900; font-size:10px; text-align:left; padding:2px 5px; }'
+      + '.kan-hd { background:#f1f5f9; font-weight:bold; font-size:8px; text-align:center; padding:1px 2px; }'
+      + 'table.kan { width:100%; height:100%; border-collapse:collapse; font-size:' + kanFont + 'px; }'
+      + 'table.kan td { border:1px solid #666; padding:1px 2px; }'
+    + '</style></head><body>'
+    + '<div class="lbl"><table class="main">' + _colgroup()
+    + '<tr style="height:10%;"><td style="text-align:center;"><div class="hd-logo">F/C</div></td><td class="hd-comp">FLAMBINDO<br>CORTAMA</td><td colspan="2" class="hd-title">' + title + '</td></tr>'
+    + '<tr style="height:10%;"><td class="k">Cust</td><td class="v v-big">: ' + custHdr + '</td><td class="k">Tgl Prod</td><td class="v">: ' + tglProd + '</td></tr>'
+    + '<tr style="height:8%;"><td class="k">Spec</td><td colspan="3" class="v">: ' + spec + '</td></tr>'
+    + '<tr style="height:8%;"><td class="k">Size (TxWxL)</td><td colspan="3" class="v">: ' + size + '</td></tr>'
+    + '<tr style="height:11%;"><td class="k">Qty</td><td colspan="3" class="v-big">: ' + qty + ' ' + uom + '</td></tr>'
+    + '<tr style="height:7%;"><td colspan="4" class="sec">▶ NEXT PROCESS: SHR</td></tr>'
+    + '<tr style="height:28%;"><td colspan="4" style="padding:0;"><table class="kan">'
+      + '<tr><td class="kan-hd" style="width:22%;">TARGET</td><td class="kan-hd" style="width:33%;">SIZE P × L</td><td class="kan-hd" style="width:22%;">QTY</td><td class="kan-hd" style="width:23%;">CUST</td></tr>'
+      + kanBody
+    + '</table></td></tr>'
+    + '<tr style="height:8%;"><td class="k">Lot</td><td colspan="3" class="v">: ' + lot + '</td></tr>'
+    + '<tr style="height:10%;"><td colspan="4" class="batch">' + batchId + '</td></tr>'
+    + '</table></div></body></html>';
+  }
+  function _tplStokSHT(opts) {
+    var accent = '#64748b';
+    var title = 'STOK SHT';
+    var itemCode = opts.itemCode || '-';
+    var tglProd = _fmtTgl(opts.tglProd);
+    var spec = opts.spec || '-';
+    var size = _fmtT(opts.t) + ' x ' + (opts.p || '-') + ' x ' + (opts.l || '-') + ' mm';
+    var qty = _n(opts.qty);
+    var uom = opts.uom || 'LBR';
+    var lot = opts.lot || '-';
+    var batchId = opts.batchId || '-';
+    return ''
+    + '<html><head><title>' + title + ' - ' + batchId + '</title>'
+    + '<style>' + _baseCss(accent) + '</style></head><body>'
+    + '<div class="lbl"><table class="main">' + _colgroup()
+    + '<tr style="height:13%;"><td style="text-align:center;"><div class="hd-logo">F/C</div></td><td class="hd-comp">FLAMBINDO<br>CORTAMA</td><td colspan="2" class="hd-title">' + title + '</td></tr>'
+    + '<tr style="height:14%;"><td class="k">Item Code</td><td class="v">: ' + itemCode + '</td><td class="k">Tgl Prod</td><td class="v">: ' + tglProd + '</td></tr>'
+    + '<tr style="height:12%;"><td class="k">Spec</td><td colspan="3" class="v">: ' + spec + '</td></tr>'
+    + '<tr style="height:12%;"><td class="k">Size (TxWxL)</td><td colspan="3" class="v">: ' + size + '</td></tr>'
+    + '<tr style="height:17%;"><td class="k">Qty</td><td colspan="3" class="v-big">: ' + qty + ' ' + uom + '</td></tr>'
+    + '<tr style="height:14%;"><td class="k">Lot</td><td colspan="3" class="v">: ' + lot + '</td></tr>'
+    + '<tr style="height:18%;"><td colspan="4" class="batch">' + batchId + '</td></tr>'
+    + '</table></div></body></html>';
+  }
+  function _tplNG(opts) {
+    var accent = '#ea580c';
+    var spkNo = opts.spkNo || opts.batchId || '-';
+    var sourceSpk = opts.sourceSpk || '-';
+    var spec = opts.spec || '-';
+    var size = _fmtT(opts.t) + ' × ' + (opts.p || '-') + ' × ' + (opts.l || '-') + ' mm';
+    var qty = _n(opts.qty);
+    var kg = _n(opts.kg);
+    var owner = opts.owner || 'FC';
+    var mc = opts.mc || '-';
+    var tglProd = _fmtTgl(opts.tglProd);
+    return ''
+    + '<html><head><title>NG - ' + spkNo + '</title><style>'
+      + _baseCss(accent)
+      + '.lbl { border:3px solid ' + accent + '; }'
+      + '.batch { color:' + accent + '; }'
+    + '</style></head><body>'
+    + '<div class="lbl"><table class="main">' + _colgroup()
+    + '<tr style="height:13%;"><td style="text-align:center;"><div class="hd-logo">NG</div></td><td class="hd-comp">FLAMBINDO<br>CORTAMA</td><td colspan="2" class="hd-title">LABEL NG<br>GRADE 2</td></tr>'
+    + '<tr style="height:11%;"><td class="k">NG No</td><td colspan="3" class="v">: ' + spkNo + '</td></tr>'
+    + '<tr style="height:11%;"><td class="k">Source SPK</td><td colspan="3" class="v">: ' + sourceSpk + '</td></tr>'
+    + '<tr style="height:11%;"><td class="k">Spec</td><td colspan="3" class="v">: ' + spec + '</td></tr>'
+    + '<tr style="height:11%;"><td class="k">Size (TxWxL)</td><td colspan="3" class="v">: ' + size + '</td></tr>'
+    + '<tr style="height:14%;"><td class="k">Qty / KG</td><td colspan="3" class="v-big">: ' + qty + ' pcs / ' + kg + ' kg</td></tr>'
+    + '<tr style="height:11%;"><td class="k">Owner</td><td class="v">: ' + owner + '</td><td class="k">MC / Tgl</td><td class="v">: ' + mc + ' / ' + tglProd + '</td></tr>'
+    + '<tr style="height:18%;"><td colspan="4" class="batch">' + spkNo + '</td></tr>'
+    + '</table></div></body></html>';
+  }
+
+  // ─── PUBLIC API ─────────────────────────────────────────────────────────
+  function _buildHtml(type, opts) {
+    opts = opts || {};
+    switch (String(type).toUpperCase()) {
+      case 'FG':       return _tplFG(opts, 'LABEL FG');
+      case 'FG_STP':   return _tplFG(opts, 'LABEL FG STP');
+      case 'WIP':      return _tplWIP(opts, 'LABEL WIP');
+      case 'WIP_STP':  return _tplWIP(opts, 'LABEL WIP STP');
+      case 'STOK_SHT': return _tplStokSHT(opts);
+      case 'NG':       return _tplNG(opts);
+      default: return null;
+    }
+  }
+
+  window.printCosLabel = function(type, opts) {
+    var html = _buildHtml(type, opts);
+    if (!html) {
+      console.error('printCosLabel: unknown type "' + type + '"');
+      alert('printCosLabel: unknown type "' + type + '"');
+      return;
+    }
+    _printHtml(html);
+  };
+
+  window.printCosLabelBatch = function(items) {
+    if (!Array.isArray(items) || items.length === 0) {
+      alert('Tidak ada label yang dipilih untuk di-print.');
+      return;
+    }
+    if (items.length === 1) {
+      window.printCosLabel(items[0].type, items[0].opts);
+      return;
+    }
+    var bodies = [];
+    var stylesSet = {};
+    items.forEach(function(item){
+      var full = _buildHtml(item.type, item.opts);
+      if (!full) return;
+      var styleMatch = full.match(/<style>([\s\S]*?)<\/style>/);
+      if (styleMatch) stylesSet[styleMatch[1]] = true;
+      var bodyMatch = full.match(/<body>([\s\S]*?)<\/body>/);
+      if (bodyMatch) bodies.push(bodyMatch[1]);
+    });
+    var mergedStyles = Object.keys(stylesSet).join('\n');
+    mergedStyles += '\n.lbl { page-break-after: always; }\n.lbl:last-child { page-break-after: auto; }';
+    var html = ''
+      + '<html><head><title>Reprint ' + items.length + ' Label</title>'
+      + '<style>' + mergedStyles + '</style>'
+      + '</head><body>' + bodies.join('\n') + '</body></html>';
+    _printHtml(html);
+  };
+})();
+</script>

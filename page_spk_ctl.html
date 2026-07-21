@@ -1,267 +1,518 @@
 <style>
 /* ================================================================
-   SPK CTL — 3-View SPA  (List / Create / Detail) + UI LAMA
+   SPK CTL — Sesi 2 Redesign (Single-Screen)
+   Layout: single column (no ref panel), CTL-OUT + SHR side-by-side
+   Depends on: shared_css_v2.html (tokens)
 ================================================================ */
-:root {
-  --bg-app:#eef2f5; --bg-panel:#ffffff; --text-main:#202b3c; --text-muted:#6b7785;
-  --border-color:#cbd5e1; --primary-blue:#0265dc; --success-green:#108a4f;
-  --danger-red:#d32f2f; --table-head:#f1f5f9; --warning-orange:#f97316;
+
+/* Local CSS vars — Stage 2 accent color (purple), theme-aware */
+:root{
+  --accent-purple:       #8b5cf6;
+  --accent-purple-hover: #6d28d9;
+  --accent-purple-soft:  rgba(139, 92, 246, 0.08);
+  --accent-purple-fg:    #ffffff;
 }
-body{font-family:'Segoe UI',system-ui,sans-serif;font-size:12px;color:var(--text-main);
-  background:var(--bg-app);margin:0;padding:12px;height:100vh;box-sizing:border-box;
-  display:flex;flex-direction:column;overflow:hidden;}
-*{box-sizing:border-box;}
+[data-theme="dark"]{
+  --accent-purple:       #a78bfa;
+  --accent-purple-hover: #c4b5fd;
+  --accent-purple-soft:  rgba(167, 139, 250, 0.15);
+  --accent-purple-fg:    #1e1b4b;
+}
+
+body{
+  font-family: var(--font-family-base);
+  font-size: var(--fs-base);
+  color: var(--text-primary);
+  background: var(--surface-1);
+  margin: 0; padding: 12px;
+  height: 100vh; box-sizing: border-box;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+*{ box-sizing: border-box; }
 
 /* === VIEW SWITCHING === */
-.view-container{display:none;flex-direction:column;gap:10px;height:100%;overflow:hidden;}
-.view-container.active{display:flex;}
+.view-container{ display: none; flex-direction: column; gap: 10px; height: 100%; overflow: hidden; }
+.view-container.active{ display: flex; }
 
-/* === GLOBAL COMPONENTS === */
-.dash-header{display:flex;justify-content:space-between;align-items:flex-end;flex-shrink:0;}
-.dash-title{font-size:18px;font-weight:700;color:#0f172a;margin:0;}
-.dash-sub{color:var(--text-muted);font-size:12px;margin-top:2px;}
+/* === GLOBAL COMPONENTS (list view) === */
+.dash-header{ display: flex; justify-content: space-between; align-items: flex-end; flex-shrink: 0; }
+.dash-title{ font-size: var(--fs-xl); font-weight: var(--fw-bold); color: var(--text-primary); margin: 0; }
+.dash-sub{ color: var(--text-tertiary); font-size: var(--fs-base); margin-top: 2px; }
 
-/* === BUTTONS === */
-.btn{padding:0 16px;height:28px;border-radius:3px;font-size:12px;font-weight:600;cursor:pointer;border:none;display:inline-flex;align-items:center;justify-content:center;transition:0.1s;gap:6px;}
-.btn-primary{background:var(--primary-blue);color:#fff;} .btn-primary:hover{background:#014da8;}
-.btn-success{background:var(--success-green);color:#fff;} .btn-success:hover{background:#0c6b3d;}
-.btn-outline{background:#fff;color:var(--text-main);border:1px solid var(--border-color);} .btn-outline:hover{background:#f1f5f9;}
+/* === BUTTONS (list view compat) === */
+.btn{ padding: 0 16px; height: 28px; border-radius: var(--radius-sm);
+  font-size: var(--fs-base); font-weight: var(--fw-semibold);
+  cursor: pointer; border: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: 0.1s; gap: 6px; }
+.btn-primary{ background: var(--accent-primary); color: #fff; }
+.btn-primary:hover{ background: var(--accent-primary-hover); }
+.btn-success{ background: var(--status-success); color: #fff; }
+.btn-success:hover{ background: var(--status-success-hover); }
+.btn-outline{ background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--border-default); }
+.btn-outline:hover{ background: var(--surface-sunken); }
 
 /* === TABLE LIST === */
-.table-wrap{flex-grow:1;overflow-y:auto;overflow-x:auto;background:#fff;border:1px solid var(--border-color);border-radius:4px;min-height:200px;}
-table{width:100%;border-collapse:collapse;text-align:left;table-layout:fixed;}
-th{background:var(--table-head);font-size:11px;padding:10px 12px;border-bottom:1px solid var(--border-color);position:sticky;top:0;z-index:10;color:var(--text-muted);text-transform:uppercase;font-weight:700;}
-td{padding:8px 12px;border-bottom:1px solid #e2e8f0;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.dash-row{cursor:pointer;transition:background 0.1s;} .dash-row:hover{background:#e2e8f0!important;}
-.td-link{color:var(--primary-blue);font-weight:700;}
-.pagination{display:flex;align-items:center;gap:8px;justify-content:center;flex-shrink:0;padding:6px 0;}
+.table-wrap{ flex-grow: 1; overflow-y: auto; overflow-x: auto;
+  background: var(--surface-2); border: 1px solid var(--border-default);
+  border-radius: var(--radius-md); min-height: 200px; }
+table{ width: 100%; border-collapse: collapse; text-align: left; table-layout: fixed; }
+th{ background: var(--surface-sunken); font-size: var(--fs-sm); padding: 10px 12px;
+  border-bottom: 1px solid var(--border-default); position: sticky; top: 0; z-index: 10;
+  color: var(--text-tertiary); text-transform: uppercase; font-weight: var(--fw-bold); }
+td{ padding: 8px 12px; border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--text-primary); }
+.dash-row{ cursor: pointer; transition: background 0.1s; }
+.dash-row:hover{ background: var(--surface-sunken) !important; }
+.td-link{ color: var(--text-link); font-weight: var(--fw-bold); }
+.pagination{ display: flex; align-items: center; gap: 8px; justify-content: center;
+  flex-shrink: 0; padding: 6px 0; color: var(--text-primary); }
 
 /* === STATUS BADGE === */
-.badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:11px;font-weight:700;}
-.badge-antrian{background:#64748b;color:#fff;} .badge-running{background:#0265dc;color:#fff;}
-.badge-done{background:#108a4f;color:#fff;} .badge-cancelled{background:#d32f2f;color:#fff;}
-.badge-fc{background:#1565c0;color:#fff;} .badge-drc{background:#e65100;color:#fff;}
+.badge{ display: inline-block; padding: 2px 8px; border-radius: var(--radius-sm);
+  font-size: var(--fs-sm); font-weight: var(--fw-bold); }
+.badge-antrian{ background: var(--status-neutral); color: #fff; }
+.badge-running{ background: var(--accent-primary); color: #fff; }
+.badge-done{ background: var(--status-success); color: #fff; }
+.badge-cancelled{ background: var(--status-danger); color: #fff; }
+.badge-draft{ background: var(--status-warning); color: #fff; }
+/* Update warna toggle FC & DRC */
+.badge-fc{ background: #3b82f6 !important; color: #fff !important; }
+.badge-drc{ background: #f97316 !important; color: #fff !important; }
 
 /* === DETAIL VIEW === */
-.detail-section{background:var(--bg-panel);border:1px solid var(--border-color);border-radius:4px;margin-bottom:8px;flex-shrink:0;}
-
-/* ==== Sesi 2A: Ref Panel Drawer ==== */
-#rpd-backdrop {
-  display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,0.35); z-index: 1900;
-}
-#rpd-backdrop.open { display: block; }
-#rpd-drawer {
-  position: fixed; top: 0; right: -560px; bottom: 0;
-  width: 540px; max-width: 90vw;
-  background: var(--surface-2, #fff);
-  box-shadow: -4px 0 20px rgba(0,0,0,0.15);
-  z-index: 1901;
-  display: flex; flex-direction: column;
-  transition: right 0.3s ease;
-}
-#rpd-drawer.open { right: 0; }
-#rpd-header {
-  padding: 12px 16px;
-  background: var(--surface-sunken, #f1f5f9);
-  border-bottom: 1px solid var(--border-default, #e2e8f0);
-  color: var(--text-primary, #0f172a);
-  font-weight: 600; font-size: 14px;
-  display: flex; justify-content: space-between; align-items: center;
-}
-#rpd-header button {
-  background: transparent; border: 0; font-size: 18px;
-  cursor: pointer; color: var(--text-secondary, #475569);
-  padding: 2px 8px; border-radius: 4px;
-}
-#rpd-header button:hover { background: var(--border-default, #e2e8f0); }
-#rpd-body { flex: 1; overflow: hidden; padding: 12px; }
-#rpd-toggle-btn.active {
-  background: var(--accent-primary, #2563eb) !important;
-  color: #fff !important; border-color: var(--accent-primary, #2563eb) !important;
-}
-.detail-section-head{font-weight:700;padding:8px 14px;background:#f8fafc;border-bottom:1px solid var(--border-color);border-radius:4px 4px 0 0;display:flex;justify-content:space-between;align-items:center;}
-.detail-section-body{padding:10px 14px;}
-.detail-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 14px;}
-.detail-field{display:flex;flex-direction:column;gap:3px;}
-.detail-label{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;}
-.detail-value{font-size:12px;font-weight:600;color:var(--text-main);}
-.detail-scroll{flex:1;overflow-y:auto;}
-.detail-out-block{border:1px solid var(--border-color);border-radius:4px;margin-bottom:8px;overflow:hidden;}
-.detail-out-head{background:#e8ecf4;padding:7px 12px;font-weight:700;color:#1a3a6e;font-size:12px;display:flex;align-items:center;gap:8px;}
-.detail-shr-block{border-top:1px solid #dde4f0;background:#f9fbff;}
-.detail-shr-head{padding:6px 12px;font-weight:600;color:#1b6b45;font-size:11px;background:#f0f7f0;border-bottom:1px solid #dde4f0;}
-.dtbl{width:100%;border-collapse:collapse;font-size:11px;}
-.dtbl th{background:#f1f5f9;padding:5px 8px;border-bottom:1px solid var(--border-color);font-size:10px;text-transform:uppercase;color:var(--text-muted);text-align:left;position:sticky;top:0;}
-.dtbl td{padding:5px 8px;border-bottom:1px solid #f0f4f8;vertical-align:middle;}
+.detail-section{ background: var(--surface-2); border: 1px solid var(--border-default);
+  border-radius: var(--radius-md); margin-bottom: 8px; flex-shrink: 0; }
+.detail-section-head{ font-weight: var(--fw-bold); padding: 8px 14px;
+  background: var(--surface-sunken); border-bottom: 1px solid var(--border-default);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  display: flex; justify-content: space-between; align-items: center; color: var(--text-primary); }
+.detail-section-body{ padding: 10px 14px; }
+.detail-grid{ display: grid; grid-template-columns: repeat(4,1fr); gap: 8px 14px; }
+.detail-field{ display: flex; flex-direction: column; gap: 3px; }
+.detail-label{ font-size: var(--fs-xs); font-weight: var(--fw-bold); color: var(--text-tertiary); text-transform: uppercase; }
+.detail-value{ font-size: var(--fs-base); font-weight: var(--fw-semibold); color: var(--text-primary); }
+.detail-scroll{ flex: 1; overflow-y: auto; }
+.detail-out-block{ border: 1px solid var(--border-default); border-radius: var(--radius-md); margin-bottom: 8px; overflow: hidden; background: var(--surface-2); }
+.detail-out-head{ background: var(--surface-sunken); padding: 7px 12px; font-weight: var(--fw-bold);
+  color: var(--text-primary); font-size: var(--fs-base); display: flex; align-items: center; gap: 8px; }
+.detail-shr-block{ border-top: 1px solid var(--border-default); background: var(--surface-sunken); }
+.detail-shr-head{ padding: 6px 12px; font-weight: var(--fw-semibold); color: var(--status-success);
+  font-size: var(--fs-sm); background: var(--status-success-soft); border-bottom: 1px solid var(--border-default); }
+.dtbl{ width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+.dtbl th{ background: var(--surface-sunken); padding: 5px 8px; border-bottom: 1px solid var(--border-default);
+  font-size: var(--fs-xs); text-transform: uppercase; color: var(--text-tertiary); text-align: left; position: sticky; top: 0; }
+.dtbl td{ padding: 5px 8px; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; color: var(--text-primary); }
 
 /* === OVERLAY LOADING === */
-.spk-ov{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,.75);z-index:9999;flex-direction:column;align-items:center;justify-content:center;}
-.spk-ov.active{display:flex;}
-.ov-spinner{width:36px;height:36px;border:4px solid #e2e8f0;border-top-color:var(--primary-blue);border-radius:50%;animation:spin .7s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg)}}
+.spk-ov{ display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: var(--surface-overlay); z-index: var(--z-modal-backdrop);
+  flex-direction: column; align-items: center; justify-content: center; }
+.spk-ov.active{ display: flex; }
+.ov-spinner{ width: 36px; height: 36px; border: 4px solid var(--border-default);
+  border-top-color: var(--accent-primary); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin{ to{ transform: rotate(360deg); } }
 
 /* ================================================================
-   FORM CTL — UI VERSI LAMA DIKEMBALIKAN (50:50, Ikon, dll)
+   VIEW-CREATE — Sesi 2 SPLIT 60/40 LAYOUT
 ================================================================ */
-#spk-ctl-wrap *{box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif;font-size:12px}
-#spk-ctl-wrap input,#spk-ctl-wrap select{border:1px solid #bbb;border-radius:3px;padding:3px 6px;background:#fff}
-#spk-ctl-wrap input[readonly]{background:#f0f4f8;color:#333}
-#spk-ctl-wrap input[type=number]::-webkit-inner-spin-button, #spk-ctl-wrap input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-#spk-ctl-wrap input[type=number] { -moz-appearance: textfield; }
+#view-create.active{ display: flex; flex-direction: column; height: 100%; overflow: hidden; }
 
-/* CSS Baru Header CTL (Gaya SLT - Ultra Compact 60:40) */
-.form-section { background:#fff; border:1px solid var(--border-color); border-radius:4px; padding:12px; margin-bottom:12px; }
-.form-section-title { font-size:13px; font-weight:700; color:#0f172a; margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;}
-.header-split { display: flex; gap: 12px; flex-wrap: wrap; }
-.header-left { display: flex; flex-direction: column; gap: 10px; flex: 6; min-width: 380px; }
-.header-right { display: flex; flex-direction: column; gap: 10px; flex: 4; min-width: 350px; }
-.header-right-row { display: flex; gap: 10px; align-items: center;}
-.form-field { display: flex; flex-direction: column; gap: 2px; flex: 1; }
-.form-label { font-size: 9px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
-.form-input, .form-select { padding: 5px 8px; border: 1px solid var(--border-color); border-radius: 3px; font-size: 12px; outline: none; background: #fff; width: 100%; box-sizing: border-box; }
-.form-input[readonly] { background: #f8fafc; color: var(--text-muted); border-color: #e2e8f0; }
+.vc-topbar{
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 8px 12px; margin-bottom: 8px; flex-shrink: 0;
+  background: var(--surface-2); border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+}
+.vc-topbar__title{ display: flex; align-items: center; gap: 10px; font-size: var(--fs-lg); font-weight: var(--fw-bold); color: var(--text-primary); }
+.vc-topbar__meta{ font-size: var(--fs-sm); color: var(--text-tertiary); font-weight: var(--fw-medium); }
+.vc-topbar__actions{ display: flex; align-items: center; gap: 6px; }
 
-.info-bar { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 8px 12px; display: flex; gap: 16px; flex-wrap: wrap; align-items: center; height: 100%; }
-.info-item { display: flex; flex-direction: column; gap: 1px; }
-.info-label { font-size: 9px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
-.info-val { font-size: 12px; font-weight: 600; color: #0f172a; }
+.vc-btn{
+  padding: 6px 14px; height: 30px; border-radius: var(--radius-md);
+  font-size: var(--fs-sm); font-weight: var(--fw-semibold);
+  cursor: pointer; border: 1px solid var(--border-default);
+  background: var(--surface-2); color: var(--text-primary);
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.vc-btn:hover{ background: var(--surface-sunken); }
+.vc-btn--cancel{ color: var(--status-danger); border-color: var(--status-danger-soft); }
+.vc-btn--cancel:hover{ background: var(--status-danger-soft); color: var(--status-danger-soft-fg); }
+.vc-btn--reset{ color: var(--text-secondary); }
+.vc-btn--draft{ background: var(--status-warning-soft); color: var(--status-warning-soft-fg); border-color: var(--status-warning); }
+.vc-btn--draft:hover{ background: var(--status-warning); color: #fff; }
+.vc-btn--save{ background: var(--accent-primary); color: #fff; border-color: var(--accent-primary); font-weight: var(--fw-bold); }
+.vc-btn--save:hover{ background: var(--accent-primary-hover); border-color: var(--accent-primary-hover); }
+.vc-btn--save:disabled{ background: var(--text-disabled); border-color: var(--text-disabled); cursor: not-allowed; }
 
-.info-bar-recoil { background: #f0fdf4; border: 1px dashed #4ade80; border-radius: 4px; padding: 6px 12px; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; min-width: 140px; height: 100%;}
-.info-bar-recoil .info-label { color: #166534; }
-.info-bar-recoil .info-val { color: #14532d; font-size: 14px; }
+/* === SINGLE-SCREEN LAYOUT (no split, no ref panel) === */
+.vc-split{
+  flex: 1; display: block; overflow: hidden;
+}
+.vc-form-col{ height: 100%; overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 10px; }
 
-.checkbox-wrap { background: #fffbeb; border: 1px solid #fde047; padding: 6px 10px; border-radius: 4px; display: flex; align-items: center; gap: 6px; cursor: pointer; flex: 1;}
-.checkbox-wrap input { width: 14px; height: 14px; cursor: pointer; margin: 0; }
-.checkbox-wrap span { font-size: 11px; font-weight: 600; color: #b45309; }
-
-/* Sembunyikan elemen bawaan lama (tapi tetap ada di DOM buat JS) */
-.hidden-data { display: none !important; }
-.section-instruksi{background:#2c5282;color:#fff;font-weight:600;padding:7px 14px;font-size:13px;margin-bottom:0;border-radius:3px 3px 0 0}
-.out-ctl-block{border:1px solid #c5cfe0;margin-bottom:8px}
-
-.ctl-inner{display:flex;min-height:90px}
-.ctl-left-panel{flex:0 0 42%;border-right:1px solid #c5cfe0; display:flex; flex-direction:column;}
-.ctl-right-panel{flex:1;display:flex}
-
-.ctl-head-row{display:flex;align-items:center;gap:8px;padding:5px 10px;background:#f0f4fb;border-bottom:1px solid #dde4f0;flex-wrap:wrap}
-.ctl-head-label{font-weight:700;color:#1a3a6e;font-size:12px;min-width:65px}
-.owner-badge{display:inline-block;padding:2px 8px;border-radius:2px;font-weight:700;font-size:11px;color:#fff;cursor:pointer;user-select:none}
-.badge-fc{background:#1565c0}.badge-drc{background:#e65100}
-.so-lbl{color:#555;font-size:11px;font-weight:600}
-.so-inp{border:1px solid #bbb;border-radius:3px;padding:3px 6px;background:#fff;font-size:12px}
-
-.ctl-tbl{width:100%;border-collapse:collapse; flex:1;}
-.ctl-tbl th{background:#e8ecf4;color:#333;font-weight:600;padding:5px 6px;border:0.5px solid #ccc;text-align:left;white-space:nowrap;font-size:11px}
-.ctl-tbl td{padding:5px 6px;border:0.5px solid #ddd;vertical-align:middle}
-.ctl-tbl input,.ctl-tbl select{width:100%;font-size:12px}
-
-.action-group {
-  display: flex;
-  gap: 4px;
+/* === FORM CARD (general shell) === */
+.vc-card{
+  background: var(--surface-2); border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg); padding: 12px; box-shadow: var(--shadow-xs);
+}
+.vc-card__title{
+  font-size: var(--fs-xs); font-weight: var(--fw-bold);
+  color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.4px;
+  margin: 0 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border-subtle);
+  display: flex; align-items: center; gap: 6px;
 }
 
-/* 🟢 Step 2 — Dropdown machine SHR */
-.shr-mc-select {
-  padding: 4px 8px;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  background: white;
+/* === OPSI 3 ULTRA COMPACT — Header, Batch, & Sisa Coil === */
+.ultra-panel {
+  background: var(--surface-2); border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg); padding: 10px 12px; margin-bottom: 12px;
+  display: flex; flex-direction: column; gap: 8px; box-shadow: var(--shadow-xs);
+}
+.uc-row-1 { display: flex; align-items: center; gap: 12px; font-size: 12px; }
+.uc-field { display: flex; align-items: center; gap: 6px; }
+.uc-field label { font-weight: 700; color: var(--text-tertiary); font-size: 10px; text-transform: uppercase; }
+.uc-input {
+  border: 1px solid var(--border-default); background: var(--surface-1); color: var(--text-primary);
+  border-radius: 4px; padding: 3px 8px; font-size: 12px; font-family: inherit; height: 26px;
+}
+.uc-input:focus { border-color: var(--accent-primary); outline: none; box-shadow: var(--shadow-focus); }
+.uc-input[readonly] { background: var(--surface-sunken); font-weight: 600; border-color: transparent; }
+
+.batch-habis {
+  display: flex; align-items: center; gap: 6px; padding: 3px 8px; height: 26px;
+  background: var(--status-warning-soft); color: var(--status-warning-soft-fg); border: 1px solid var(--status-warning); border-radius: 4px;
+  font-size: 11px; font-weight: 600; cursor: pointer; margin-left: auto;
+}
+.batch-habis input { margin: 0; cursor: pointer; }
+
+.uc-row-2 { position: relative; }
+.batch-search-input {
+  width: 100%; padding: 6px 32px 6px 12px; font-size: 13px; font-family: inherit;
+  border: 1px solid var(--border-default); border-radius: 6px;
+  background: var(--surface-sunken); color: var(--text-primary);
+}
+.batch-search-input:focus { background: var(--surface-1); border-color: var(--accent-primary); outline: none; box-shadow: var(--shadow-focus); }
+.uc-row-2::after { content: '🔍'; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 12px; opacity: 0.6; pointer-events: none; }
+
+.uc-row-3 { display: flex; padding: 0 4px; align-items: center; font-size: 11px; margin-top: -4px; color: var(--text-tertiary); }
+.uc-spec-text { display: flex; align-items: center; gap: 8px; }
+.uc-spec-text .val { font-weight: 600; color: var(--text-secondary); }
+.uc-spec-text .sep { color: var(--border-subtle); }
+
+/* Sisa Coil - Ultra Compact Progress Bar */
+.sisa-coil {
+  display: flex; align-items: center; gap: 12px; font-size: 11px; padding: 6px 10px;
+  border-radius: 6px; border: 1px solid transparent; margin-top: 4px;
+}
+.sisa-coil--empty { background: var(--surface-sunken); color: var(--text-tertiary); border-color: var(--border-default); }
+.sisa-coil--normal { background: var(--surface-sunken); border-color: var(--border-default); color: var(--text-primary); }
+.sisa-coil--warn { background: var(--status-warning-soft); color: var(--status-warning-soft-fg); border-color: var(--status-warning); }
+.sisa-coil--error { background: var(--status-danger-soft); color: var(--status-danger-soft-fg); border-color: var(--status-danger); }
+
+.sc-info-block { display: flex; align-items: center; gap: 10px; flex: 1; }
+.uc-prog-wrap { flex: 1; height: 8px; background: var(--border-default); border-radius: 4px; overflow: hidden; position: relative; }
+.uc-prog-bar { height: 100%; background: var(--accent-primary); width: 0%; transition: width 0.3s ease; }
+.sisa-coil--error .uc-prog-bar { background: var(--status-danger); }
+.sisa-coil--warn .uc-prog-bar { background: var(--status-warning); }
+.sc-label { font-weight: 700; white-space: nowrap; }
+.sc-val { font-family: var(--font-family-mono); font-weight: 700; }
+
+/* === Section 4 — Instruksi Proses band === */
+.section-instruksi{
+  background: var(--accent-primary); color: var(--accent-primary-fg);
+  font-weight: var(--fw-semibold); padding: 8px 14px;
+  font-size: var(--fs-base); border-radius: var(--radius-md);
+  display: flex; align-items: center; gap: 8px;
+  letter-spacing: 0.3px;
+}
+
+/* ================================================================
+   LEGACY CTL-OUT STYLES (dipertahankan untuk Sesi 2 sebelum accordion)
+   Akan di-refactor di Sesi 2 (patch berikutnya).
+================================================================ */
+#spk-ctl-wrap *{ box-sizing: border-box; font-family: var(--font-family-base); font-size: var(--fs-base); color: var(--text-primary); }
+#spk-ctl-wrap input, #spk-ctl-wrap select{
+  border: 1px solid var(--border-default); border-radius: var(--radius-sm);
+  padding: 3px 6px; background: var(--surface-2); color: var(--text-primary);
+}
+#spk-ctl-wrap input[readonly]{ background: var(--surface-sunken); color: var(--text-tertiary); }
+#spk-ctl-wrap input[type=number]::-webkit-inner-spin-button,
+#spk-ctl-wrap input[type=number]::-webkit-outer-spin-button{ -webkit-appearance: none; margin: 0; }
+#spk-ctl-wrap input[type=number]{ -moz-appearance: textfield; }
+
+.hidden-data{ display: none !important; }
+
+.out-ctl-block{ border: 1px solid var(--border-default); margin-bottom: 8px; background: var(--surface-2); border-radius: var(--radius-md); overflow: hidden; }
+.ctl-inner{ display: flex; min-height: 90px; }
+.ctl-left-panel{ flex: 0 0 42%; border-right: 1px solid var(--border-default); display: flex; flex-direction: column; }
+.ctl-right-panel{ flex: 1; display: flex; }
+.ctl-head-row{ display: flex; align-items: center; gap: 8px; padding: 5px 10px;
+  background: var(--surface-sunken); border-bottom: 1px solid var(--border-default); flex-wrap: wrap; }
+.ctl-head-label{ font-weight: var(--fw-bold); color: var(--text-primary); font-size: var(--fs-base); min-width: 65px; }
+.owner-badge{ display: inline-block; padding: 2px 8px; border-radius: var(--radius-sm);
+  font-weight: var(--fw-bold); font-size: var(--fs-sm); color: #fff; cursor: pointer; user-select: none; }
+.so-lbl{ color: var(--text-secondary); font-size: var(--fs-sm); font-weight: var(--fw-semibold); }
+.so-inp{ border: 1px solid var(--border-default); border-radius: var(--radius-sm);
+  padding: 3px 6px; background: var(--surface-2); color: var(--text-primary); font-size: var(--fs-base); }
+
+.ctl-tbl{ width: 100%; border-collapse: collapse; flex: 1; }
+.ctl-tbl th{ background: var(--surface-sunken); color: var(--text-tertiary); font-weight: normal;
+  padding: 2px 4px; border: 0.5px solid var(--border-default); text-align: left; white-space: nowrap; font-size: 9px !important; letter-spacing: -0.2px; }
+.ctl-tbl td{ padding: 5px 6px; border: 0.5px solid var(--border-subtle); vertical-align: middle; }
+.ctl-tbl input, .ctl-tbl select{ width: 100%; font-size: var(--fs-base); }
+.ctl-tbl input.dummy-id { font-size: 11px !important; padding: 2px 5px !important; letter-spacing: -0.2px; }
+
+.action-group{ display: flex; gap: 4px; }
+
+.shr-mc-select{ padding: 4px 8px; border: 1px solid var(--border-default); border-radius: var(--radius-sm);
+  font-size: var(--fs-base); font-weight: var(--fw-semibold); background: var(--surface-2); color: var(--text-primary);
+  cursor: pointer; min-width: 130px; }
+.shr-mc-select:focus{ outline: 2px solid var(--border-focus); }
+
+.btn-stage2{ padding: 4px 10px; border: 1px solid var(--accent-purple); border-radius: var(--radius-sm);
+  background: var(--surface-2); color: var(--accent-purple); font-size: var(--fs-base); font-weight: var(--fw-bold); cursor: pointer; }
+.btn-stage2:hover{ background: var(--accent-purple-soft); }
+.btn-stage2.is-stage2{ background: linear-gradient(135deg, var(--accent-purple), var(--accent-purple-hover)); color: var(--accent-purple-fg); border-color: var(--accent-purple-hover); }
+.btn-stage2:disabled{ opacity: 0.5; cursor: not-allowed; }
+
+.shr-stage2-panel{ margin-top: 8px; padding: 8px;
+  background: var(--accent-purple-soft); border: 2px dashed var(--accent-purple);
+  border-radius: var(--radius-lg); position: relative; }
+.shr-stage2-panel::before{
+  content: '↓ OUTPUT STAGE 1 → INPUT STAGE 2'; position: absolute; top: -8px; left: 16px;
+  background: var(--accent-purple-hover); color: var(--accent-purple-fg); padding: 2px 8px; font-size: var(--fs-xs); font-weight: 800; letter-spacing: 0.5px; border-radius: var(--radius-sm);
+}
+.shr-stage2-sub-panel{ background: var(--surface-2); }
+.shr-stage2-id{ color: var(--accent-purple); font-weight: 800; }
+
+/* Ghost buttons — tanpa background, adaptif light/dark */
+.btn-lbl, .btn-hps, .btn-duplicate{
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 3px 7px;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
   cursor: pointer;
-  min-width: 130px;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  display: flex; align-items: center; justify-content: center;
+  width: 28px;
 }
-.shr-mc-select:focus { outline: 2px solid #3b82f6; }
+.btn-lbl:hover{
+  background: var(--accent-primary-soft);
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+.btn-duplicate:hover{
+  background: var(--status-warning-soft);
+  color: var(--status-warning-soft-fg);
+  border-color: var(--status-warning);
+}
+.btn-hps:hover{
+  background: var(--status-danger-soft);
+  color: var(--status-danger-soft-fg);
+  border-color: var(--status-danger);
+}
+.btn-hps:disabled, .btn-duplicate:disabled, .btn-lbl:disabled{
+  opacity: 0.4; cursor: not-allowed;
+}
 
-/* 🟢 Step 3 — Stage 2 Visual */
-.btn-stage2 {
-  padding: 4px 10px;
-  border: 1px solid #8b5cf6;
-  border-radius: 4px;
-  background: white;
-  color: #6d28d9;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
+/* Multy tetap solid (mode toggle, harus stand out) */
+.btn-multy{
+  color: #fff; border: none; border-radius: var(--radius-sm);
+  padding: 4px 10px; font-size: var(--fs-sm); font-weight: var(--fw-bold);
+  cursor: pointer; transition: background 0.2s;
+  display: flex; align-items: center; justify-content: center;
+  background: #8e44ad; width: auto;
 }
-.btn-stage2:hover { background: #f5f3ff; }
-.btn-stage2.is-stage2 {
-  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
-  color: white;
-  border-color: #6d28d9;
+.btn-multy:hover{ background: #732d91; }
+.btn-multy.is-multy{ background: var(--status-success); }
+.btn-multy.is-multy:hover{ background: var(--status-success-hover); }
+
+.btn-add-shr-wrap{ display: flex; align-items: center; justify-content: center; width: 30px;
+  background: var(--status-success); cursor: pointer; flex-shrink: 0; transition: background .15s; }
+.btn-add-shr-wrap:hover{ background: var(--status-success-hover); }
+.btn-add-shr-wrap.shr-added{ background: var(--text-disabled); cursor: not-allowed; pointer-events: none; }
+.btn-add-shr-txt{ writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg);
+  color: #fff; font-weight: var(--fw-bold); font-size: var(--fs-xs); letter-spacing: 1px; user-select: none; padding: 6px 0; }
+.shr-placeholder{ flex: 1; display: flex; align-items: center; justify-content: center;
+  color: var(--text-disabled); font-style: italic; padding: 12px; background: var(--surface-sunken); text-align: center; }
+.shr-panels-wrap{ flex: 1; display: none; overflow: hidden; }
+.shr-sub-panel{ border-bottom: 1px solid var(--border-subtle); padding: 6px 8px 4px; }
+.shr-sub-panel:last-of-type{ border-bottom: none; }
+.shr-head-row{ display: flex; align-items: center; gap: 6px; margin-bottom: 4px; flex-wrap: wrap; }
+.shr-head-id{ font-weight: var(--fw-bold); color: var(--text-primary); font-size: var(--fs-sm); min-width: 115px; }
+
+.btn-add-ctl-wrap{ background: var(--text-primary); padding: 8px; text-align: center; cursor: pointer; margin-bottom: 12px; border-radius: var(--radius-sm); }
+.btn-add-ctl-wrap:hover{ background: var(--text-secondary); }
+.btn-add-ctl-txt{ color: var(--surface-2); font-weight: var(--fw-bold); font-size: var(--fs-base); letter-spacing: 1px; }
+
+.save-feedback{ font-size: var(--fs-base); color: var(--status-success); font-weight: var(--fw-semibold); padding: 6px 0; display: none; }
+
+/* === Autocomplete dropdown (Fix Teks Dark Mode) === */
+#ac-dropdown{ position: fixed; background: var(--surface-2); border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-lg); z-index: 99999;
+  max-height: 220px; overflow-y: auto; display: none; min-width: 300px; }
+.ac-item{ padding: 6px 10px; cursor: pointer; border-bottom: 0.5px solid var(--border-subtle); line-height: 1.4; color: var(--text-primary); }
+
+/* Fix untuk Batch Dropdown agar tulisannya terbaca di Dark Mode */
+#hdr-batch-dropdown div { color: var(--text-primary) !important; }
+.ac-item:last-child{ border-bottom: none; }
+.ac-item:hover, .ac-item.ac-active{ background: var(--accent-primary-soft); }
+.ac-item b{ color: var(--accent-primary); font-size: var(--fs-sm); }
+.ac-item span{ color: var(--text-primary); font-size: var(--fs-base); }
+.ac-item small{ color: var(--text-tertiary); font-size: var(--fs-xs); margin-left: 6px; }
+.ac-empty{ padding: 8px 12px; color: var(--text-disabled); font-style: italic; font-size: var(--fs-base); }
+.ac-hl{ background: var(--status-warning-soft); border-radius: 2px; color: var(--status-warning-soft-fg); }
+#spk-ctl-wrap input:focus, #spk-ctl-wrap select:focus{ outline: 2px solid var(--border-focus); outline-offset: 0; }
+
+/* ================================================================
+   SESI 2 — CTL-OUT CARD ENHANCEMENTS (hover + focus states)
+   NOTE: layout row 42:58 (CTL kiri | Add-SHR btn | SHR kanan)
+         di-handle di base CSS line 240-242. Jangan override
+         .ctl-inner / .ctl-left-panel / .ctl-right-panel di sini.
+================================================================ */
+
+/* --- CTL block: card enhancement (hover + focus) --- */
+.out-ctl-block{
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  margin-bottom: 10px;
+  overflow: hidden;
+  box-shadow: var(--shadow-xs);
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
-.btn-stage2:disabled { opacity: 0.5; cursor: not-allowed; }
-.shr-stage2-panel {
-  margin-top: 8px;
-  padding: 8px;
-  background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
-  border: 2px dashed #8b5cf6;
-  border-radius: 8px;
+.out-ctl-block:hover{ box-shadow: var(--shadow-sm); }
+.out-ctl-block:focus-within{ border-color: var(--accent-primary); box-shadow: var(--shadow-focus); }
+
+/* --- Header row CTL-OUT: chevron + label + summary + owner + so/cust + actions --- */
+.ctl-head-row{
+  background: var(--surface-sunken);
+  border-bottom: 1px solid var(--border-default);
+  padding: 6px 10px;
+  gap: 8px;
+}
+.ctl-chev{
+  background: transparent; border: 0;
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--text-secondary); font-size: 12px; cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast), transform var(--transition-fast);
+  user-select: none;
+}
+.ctl-chev:hover{ background: var(--surface-2); color: var(--accent-primary); }
+.ctl-summary{
+  display: none;
+  font-size: var(--fs-sm);
+  color: var(--text-tertiary);
+  font-weight: var(--fw-medium);
+  flex: 1;
+  margin-left: 4px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ctl-summary b{ color: var(--text-primary); font-weight: var(--fw-semibold); }
+
+/* --- Collapsed state --- */
+.out-ctl-block[data-collapsed="1"] .ctl-tbl,
+.out-ctl-block[data-collapsed="1"] .btn-add-shr-wrap,
+.out-ctl-block[data-collapsed="1"] .ctl-right-panel{
+  display: none !important;
+}
+.out-ctl-block[data-collapsed="1"] .ctl-left-panel{
+  border-bottom: 0;
+}
+.out-ctl-block[data-collapsed="1"] .ctl-head-row{
+  border-bottom: 0;
+}
+.out-ctl-block[data-collapsed="1"] .ctl-summary{
+  display: inline-block;
+}
+.out-ctl-block[data-collapsed="1"] .ctl-head-row .so-lbl,
+.out-ctl-block[data-collapsed="1"] .ctl-head-row .so-inp,
+.out-ctl-block[data-collapsed="1"] .ctl-head-row .action-group,
+.out-ctl-block[data-collapsed="1"] .ctl-head-row .owner-badge,
+.out-ctl-block[data-collapsed="1"] .ctl-head-row input[type="hidden"]{
+  display: none !important;
+}
+.out-ctl-block[data-collapsed="1"] .ctl-head-label{ color: var(--text-secondary); }
+
+/* --- SHR sub-panel: card di dalam CTL, dengan mode indicator via border-left --- */
+.shr-sub-panel{
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  border-left: 3px solid var(--accent-primary);   /* biru default = Single/Multy Req */
+  border-radius: var(--radius-md);
+  padding: 8px 10px 6px;
+  margin-bottom: 8px;
+}
+.shr-sub-panel:last-of-type{ margin-bottom: 0; border-bottom: 1px solid var(--border-default); }
+.shr-head-row{ gap: 6px; }
+
+/* Multy mode: Req kedua dst → warna sama, ada label */
+.shr-panels-wrap .shr-sub-panel:nth-of-type(2){
+  border-left-color: var(--owner-drc);
+}
+
+/* --- Stage 2 panel: border-left ungu (theme-aware) --- */
+.shr-stage2-panel{
+  margin-top: 10px !important;
+  padding: 10px !important;
+  background: var(--accent-purple-soft) !important;
+  border: 1px solid var(--accent-purple) !important;
+  border-left: 3px solid var(--accent-purple) !important;
+  border-radius: var(--radius-md) !important;
   position: relative;
 }
-.shr-stage2-panel::before {
-  content: '↓ OUTPUT STAGE 1 → INPUT STAGE 2';
-  position: absolute;
-  top: -8px;
-  left: 16px;
-  background: #6d28d9;
-  color: white;
-  padding: 2px 8px;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  border-radius: 3px;
+.shr-stage2-panel::before{
+  top: -10px !important;
+  padding: 3px 10px !important;
+  font-size: var(--fs-xs) !important;
+  border-radius: var(--radius-sm) !important;
 }
-.shr-stage2-sub-panel { background: white; }
-.shr-stage2-id { color: #6d28d9; font-weight: 800; }
-.btn-lbl, .btn-hps, .btn-duplicate, .btn-multy { color: #fff; border: none; border-radius: 3px; padding: 4px 8px; font-size: 13px; font-weight: 700; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; justify-content: center;}
-.btn-lbl { background: #1565c0; width: 28px; } .btn-lbl:hover { background: #0d47a1; }
-.btn-hps { background: #c62828; width: 28px; } .btn-hps:hover { background: #b71c1c; }
-.btn-duplicate { background: #f39c12; width: 28px; } .btn-duplicate:hover { background: #d68910; }
-.btn-multy { background: #8e44ad; font-size: 11px; width: auto; } .btn-multy:hover { background: #732d91; }
-.btn-multy.is-multy { background: #27ae60; } .btn-multy.is-multy:hover { background: #1e8449; }
+.shr-stage2-panel .shr-sub-panel{
+  border: 1px solid var(--border-default);
+  border-left: 3px solid var(--accent-purple);
+  background: var(--surface-2);
+}
 
-.btn-add-shr-wrap{display:flex;align-items:center;justify-content:center;width:30px;background:#1b6b45;cursor:pointer;flex-shrink:0;transition:background .15s}
-.btn-add-shr-wrap:hover{background:#145236}
-.btn-add-shr-wrap.shr-added{background:#999;cursor:not-allowed;pointer-events:none}
-.btn-add-shr-txt{writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg);color:#fff;font-weight:700;font-size:10px;letter-spacing:1px;user-select:none;padding:6px 0}
-.shr-placeholder{flex:1;display:flex;align-items:center;justify-content:center;color:#bbb;font-style:italic;padding:12px;background:#fafafa;text-align:center;}
-.shr-panels-wrap{flex:1;display:none;overflow:hidden}
-.shr-sub-panel{border-bottom:1px solid #e8eef8;padding:6px 8px 4px}
-.shr-sub-panel:last-of-type{border-bottom:none}
-.shr-head-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap}
-.shr-head-id{font-weight:700;color:#333;font-size:11px; min-width:115px;}
+/* --- Add CTL button: konsisten dengan tema --- */
+.btn-add-ctl-wrap{
+  background: var(--surface-2);
+  border: 2px dashed var(--border-strong);
+  color: var(--text-secondary);
+  padding: 10px !important;
+  text-align: center;
+  cursor: pointer;
+  margin-bottom: 12px;
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+.btn-add-ctl-wrap:hover{
+  background: var(--accent-primary-soft);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+.btn-add-ctl-txt{ color: inherit !important; font-size: var(--fs-md) !important; font-weight: var(--fw-bold); letter-spacing: 0.5px !important; }
 
-.btn-add-ctl-wrap{background:#1a2035;padding:8px;text-align:center;cursor:pointer;margin-bottom:12px; border-radius:3px}
-.btn-add-ctl-wrap:hover{background:#0f1626}
-.btn-add-ctl-txt{color:#fff;font-weight:700;font-size:13px;letter-spacing:1px}
+/* --- Duplicate/Delete buttons di head-row: tighter --- */
+.action-group{ margin-left: auto; }
 
-.spk-action-bar{display:flex;gap:10px;margin:4px 0 16px}
-.btn-save-spk{background:#1b6b45;color:#fff;border:none;border-radius:4px;padding:9px 28px;font-weight:700;font-size:13px;cursor:pointer}
-.btn-save-spk:hover{background:#145236}
-.btn-save-spk:disabled{background:#aaa;cursor:not-allowed}
-.btn-reset-spk{background:#757575;color:#fff;border:none;border-radius:4px;padding:9px 18px;font-weight:600;font-size:13px;cursor:pointer}
-.btn-reset-spk:hover{background:#555}
-.save-feedback{font-size:12px;color:#1b6b45;font-weight:600;padding:6px 0;display:none}
-
-#ac-dropdown{position:fixed;background:#fff;border:1px solid #999;border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,.18);z-index:99999;max-height:220px;overflow-y:auto;display:none;min-width:300px}
-.ac-item{padding:6px 10px;cursor:pointer;border-bottom:0.5px solid #f0f0f0;line-height:1.4}
-.ac-item:last-child{border-bottom:none}
-.ac-item:hover,.ac-item.ac-active{background:#e8f0fe}
-.ac-item b{color:#1a3a6e;font-size:11px}
-.ac-item span{color:#444;font-size:12px}
-.ac-item small{color:#888;font-size:10px;margin-left:6px}
-.ac-empty{padding:8px 12px;color:#aaa;font-style:italic;font-size:12px}
-.ac-hl{background:#fff3cd;border-radius:2px}
-#spk-ctl-wrap input:focus,#spk-ctl-wrap select:focus{outline:2px solid #1565c0;outline-offset:0}
-
-@media print {
-  .view-container{display:none!important;}
-  .view-container.active{display:block!important;}
-  #view-list,#view-detail{display:none!important;}
-  #view-create{display:block!important;}
-  .dash-header,.spk-action-bar,.btn-add-ctl-wrap,#save-feedback,.btn-add-shr-wrap{display:none!important;}
+/* === PRINT === */
+@media print{
+  .view-container{ display: none !important; }
+  .view-container.active{ display: block !important; }
+  #view-list, #view-detail{ display: none !important; }
+  #view-create{ display: block !important; }
+  .vc-topbar, .btn-add-ctl-wrap, #save-feedback, .btn-add-shr-wrap{ display: none !important; }
+  .vc-split{ display: block !important; }
+  .vc-form-col{ overflow: visible !important; }
 }
 </style>
 
@@ -311,135 +562,120 @@ td{padding:8px 12px;border-bottom:1px solid #e2e8f0;vertical-align:middle;overfl
 </div>
 
 <div id="view-create" class="view-container">
-  <!-- ==== Sesi 2A: Ref Panel Drawer ==== -->
-  <div id="rpd-backdrop" onclick="closeRefPanel()"></div>
-  <div id="rpd-drawer">
-    <div id="rpd-header">
-      <span><i class="ti ti-layout-sidebar-right"></i> &nbsp;Referensi Demand &amp; Stok</span>
-      <button onclick="closeRefPanel()" title="Tutup">✕</button>
-    </div>
-    <div id="rpd-body"></div>
-  </div>
-  <!-- ==== End Ref Panel Drawer ==== -->
-  <div class="dash-header" style="flex-shrink:0;">
+  <!-- ==== Topbar ==== -->
+  <div class="vc-topbar">
     <div>
-      <h1 class="dash-title" id="create-title">➕ Buat SPK CTL Baru</h1>
-      <div class="dash-sub" id="create-subtitle">Nomor SPK akan digenerate otomatis saat simpan</div>
+      <div class="vc-topbar__title">
+        <span id="create-title">➕ Buat SPK CTL Baru</span>
+        <span id="edit-banner-inline" style="display:none;font-size:var(--fs-sm);padding:2px 8px;background:var(--status-warning-soft);color:var(--status-warning-soft-fg);border-radius:var(--radius-sm);font-weight:var(--fw-semibold);"></span>
+      </div>
+      <div class="vc-topbar__meta" id="create-subtitle">
+        SPK No: <span id="hdr-spkno" title="Nomor digenerate saat simpan">(auto)</span>
+        &nbsp;·&nbsp; Tgl: <span id="hdr-date-display">—</span>
+        &nbsp;·&nbsp; Owner: <span id="hdr-owner-display" style="font-weight:var(--fw-bold);">—</span>
+      </div>
     </div>
-    <div style="display:flex; gap:8px;">
-      <button class="btn btn-outline" onclick="toggleRefPanel()" id="rpd-toggle-btn">📊 Panel Referensi</button>
-      <button class="btn btn-outline" onclick="backFromCreate()">✖ Batal / Kembali</button>
+    <div class="vc-topbar__actions">
+      <button class="vc-btn vc-btn--reset" onclick="resetForm()" title="Reset form">⟳ Reset</button>
+      <button class="vc-btn vc-btn--cancel" onclick="backFromCreate()" title="Batal">✕ Cancel</button>
+      <button class="vc-btn vc-btn--draft" id="btn-save-draft" onclick="saveSPK_Draft()" title="Simpan sebagai draft (bisa dilanjut nanti)">📄 Save Draft</button>
+      <button class="vc-btn vc-btn--save" id="btn-save" onclick="saveSPK()" title="Simpan SPK final">💾 Save</button>
     </div>
   </div>
 
-  <div style="flex:1;overflow-y:auto;">
-    <div id="spk-ctl-wrap">
+  <!-- ==== Split 60/40 ==== -->
+  <div class="vc-split">
+    <!-- ========== KIRI 60% : FORM ========== -->
+    <div class="vc-form-col" id="spk-ctl-wrap">
       <!-- Boks Tersembunyi (Agar JS tetap jalan) -->
       <div class="hidden-data">
         <input id="hdr-supplier" readonly/>
         <input id="hdr-nocoil" readonly/>
         <span id="hdr-date"></span>
+        <input type="hidden" id="hdr-batch"/>
+        <input type="hidden" id="hdr-item"/>
+        <input type="hidden" id="hdr-spec"/>
       </div>
 
-      <div class="form-section">
-        <div class="form-section-title">
-          <div>📦 Input Coil & Parameter CTL</div>
-          <div style="font-size:11px; font-weight:normal; color:var(--text-muted);">
-            SPK No: <span id="hdr-spkno" style="font-weight:600; color:var(--primary-blue);" title="Nomor digenerate saat simpan">(auto)</span> | Date: <span id="hdr-date-display"></span>
+      <!-- === OPSI 3 ULTRA COMPACT PANEL (Header + Batch + Sisa) === -->
+      <div class="ultra-panel">
+        <!-- Row 1: Header Inline -->
+        <div class="uc-row-1">
+          <input id="hdr-machine" class="uc-input" style="width:65px; text-align:center; color: var(--accent-primary);" value="CTL-01" readonly title="Mesin" />
+          <div class="uc-field">
+            <label>Priority:</label>
+            <select id="hdr-priority" class="uc-input" style="width:85px;">
+              <option>Normal</option><option>High</option><option>Urgent</option>
+            </select>
+          </div>
+          <div class="uc-field">
+            <label>Operator:</label>
+            <input id="hdr-op" class="uc-input" placeholder="Nama..." style="width:110px;" />
+          </div>
+          <input id="hdr-source-loc" type="hidden" value="Stok Coil" />
+
+          <label class="batch-habis">
+            <input type="checkbox" id="hdr-is-habis" onchange="updateWeightTotal()"/>
+            <span>Set Sisa Habis (0)</span>
+          </label>
+        </div>
+
+        <!-- Row 2: Search Input -->
+        <div class="uc-row-2">
+          <input id="hdr-batch-search" type="text" class="batch-search-input"
+                 placeholder="Ketik Batch / Spec / T / P / L..."
+                 autocomplete="off"
+                 oninput="onBatchSearchInput(this.value)"
+                 onkeydown="onBatchSearchKey(event)"
+                 onfocus="onBatchSearchInput(this.value)"/>
+          <div id="hdr-batch-dropdown" style="display:none;position:fixed;background:var(--surface-2);border:1px solid var(--border-strong);border-radius:var(--radius-md);max-height:240px;overflow-y:auto;z-index:99999;box-shadow:var(--shadow-lg);min-width:400px;"></div>
+        </div>
+
+        <!-- Row 3: Helper Text Spesifikasi -->
+        <div class="uc-row-3" id="batch-info-block">
+          <div class="uc-spec-text">
+            <span class="val" id="display-item">—</span>
+            <span id="display-nocoil" style="font-weight:normal;"></span>
+            <span class="sep">|</span>
+            <span class="val" id="display-spec">—</span>
+            <span id="display-supplier" style="font-weight:normal;"></span>
+            <span class="sep">|</span>
+            <span class="val"><span id="hdr-t">—</span> x <span id="hdr-w">—</span> mm</span>
+          </div>
+          <!-- Hidden avail untuk JS hitung -->
+          <span id="hdr-kg-avail" style="display:none;">0</span>
+        </div>
+
+        <!-- Row 4: Sisa Coil (Progress Bar) -->
+        <div class="sisa-coil sisa-coil--empty" id="sisa-coil-box">
+          <div class="sc-info-block" id="sc-info-container">
+             <span class="sc-label" style="color:var(--text-tertiary);">Stok Awal: <span id="sc-stok-awal" class="sc-val">0</span> kg</span>
+             <span class="sc-label" style="color:var(--accent-primary);">Pakai: <span id="sc-terpakai" class="sc-val">0</span></span>
+             <div class="uc-prog-wrap"><div class="uc-prog-bar" id="uc-prog-bar"></div></div>
+             <span class="sc-label" style="color:var(--status-success);">Sisa: <span id="sc-sisa" class="sc-val">0</span> kg</span>
+          </div>
+          
+          <!-- Element ID asli disembunyikan agar JS bawaan tidak error saat update data -->
+          <div style="display:none;">
+            <span id="sisa-coil-icon"></span>
+            <div id="sisa-coil-text"></div>
+            <div id="sisa-coil-sub"></div>
+            <span id="hdr-weight">0</span>
           </div>
         </div>
-        
-        <div class="header-split">
-          <!-- BAGIAN KIRI (60%) -->
-          <div class="header-left">
-            <div class="form-field">
-              <label class="form-label">Batch ID * (Ketik mencari)</label>
-              <div style="position:relative;width:100%;">
-                <input id="hdr-batch-search" type="text" class="form-input"
-                  placeholder="🔍 Ketik Batch / Spec / T / P / L..."
-                  autocomplete="off"
-                  oninput="onBatchSearchInput(this.value)"
-                  onkeydown="onBatchSearchKey(event)"
-                  onfocus="onBatchSearchInput(this.value)"/>
-                <div id="hdr-batch-dropdown"
-                  style="display:none;position:fixed;background:#eaf0fb;border:1px solid #1a3a6e;border-radius:0 0 4px 4px;max-height:240px;overflow-y:auto;z-index:99999;box-shadow:0 4px 16px rgba(26,58,110,0.18);min-width:400px;">
-                </div>
-              </div>
-              <input type="hidden" id="hdr-batch"/>
-              <input type="hidden" id="hdr-item"/>
-            </div>
+      </div>
             
-            <div class="info-bar">
-              <div class="info-item">
-                <span class="info-label">Item / No.Coil</span>
-                <span class="info-val"><span id="display-item">-</span> <span style="color:var(--text-muted); font-weight:normal;" id="display-nocoil"></span></span>
-              </div>
-              <div class="info-item" style="border-left: 1px solid #cbd5e1; padding-left: 16px;">
-                <span class="info-label">Spec / Supplier</span>
-                <input type="hidden" id="hdr-spec"/>
-                <span class="info-val"><span id="display-spec">-</span> <span style="color:var(--text-muted); font-weight:normal;" id="display-supplier"></span></span>
-              </div>
-              <div class="info-item" style="border-left: 1px solid #cbd5e1; padding-left: 16px;">
-                <span class="info-label">T × W</span>
-                <span class="info-val"><span id="hdr-t">--</span> × <span id="hdr-w">--</span> mm</span>
-              </div>
-              <div class="info-item" style="border-left: 1px solid #cbd5e1; padding-left: 16px;">
-                <span class="info-label">Stok Avail</span>
-                <span class="info-val" style="color: var(--primary-blue);"><span id="hdr-kg-avail">0</span> kg</span>
-              </div>
-            </div>
-          </div>
+      <!-- === Section 4 — INSTRUKSI PROSES === -->
+      <div class="section-instruksi">📋 INSTRUKSI PROSES</div>
 
-          <!-- BAGIAN KANAN (40%) -->
-          <div class="header-right">
-            <div class="header-right-row">
-              <div class="form-field">
-                <label class="form-label">Machine</label>
-                <input id="hdr-machine" class="form-input" value="CTL-01" readonly style="cursor:not-allowed;"/>
-              </div>
-              <div class="form-field">
-                <label class="form-label">Priority</label>
-                <select id="hdr-priority" class="form-select">
-                  <option>Normal</option><option>High</option><option>Urgent</option>
-                </select>
-              </div>
-              <div class="form-field">
-                <label class="form-label">Operator</label>
-                <input id="hdr-op" class="form-input" placeholder="Nama OP"/>
-              </div>
-            </div>
-
-            <div class="header-right-row" style="height: 100%;">
-              <div class="form-field" style="flex: 0.8;">
-                <label class="form-label">Source Loc</label>
-                <select id="hdr-source-loc" class="form-select">
-                  <option value="Stok Coil">Stok Coil</option>
-                </select>
-              </div>
-              <label class="checkbox-wrap" title="Centang kalau SPK ini menghabiskan coil. KG_Actual akan di-lock ke Target_KG saat selesai.">
-                <input type="checkbox" id="hdr-is-habis" onchange="updateWeightTotal()"/>
-                <span>🔒 Coil habis</span>
-              </label>
-              <div class="info-bar-recoil">
-                <span class="info-label">TOTAL PROCESS WT.</span>
-                <span class="info-val"><span id="hdr-weight">0</span> kg</span>
-                <span style="font-size:9px; color:#166534; margin-top:2px;">∑ Aktual Rencana</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="section-instruksi">instruksi proses</div>
+      <!-- === Section 5 — CTL-OUT List (Sesi 2 masih pakai builder lama) === -->
       <div id="out-ctl-list"></div>
+
+      <!-- === Section 6 — Tambah CTL-OUT === -->
       <div class="btn-add-ctl-wrap" onclick="addOutCtl()">
-        <span class="btn-add-ctl-txt">ADD OUT CTL</span>
+        <span class="btn-add-ctl-txt">+ TAMBAH CTL-OUT</span>
       </div>
 
-      <div class="spk-action-bar">
-        <button class="btn-save-spk" id="btn-save" onclick="saveSPK()">💾 Simpan SPK</button>
-        <button class="btn-reset-spk" onclick="resetForm()">↺ Reset</button>
-      </div>
       <div class="save-feedback" id="save-feedback"></div>
     </div>
   </div>
@@ -454,6 +690,7 @@ td{padding:8px 12px;border-bottom:1px solid #e2e8f0;vertical-align:middle;overfl
     <div style="display:flex;gap:8px;">
       <button class="btn btn-outline" onclick="showView('view-list')">◀ Kembali</button>
       <button class="btn btn-outline" id="btn-reprint-detail" onclick="printDetailCTL()">🖨️ Re-Print SPK</button>
+      <button class="btn btn-outline" onclick="openReprintLabelModal(_detailSpkNo)" style="background:#fef3c7;color:#78350f;border-color:#fbbf24;">🏷️ Reprint Label</button>
       <button class="btn btn-outline" id="btn-report-detail" onclick="printReportCTL()" style="display:none;background:#065f46;color:#fff;border-color:#064e3b;">🖨️ Print Report</button>
       <button class="btn btn-primary" id="btn-edit-detail" onclick="editFromDetail()">✏️ Edit Data</button>
       <button class="btn" id="btn-cancel-detail" onclick="cancelFromDetailCTL()" style="background:#d32f2f;color:#fff;border:1px solid #b71c1c;font-weight:600;">🚫 Cancel SPK</button>
@@ -556,7 +793,7 @@ function hideOverlay() {
   document.getElementById('spk-ov').classList.remove('active');
 }
 function getStatusBadge(status) {
-  var cls = { 'ANTRIAN':'badge-antrian', 'RUNNING':'badge-running', 'DONE':'badge-done', 'CANCELLED':'badge-cancelled' }[status] || 'badge-antrian';
+  var cls = { 'DRAFT':'badge-draft', 'ANTRIAN':'badge-antrian', 'RUNNING':'badge-running', 'DONE':'badge-done', 'CANCELLED':'badge-cancelled' }[status] || 'badge-antrian';
   return '<span class="badge ' + cls + '">' + (status || '—') + '</span>';
 }
 function getOwnerBadgeHtml(owner) {
@@ -618,7 +855,7 @@ function changeListPage(dir) {
 function openCreateCTL() {
   window._editingSpkNo = null;
   document.getElementById('create-title').textContent = '➕ Buat SPK CTL Baru';
-  document.getElementById('create-subtitle').textContent = 'Nomor SPK akan digenerate otomatis saat simpan';
+  
   showView('view-create');
   resetForm();
 }
@@ -667,15 +904,17 @@ function renderDetailCTL(res) {
   var btnReprint = document.getElementById('btn-reprint-detail');
   var btnReport  = document.getElementById('btn-report-detail');
   var statusUp   = String(h.status||'').toUpperCase();
-  var canEdit    = (statusUp === 'ANTRIAN');
+  var canEdit    = (statusUp === 'ANTRIAN' || statusUp === 'DRAFT');
   var isDone     = (statusUp === 'DONE');
+  var isDraft    = (statusUp === 'DRAFT');
 
   if (btnEdit) {
     btnEdit.style.display = canEdit ? 'inline-block' : 'none';
     btnEdit.disabled = !canEdit;
   }
   if (btnCancel) {
-    btnCancel.style.display = canEdit ? 'inline-block' : 'none';
+    // Cancel SPK hanya untuk ANTRIAN. DRAFT tidak perlu Cancel (edit → save empty atau delete manual).
+    btnCancel.style.display = (statusUp === 'ANTRIAN') ? 'inline-block' : 'none';
   }
   // Toggle Print button: DONE → Print Report (aktual+NG); selain itu → Re-Print SPK (plan blank)
   if (btnReprint) btnReprint.style.display = isDone ? 'none' : 'inline-block';
@@ -798,15 +1037,32 @@ function editFromDetail() {
     }
   }
 
+  // 🔧 FIX: Reuse _lastDetailRes yang sudah terbukti punya data lengkap
+  // (dari render Detail yang muncul normal). Hindari panggil getSpkFullData
+  // 2x — panggilan kedua bisa race condition / return data kosong.
+  var doEdit = function(res) {
+    if (!res || !res.header) { alert('❌ Data SPK tidak lengkap untuk diedit.'); return; }
+    window._editingSpkNo = res.header.spk_no;
+    document.getElementById('create-title').textContent = '✏️ Edit SPK CTL';
+    
+    showView('view-create');
+    populateFormFromSpk(res);
+  };
+
+  // Kalau _lastDetailRes ada + match dengan _detailSpkNo → langsung pakai
+  if (window._lastDetailRes && window._lastDetailRes.header
+      && String(window._lastDetailRes.header.spk_no).trim() === String(_detailSpkNo).trim()) {
+    doEdit(window._lastDetailRes);
+    return;
+  }
+
+  // Fallback: fetch ulang dari backend
   showOverlay('Memuat data untuk diedit...');
   google.script.run
     .withSuccessHandler(function(res) {
       hideOverlay();
-      window._editingSpkNo = res.header.spk_no;
-      document.getElementById('create-title').textContent = '✏️ Edit SPK CTL';
-      document.getElementById('create-subtitle').textContent = 'Mode Edit — ' + res.header.spk_no;
-      showView('view-create');
-      populateFormFromSpk(res);
+      window._lastDetailRes = res;  // update cache
+      doEdit(res);
     })
     .withFailureHandler(function(err) { hideOverlay(); alert('❌ Gagal memuat data edit:\n' + (err.message || err)); })
     .getSpkFullData(_detailSpkNo);
@@ -1172,15 +1428,17 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
   window.calcCtlKg=function(n){
     var qty  =parseFloat((document.getElementById('ctl-qty-'+n)||{value:0}).value)||0;
     var wgPce=parseFloat((document.getElementById('ctl-wgpce-'+n)||{value:0}).value)||0;
-    var kg   =qty*wgPce; 
+    var kg   =qty*wgPce;
     var el   =document.getElementById('ctl-kg-'+n);
-    if(el) el.value=kg>0?Math.round(kg):''; 
+    if(el) el.value=kg>0?Math.round(kg):'';
     updateWeightTotal();
-    
+
     var content=document.getElementById('shr-content-'+n+'-1');
     if(content){
       content.querySelectorAll('.shr-sub-panel').forEach(function(sub,ri){ calcShrQty(n,1,ri+1); });
     }
+    // Sesi 2: update summary agar sinkron saat masih expanded (untuk preview)
+    if (typeof window.updateCtlSummary === 'function') window.updateCtlSummary(n);
   };
 
   window.calcShrQty=function(ctlN,shrIdx,subI){
@@ -1216,6 +1474,7 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
     if (habisChk && habisChk.checked) {
       var coilAvail = parseFloat(document.getElementById('hdr-kg-avail').textContent)||0;
       document.getElementById('hdr-weight').textContent = Math.round(coilAvail);
+      if (typeof renderSisaCoil === 'function') renderSisaCoil();
       return;
     }
     // Normal mode: SUM dari OUT planned kg
@@ -1226,6 +1485,7 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
       if(el) total+=parseFloat(el.value)||0;
     });
     document.getElementById('hdr-weight').textContent=Math.round(total);
+    if (typeof renderSisaCoil === 'function') renderSisaCoil();
   }
   window.updateWeightTotal=updateWeightTotal;
 
@@ -1321,7 +1581,7 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
     if (inp) inp.placeholder = '⏳ Memuat stok...';
     google.script.run.withSuccessHandler(function(stk){
       _stokData = Array.isArray(stk) ? stk : (stk.coil || []);
-      if (inp) inp.placeholder = '🔍 Ketik Batch / Spec / T / P / L...';
+      if (inp) inp.placeholder = 'Ketik Batch / Spec / T / P / L...';
     }).getSheetData('Stok_Coil');
   };
 
@@ -1329,58 +1589,80 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
   function init(){
     _ac.init();
     document.getElementById('hdr-date').textContent = new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+    var _todayLbl = new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+    var _dd = document.getElementById('hdr-date-display'); if (_dd) _dd.textContent = _todayLbl;
     loadStokCoil();
     google.script.run.withSuccessHandler(function(items){ _masterItems = Array.isArray(items) ? items : []; }).getSheetData('M_ITEM');
-    // 🔒 Pilihan A: pakai getDemandData() service (Demand_View sheet sudah dihapus)
     google.script.run.withSuccessHandler(function(d){
       _demandData = (d && Array.isArray(d.demands)) ? d.demands : [];
     }).withFailureHandler(function(err){
       console.error('getDemandData failed:', err);
       _demandData = [];
     }).getDemandData();
-    // 🟢 Step 2 — Fetch SHR machines list dari M_MC (active only)
     google.script.run.withSuccessHandler(function(m){ window._shrMachines = Array.isArray(m) ? m : []; }).getMachinesByType('SHR', true);
     document.getElementById('hdr-spkno').textContent = '(auto)';
     _spkNo = '';
-    // Sesi 2A: reset ref panel filter saat form fresh
-    window._spkCtlRefFilter = null;
-    closeRefPanel();
+    // Sesi 2 Sesi 1: render initial sisa coil (state empty)
+    if (typeof renderSisaCoil === 'function') renderSisaCoil();
   }
 
-  // ==== Sesi 2A: Ref Panel Drawer Controllers ====
-  window._rpdInstance = null;
-  window.toggleRefPanel = function() {
-    var drawer = document.getElementById('rpd-drawer');
-    if (!drawer) return;
-    if (drawer.classList.contains('open')) closeRefPanel();
-    else openRefPanel();
-  };
-  window.openRefPanel = function() {
-    var drawer   = document.getElementById('rpd-drawer');
-    var backdrop = document.getElementById('rpd-backdrop');
-    var btn      = document.getElementById('rpd-toggle-btn');
-    var body     = document.getElementById('rpd-body');
-    if (!drawer || !backdrop || !body) return;
-    drawer.classList.add('open');
-    backdrop.classList.add('open');
-    if (btn) btn.classList.add('active');
-    if (!window._rpdInstance && typeof window.renderRefPanel === 'function') {
-      window._rpdInstance = window.renderRefPanel(body, {
-        defaultTab: 'demand',
-        initialFilter: window._spkCtlRefFilter || null,
-        onRowClick: function(row, tab) { console.log('[RefPanel click]', tab, row); }
-      });
-    } else if (window._rpdInstance && window._spkCtlRefFilter) {
-      window._rpdInstance.setFilter(window._spkCtlRefFilter);
+  // ==== Sesi 2 Sesi 1: Sisa Coil 3-State Renderer (Ultra Compact) ====
+  window.MIN_SISA_COIL_KG = 2000;
+  window.renderSisaCoil = function() {
+    var box = document.getElementById('sisa-coil-box');
+    var btnSave = document.getElementById('btn-save');
+    if (!box) return;
+
+    var stokAvail = parseFloat(document.getElementById('hdr-kg-avail').textContent) || 0;
+    var totalWt   = parseFloat(document.getElementById('hdr-weight').textContent || document.getElementById('hdr-weight').innerText) || 0;
+    var isHabis   = document.getElementById('hdr-is-habis') && document.getElementById('hdr-is-habis').checked;
+
+    // Hitung Sisa & Persentase
+    var sisa = isHabis ? 0 : (stokAvail - totalWt);
+    var pct = stokAvail > 0 ? (totalWt / stokAvail * 100) : 0;
+    if (pct > 100) pct = 100;
+
+    // Reset Class
+    box.classList.remove('sisa-coil--normal','sisa-coil--warn','sisa-coil--error','sisa-coil--empty');
+
+    // Update UI Teks & Progress Bar
+    var elStok = document.getElementById('sc-stok-awal');
+    var elPakai = document.getElementById('sc-terpakai');
+    var elSisa = document.getElementById('sc-sisa');
+    var elProg = document.getElementById('uc-prog-bar');
+    var sisaValEl = elSisa ? elSisa.parentNode : null;
+
+    if (elStok) elStok.textContent = stokAvail.toLocaleString('id-ID');
+    if (elPakai) elPakai.textContent = totalWt.toLocaleString('id-ID');
+    if (elSisa) elSisa.textContent = sisa.toLocaleString('id-ID');
+    if (elProg) elProg.style.width = pct + '%';
+
+    // State: Belum pilih batch
+    if (!stokAvail) {
+      box.classList.add('sisa-coil--empty');
+      if (btnSave) btnSave.disabled = false;
+      if (sisaValEl) sisaValEl.style.color = 'var(--text-tertiary)';
+      return;
     }
-  };
-  window.closeRefPanel = function() {
-    var drawer   = document.getElementById('rpd-drawer');
-    var backdrop = document.getElementById('rpd-backdrop');
-    var btn      = document.getElementById('rpd-toggle-btn');
-    if (drawer)   drawer.classList.remove('open');
-    if (backdrop) backdrop.classList.remove('open');
-    if (btn)      btn.classList.remove('active');
+
+    // State: Overload
+    if (sisa < 0) {
+      box.classList.add('sisa-coil--error');
+      if (btnSave) btnSave.disabled = true;
+      if (sisaValEl) sisaValEl.style.color = 'var(--status-danger)';
+    } 
+    // State: Sisa Habis (Lock) atau Sisa Kecil (Warning)
+    else if (isHabis || sisa < window.MIN_SISA_COIL_KG) {
+      box.classList.add('sisa-coil--warn');
+      if (btnSave) btnSave.disabled = false;
+      if (sisaValEl) sisaValEl.style.color = 'var(--status-warning)';
+    } 
+    // State: Normal/Aman
+    else {
+      box.classList.add('sisa-coil--normal');
+      if (btnSave) btnSave.disabled = false;
+      if (sisaValEl) sisaValEl.style.color = 'var(--status-success)';
+    }
   };
 
   window.onBatchChange=function(sel){
@@ -1393,14 +1675,6 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
       document.getElementById('hdr-t').textContent       =r.T||'--';
       document.getElementById('hdr-w').textContent       =r.P||'--';
       document.getElementById('hdr-kg-avail').textContent=Math.round(parseFloat(r.KG_Avail||0));
-      // Sesi 2A: auto-filter Ref Panel by Equivalent+T dari item yang dipilih
-      try {
-        var _cache = window._refPanelCache || {};
-        var _equiv = (_cache.itemToEquiv || {})[r.Item_Code] || '';
-        var _tVal  = r.T || '';
-        window._spkCtlRefFilter = { equiv: _equiv, t: _tVal };
-        if (window._rpdInstance) window._rpdInstance.setFilter(window._spkCtlRefFilter);
-      } catch(e) { console.warn('Ref panel filter sync failed:', e); }
       document.getElementById('display-item').textContent = r.Item_Code || '-';
       document.getElementById('display-nocoil').textContent = (r.No_Coil || r.Coil_No || '') ? '('+(r.No_Coil || r.Coil_No)+')' : '';
       document.getElementById('display-spec').textContent = r.Spec || '-';
@@ -1409,6 +1683,14 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
       document.getElementById('hdr-date-display').textContent = today;
 
       _coilOwner = String(r.Owner || r.owner || 'FC').trim().toUpperCase();
+      // Sesi 2 Sesi 1: sync Owner ke topbar display
+      var ownDisp = document.getElementById('hdr-owner-display');
+      if (ownDisp) {
+        ownDisp.textContent = _coilOwner;
+        ownDisp.style.color = (_coilOwner === 'DRC') ? 'var(--owner-drc)' : 'var(--owner-fc)';
+      }
+      // Sesi 2 Sesi 1: trigger re-render sisa coil setelah batch dipilih
+      if (typeof renderSisaCoil === 'function') renderSisaCoil();
       document.querySelectorAll('#out-ctl-list .out-ctl-block').forEach(function(b){
           var bn = parseInt(b.id.replace('ctl-block-',''));
           var inpOwner = document.getElementById('ctl-owner-'+bn);
@@ -1444,7 +1726,9 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
       '<div class="ctl-inner">'+
         '<div class="ctl-left-panel">'+
           '<div class="ctl-head-row">'+
-            '<span class="ctl-head-label">OUT CTL '+n+'</span>'+
+            '<button type="button" class="ctl-chev" id="ctl-chev-'+n+'" title="Toggle expand/collapse" onclick="toggleCtlCollapse('+n+')">▼</button>'+
+            '<span class="ctl-head-label">CTL-OUT '+n+'</span>'+
+            '<span class="ctl-summary" id="ctl-summary-'+n+'" onclick="toggleCtlCollapse('+n+')" title="Klik untuk expand"></span>'+
             '<input type="hidden" id="ctl-owner-'+n+'" value="FC">'+
             '<span class="so-lbl">UsedBy:</span>'+
             '<span class="owner-badge badge-fc" id="ctl-badge-'+n+'" onclick="toggleCtlOwner('+n+')">FC</span>'+
@@ -1455,7 +1739,6 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
             '<span class="so-lbl">Cust</span>'+
             '<input class="so-inp" style="width:65px;" id="ctl-cust-'+n+'" placeholder="Cust" >'+
             '<div class="action-group">'+
-              '<button type="button" class="btn-lbl" title="Print Label" onclick="printLabel('+n+')">🏷️</button>'+
               '<button type="button" class="btn-duplicate" title="Duplikat" onclick="duplicateCtl('+n+')">⧉</button>'+
               '<button type="button" class="btn-hps" title="Hapus / Cancel" onclick="removeCtl('+n+')">🗑️</button>'+
             '</div>'+
@@ -1492,7 +1775,16 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
         '</div>'+
       '</div>';
     document.getElementById('out-ctl-list').appendChild(block);
-    
+    // Sesi 2: init data-collapsed + attach focusout listener untuk auto-collapse
+    block.setAttribute('data-collapsed', '0');
+    block.addEventListener('focusout', function(e) {
+      setTimeout(function() {
+        if (!block.contains(document.activeElement) && typeof window.autoCollapseIfValid === 'function') {
+          window.autoCollapseIfValid(n);
+        }
+      }, 150);
+    });
+
     var inpOwner = document.getElementById('ctl-owner-'+n);
     var inpUsed  = document.getElementById('ctl-owner-used-'+n);
     var badge    = document.getElementById('ctl-badge-'+n);
@@ -1600,6 +1892,86 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
 
   window.toggleCtlOwner=function(n){_tog('ctl-owner-used-'+n,'ctl-badge-'+n);};
   window.toggleShrOwner=function(c,s,i){_tog('shr-owner-'+c+'-'+s+'-'+i,'shr-badge-'+c+'-'+s+'-'+i);};
+
+  // ============================================================
+  // Sesi 2 — CTL-OUT Collapse/Expand + Summary + Auto-collapse
+  // ============================================================
+  window.toggleCtlCollapse = function(n) {
+    var block = document.getElementById('ctl-block-'+n);
+    if (!block) return;
+    var currCollapsed = block.getAttribute('data-collapsed') === '1';
+    if (currCollapsed) {
+      // Expand
+      block.setAttribute('data-collapsed', '0');
+      var chev = document.getElementById('ctl-chev-'+n);
+      if (chev) chev.textContent = '▼';
+    } else {
+      // Collapse — update summary dulu
+      if (typeof window.updateCtlSummary === 'function') window.updateCtlSummary(n);
+      block.setAttribute('data-collapsed', '1');
+      var chev2 = document.getElementById('ctl-chev-'+n);
+      if (chev2) chev2.textContent = '▶';
+    }
+  };
+
+  window.updateCtlSummary = function(n) {
+    var el = document.getElementById('ctl-summary-'+n);
+    if (!el) return;
+    var item  = String((document.getElementById('ctl-item-'+n)||{value:''}).value || '').trim();
+    var desc  = String((document.getElementById('ctl-desc-'+n)||{value:''}).value || '').trim();
+    var qty   = parseFloat((document.getElementById('ctl-qty-'+n)||{value:0}).value) || 0;
+    var kg    = parseFloat((document.getElementById('ctl-kg-'+n)||{value:0}).value) || 0;
+    var tgt   = String((document.getElementById('ctl-target-'+n)||{value:''}).value || '').trim();
+    var used  = String((document.getElementById('ctl-owner-used-'+n)||{value:''}).value || 'FC').trim();
+    var so    = String((document.getElementById('ctl-so-'+n)||{value:''}).value || '').trim();
+    var cust  = String((document.getElementById('ctl-cust-'+n)||{value:''}).value || '').trim();
+    var shrHasContent = !!document.querySelector('#shr-content-'+n+'-1 .shr-sub-panel');
+    var stage2Active  = !!document.getElementById('shr-stage2-panel-'+n);
+
+    var shrTag = stage2Active ? ' · 🟣 Stage 2'
+               : (shrHasContent ? ' · 🔵 SHR child' : ' · direct CTL');
+
+    var qtyStr = qty ? qty.toLocaleString('id-ID') : '0';
+    var kgStr  = kg  ? kg.toLocaleString('id-ID') : '0';
+
+    // Format: · ITEM · desc · qty pcs · kg kg · Owner · Target [· mode]
+    var parts = [];
+    if (item) parts.push('<b>'+esc(item)+'</b>');
+    if (desc) parts.push(esc(desc.length > 30 ? desc.substr(0,30)+'…' : desc));
+    parts.push(qtyStr + ' pcs');
+    parts.push(kgStr + ' kg');
+    if (used) parts.push('<b>'+used+'</b>');
+    if (tgt)  parts.push(tgt);
+    if (so || cust) parts.push('SO: '+(so||'—')+(cust ? ' / '+cust : ''));
+
+    el.innerHTML = ' · ' + parts.join(' · ') + shrTag;
+
+    function esc(s){
+      return String(s).replace(/[&<>"']/g, function(c){
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+      });
+    }
+  };
+
+  window.autoCollapseIfValid = function(n) {
+    var block = document.getElementById('ctl-block-'+n);
+    if (!block) return;
+    if (block.getAttribute('data-collapsed') === '1') return;   // already collapsed
+    // Guard: skip kalau user masih editing di block ini
+    if (block.contains(document.activeElement)) return;
+    // Guard: skip kalau autocomplete dropdown lagi aktif
+    var acDd = document.getElementById('ac-dropdown');
+    if (acDd && acDd.style.display === 'block') return;
+
+    var item  = String((document.getElementById('ctl-item-'+n)||{value:''}).value || '').trim();
+    var qty   = parseFloat((document.getElementById('ctl-qty-'+n)||{value:0}).value) || 0;
+    var tgt   = String((document.getElementById('ctl-target-'+n)||{value:''}).value || '').trim();
+
+    // Kondisi valid: item + qty > 0 + target terpilih
+    if (item && qty > 0 && tgt) {
+      window.toggleCtlCollapse(n);
+    }
+  };
   function _tog(oid,bid){
     var inp=document.getElementById(oid),bdg=document.getElementById(bid);
     if(!inp||!bdg) return;
@@ -1609,6 +1981,10 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
   }
 
   window.handleCtlTargetChange = function(n) {
+      // Sesi 2: sync summary + trigger auto-collapse setelah target berubah
+      setTimeout(function(){
+        if (typeof window.updateCtlSummary === 'function') window.updateCtlSummary(n);
+      }, 0);
       var targetEl     = document.getElementById('ctl-target-'+n);
       var ownerInp     = document.getElementById('ctl-owner-'+n); 
       var ownerUsedInp = document.getElementById('ctl-owner-used-'+n);
@@ -1781,7 +2157,7 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
 
       var actionGroupHtml = '';
       if(i === 1) {
-          var mTxt = mode === 'multy' ? 'Kembali Single' : '⚡ Multy';
+          var mTxt = mode === 'multy' ? 'To Single' : '⚡ Multy';
           var mClass = mode === 'multy' ? 'btn-multy is-multy' : 'btn-multy';
           var nextM = mode === 'multy' ? 'single' : 'multy';
           var hapusTitle = isExistingShr ? 'Set status CANCELLED di sheet (cascade ke SHR-OUT)' : 'Hapus SHR ini';
@@ -1962,9 +2338,8 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
               '<option value="FG_Cust">FG_Cust</option>'+
               '<option value="WIP_Cust">WIP_Cust</option>'+
               '<option value="WIP_Stamping">WIP_Stamping</option>'+
-              '<option value="WIP_Transit_Shearing">WIP_Transit_Shearing</option>'+
+              '<option value="FG_RM_Stamping">FG_RM_Stamping</option>'+
               '<option value="Stok_Sheet">Stok_Sheet</option>'+
-              '<option value="Stok_NG">Stok_NG</option>'+
             '</select></td>'+
           '</tr></tbody>'+
         '</table>'+
@@ -2183,13 +2558,13 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
     var isEditMode = !!window._editingSpkNo;
     var btn = document.getElementById('btn-save');
     btn.disabled = true;
-    btn.textContent = '⏳ Menyimpan...';
+    btn.textContent = '⏳ Save...';
 
     var payload = collectPayload();
 
     var successHandler = function(res) {
       btn.disabled = false;
-      btn.textContent = isEditMode ? '💾 Simpan Perubahan' : '💾 Simpan SPK';
+      btn.textContent = isEditMode ? '💾 Update' : '💾 Save';
       window._editingSpkNo = null;
 
       // ✅ Capture data print SEBELUM state berubah (Bug 8)
@@ -2247,7 +2622,7 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
     };
     var failureHandler = function(err) {
       btn.disabled = false;
-      btn.textContent = isEditMode ? '💾 Simpan Perubahan' : '💾 Simpan SPK';
+      btn.textContent = isEditMode ? '💾 Update' : '💾 Save';
       alert('❌ Gagal:\n' + (err.message || err));
     };
 
@@ -2266,7 +2641,7 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
     // ✅ Reset disabled state batch-search (Bug 7)
     document.getElementById('hdr-batch-search').disabled = false;
     document.getElementById('hdr-batch-search').style.background = '';
-    
+
     ['hdr-item','hdr-spec','hdr-supplier','hdr-nocoil','hdr-op'].forEach(function(id){
       var el = document.getElementById(id); if(el) el.value = '';
     });
@@ -2282,12 +2657,73 @@ window.updateCtlRemoveButtonsState = updateCtlRemoveButtonsState;
     document.getElementById('hdr-spkno').style.color = '';
     document.getElementById('hdr-spkno').title = 'Nomor SPK digenerate otomatis saat simpan';
 
-    var banner = document.getElementById('edit-mode-banner');
-    if (banner) banner.remove();
+    // Sesi 2 Sesi 1: reset owner display + inline banner + sisa coil + button labels
+    var ownDisp = document.getElementById('hdr-owner-display');
+    if (ownDisp) { ownDisp.textContent = '—'; ownDisp.style.color = ''; }
+    var inlineBanner = document.getElementById('edit-banner-inline');
+    if (inlineBanner) { inlineBanner.style.display = 'none'; inlineBanner.textContent = ''; }
+    var oldBanner = document.getElementById('edit-mode-banner');
+    if (oldBanner) oldBanner.remove();
     var btn = document.getElementById('btn-save');
-    btn.textContent = '💾 Simpan SPK'; btn.style.background = '';
+    if (btn) { btn.textContent = '💾 Save'; btn.style.background = ''; btn.disabled = false; }
+    var btnDraft = document.getElementById('btn-save-draft');
+    if (btnDraft) { btnDraft.disabled = false; btnDraft.textContent = '📄 Save Draft'; }
     document.getElementById('save-feedback').style.display = 'none';
+    if (typeof renderSisaCoil === 'function') renderSisaCoil();
   };
+
+  // ==== Sesi 2 Sesi 1: Save as Draft ====
+  // Perilaku: sama seperti saveSPK tapi payload di-flag `is_draft: true`
+  // agar backend saveSPK_CTL menaruh Status = 'DRAFT' (bukan 'ANTRIAN').
+  // Validasi lebih longgar: cukup batch + minimal 1 CTL-OUT dengan Item_Code.
+  // ⚠️ Butuh backend saveSPK_CTL / updateAndAppendSpkCTL support flag `is_draft`
+  //    (di-implement di Sesi 2 backend patch).
+  window.saveSPK_Draft = function() {
+    var batchVal = document.getElementById('hdr-batch').value;
+    if (!batchVal) { alert('⚠️ Pilih Batch ID (Coil) dulu untuk simpan draft!'); return; }
+    var blocks = document.querySelectorAll('#out-ctl-list .out-ctl-block');
+    if (blocks.length === 0) { alert('⚠️ Tambahkan minimal 1 CTL-OUT untuk simpan draft!'); return; }
+    // Draft validasi ringan: minimal 1 OUT dengan Item_Code terisi
+    var hasItem = false;
+    blocks.forEach(function(b){
+      var n = parseInt(b.id.replace('ctl-block-',''));
+      var it = document.getElementById('ctl-item-'+n);
+      if (it && String(it.value||'').trim()) hasItem = true;
+    });
+    if (!hasItem) { alert('⚠️ Minimal 1 CTL-OUT harus punya Item Code untuk simpan draft!'); return; }
+
+    var isEditMode = !!window._editingSpkNo;
+    var btnDraft = document.getElementById('btn-save-draft');
+    var btnSave  = document.getElementById('btn-save');
+    if (btnDraft) { btnDraft.disabled = true; btnDraft.textContent = '⏳ Menyimpan draft...'; }
+    if (btnSave)  { btnSave.disabled = true; }
+
+    var payload = collectPayload();
+    payload.is_draft = true;   // 🚩 flag draft — backend akan set Status='DRAFT'
+
+    var successHandler = function(res) {
+      if (btnDraft) { btnDraft.disabled = false; btnDraft.textContent = '📄 Save Draft'; }
+      if (btnSave)  { btnSave.disabled = false; }
+      window._editingSpkNo = null;
+      alert('✅ Draft tersimpan: ' + (res.spk_no || '(auto)') + '\nStatus: DRAFT — bisa dilanjutkan nanti dari list.');
+      if (typeof showOverlay === 'function') showOverlay('Memuat draft SPK...');
+      setTimeout(function(){ openDetailCTL(res.spk_no); }, 800);
+      setTimeout(function(){ loadListCTL(); }, 2000);
+    };
+    var failureHandler = function(err) {
+      if (btnDraft) { btnDraft.disabled = false; btnDraft.textContent = '📄 Save Draft'; }
+      if (btnSave)  { btnSave.disabled = false; }
+      alert('❌ Gagal simpan draft:\n' + (err.message || err) +
+            '\n\n(Backend perlu di-update: saveSPK_CTL harus terima flag is_draft)');
+    };
+
+    if (isEditMode) {
+      google.script.run.withSuccessHandler(successHandler).withFailureHandler(failureHandler).updateAndAppendSpkCTL(payload);
+    } else {
+      google.script.run.withSuccessHandler(successHandler).withFailureHandler(failureHandler).saveSPK_CTL(payload);
+    }
+  };
+
   window.printLabel=function(n){alert('Print label: OUT CTL '+n);};
 
   init();
@@ -2313,15 +2749,80 @@ function populateFormFromSpk(res) {
   hiddenInp.value = h.batch_id;
   searchInp.disabled = true; searchInp.style.background = '#f5e8d0';
 
-  // Manual Trigger to fill spec
-  var fakeSelect = { value: h.batch_id, options: [{text: h.batch_id}], selectedIndex: 0 };
-  onBatchChange(fakeSelect);
+  // Manual Trigger to fill spec (meminta update ke UI lain jika batch masih ada di stok)
+          var fakeSelect = { value: h.batch_id, options: [{text: h.batch_id}], selectedIndex: 0 };
+          onBatchChange(fakeSelect);
+
+          // PENTING: Fallback pengisian manual dari data history SPK (res.header)
+          // Mengamankan data jika coil sudah habis dan gagal ditemukan oleh onBatchChange
+          document.getElementById('hdr-item').value = h.item_code || '';
+          document.getElementById('hdr-spec').value = h.input_spec || '';
+          document.getElementById('hdr-nocoil').value = h.no_coil || '';
+          document.getElementById('hdr-t').textContent = h.thick || '--';
+          document.getElementById('hdr-w').textContent = h.width || '--';
+          document.getElementById('hdr-kg-avail').textContent = Math.round(parseFloat(h.coil_avail_kg) || 0);
+          
+          var displayItem = document.getElementById('display-item');
+          if (displayItem) displayItem.textContent = h.item_code || '-';
+          
+          var displayNoCoil = document.getElementById('display-nocoil');
+          if (displayNoCoil) displayNoCoil.textContent = h.no_coil ? '('+h.no_coil+')' : '';
+          
+          var displaySpec = document.getElementById('display-spec');
+          if (displaySpec) displaySpec.textContent = h.input_spec || '-';
+          
+          _coilOwner = String(h.owner || 'FC').trim().toUpperCase();
+          var ownDisp = document.getElementById('hdr-owner-display');
+          if (ownDisp) {
+            ownDisp.textContent = _coilOwner;
+            ownDisp.style.color = (_coilOwner === 'DRC') ? 'var(--owner-drc)' : 'var(--owner-fc)';
+          }
+          if (typeof renderSisaCoil === 'function') renderSisaCoil();
 
   document.getElementById('hdr-priority').value   = h.priority   || 'Normal';
   document.getElementById('hdr-source-loc').value = h.source_loc || 'Stok Coil';
   document.getElementById('hdr-op').value         = h.op         || '';
   var habisChkEdit = document.getElementById('hdr-is-habis');
   if (habisChkEdit) habisChkEdit.checked = h.is_habis === true;
+
+  // 🔧 FIX 2 kasus edit-mode header (Sesi CTL bugfix):
+  //
+  // Case A — DRAFT/ANTRIAN edit field kosong: onBatchChange return early
+  //   kalau batch coil sudah tidak ada di _stokData (habis dipakai SPK lain
+  //   setelahnya, atau formula sheet Stok_Coil skip row avail=0). Fallback
+  //   set field header manual dari backend response h (h.coil_avail_kg
+  //   pakai Coil_Avail_Snapshot = avail saat SPK ini dibuat = effective
+  //   avail buat SPK ini).
+  //
+  // Case B — KG_Target=0 saat edit + ceklis Habis: onBatchChange set
+  //   hdr-kg-avail dari r.KG_Avail = LIVE avail (sudah minus reservasi SPK
+  //   ini sendiri). Untuk edit mode, effective avail buat SPK ini = live +
+  //   existing_KG_Target. Adjust supaya updateWeightTotal() & renderSisaCoil()
+  //   otomatis pakai basis benar.
+  var _existKg = parseFloat(h.kg_target) || 0;
+  if (!document.getElementById('hdr-item').value && h.batch_id) {
+    // Case A — batch hilang dari _stokData, populate manual dari h
+    document.getElementById('hdr-item').value    = h.item_code  || '';
+    document.getElementById('hdr-spec').value    = h.input_spec || '';
+    document.getElementById('hdr-nocoil').value  = h.no_coil    || '';
+    document.getElementById('hdr-t').textContent = h.thick      || '--';
+    document.getElementById('hdr-w').textContent = h.width      || '--';
+    document.getElementById('hdr-kg-avail').textContent = Math.round(parseFloat(h.coil_avail_kg) || 0);
+    document.getElementById('display-item').textContent   = h.item_code || '-';
+    document.getElementById('display-nocoil').textContent = h.no_coil ? '(' + h.no_coil + ')' : '';
+    document.getElementById('display-spec').textContent   = h.input_spec || '-';
+    _coilOwner = String(h.owner || 'FC').trim().toUpperCase();
+    var _ownDisp = document.getElementById('hdr-owner-display');
+    if (_ownDisp) {
+      _ownDisp.textContent = _coilOwner;
+      _ownDisp.style.color = (_coilOwner === 'DRC') ? 'var(--owner-drc)' : 'var(--owner-fc)';
+    }
+  } else {
+    // Case B — batch masih di stok, adjust hdr-kg-avail = live + existing
+    var _avNow = parseFloat(document.getElementById('hdr-kg-avail').textContent) || 0;
+    document.getElementById('hdr-kg-avail').textContent = Math.round(_avNow + _existKg);
+  }
+  if (typeof renderSisaCoil === 'function') renderSisaCoil();
 
   document.getElementById('out-ctl-list').innerHTML = '';
   
@@ -2453,14 +2954,25 @@ function populateFormFromSpk(res) {
 }
 
 function showEditBanner(spkNo) {
+  // Sesi 2 Sesi 1: set inline banner di topbar
+  var inlineBanner = document.getElementById('edit-banner-inline');
+  if (inlineBanner) {
+    inlineBanner.textContent = '✏️ EDIT ' + spkNo;
+    inlineBanner.style.display = 'inline-block';
+  }
+  // Update tombol Save jadi "💾 Update"
+  var btnSave = document.getElementById('btn-save');
+  if (btnSave) btnSave.textContent = '💾 Update';
+
+  // Banner besar (full width) — pakai token v2
   var old = document.getElementById('edit-mode-banner');
   if (old) old.remove();
   var banner = document.createElement('div');
   banner.id = 'edit-mode-banner';
-  banner.style.cssText = 'background:#fff3cd;border:1px solid #e65100;color:#7a3e00;padding:8px 14px;margin-bottom:8px;border-radius:4px;font-weight:600;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;';
+  banner.style.cssText = 'background:var(--status-warning-soft);border:1px solid var(--status-warning);color:var(--status-warning-soft-fg);padding:8px 14px;margin-bottom:8px;border-radius:var(--radius-md);font-weight:var(--fw-semibold);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;';
   banner.innerHTML =
     '<span>✏️ <b>MODE EDIT</b> &mdash; SPK <b>'+spkNo+'</b> &nbsp;|&nbsp; Tombol <b>🗑️ Cancel</b> menandai CANCELLED (cascade ke anak).</span>'
-    +'<button onclick="backFromCreate()" style="background:#7a3e00;color:#fff;border:none;padding:5px 12px;border-radius:3px;cursor:pointer;font-weight:700;">✖ Batal Edit</button>';
+    +'<button onclick="backFromCreate()" style="background:var(--status-warning);color:#fff;border:none;padding:5px 12px;border-radius:var(--radius-sm);cursor:pointer;font-weight:var(--fw-bold);">✖ Batal Edit</button>';
   var wrap = document.getElementById('spk-ctl-wrap');
   var section = wrap.querySelector('.section-instruksi');
   if (section) section.parentNode.insertBefore(banner, section);

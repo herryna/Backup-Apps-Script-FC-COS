@@ -27,7 +27,33 @@ function _appendRowSafe(sheet, rowArray) {
   sheet.getRange(targetRow, 1, 1, rowArray.length).setValues([rowArray]);
   return targetRow;
 }
-
+/* =========================================================================
+ * 🚩 SESI 2 — SAVE AS DRAFT SUPPORT
+ * Helper: setelah semua rows di-tulis, flip Status → 'DRAFT' untuk semua
+ * SPK_No yang baru di-generate. Dipanggil dari saveSPK_CTL kalau data.is_draft.
+ * ========================================================================= */
+function _updateStatusToDraft(spkSheet, spkNos) {
+  if (!spkNos || !spkNos.length) return 0;
+  var lastRow = spkSheet.getLastRow();
+  var lastCol = spkSheet.getLastColumn();
+  if (lastRow < 2) return 0;
+  var vals    = spkSheet.getRange(1, 1, lastRow, lastCol).getValues();
+  var hdr     = vals[0].map(function(h){ return String(h).trim(); });
+  var iSpk    = hdr.indexOf('SPK_No');
+  var iStatus = hdr.indexOf('Status');
+  if (iSpk < 0 || iStatus < 0) return 0;
+  var spkSet = {};
+  spkNos.forEach(function(s){ spkSet[String(s).trim()] = true; });
+  var updated = 0;
+  for (var r = 1; r < vals.length; r++) {
+    var no = String(vals[r][iSpk]||'').trim();
+    if (spkSet[no]) {
+      spkSheet.getRange(r+1, iStatus+1).setValue('DRAFT');
+      updated++;
+    }
+  }
+  return updated;
+}
 /* =========================================================================
  * 1. SAVE SPK CTL (Fokus Menulis Antrean SPK, Stok Diambil Alih Rumus)
  * ========================================================================= */
@@ -313,9 +339,18 @@ function saveSPK_CTL(data) {
     });
 
     SpreadsheetApp.flush();
-    if (typeof kalkulasiEstimasiWaktu === 'function') kalkulasiEstimasiWaktu();
 
-    return { success: true, spk_no: spkNo, count_out: data.out_ctl.length, generated: generatedSpks };
+    // 🚩 Sesi 2: Save as Draft — flip Status jadi 'DRAFT' semua rows yg baru dibuat
+    // Skip scheduling untuk draft (baseline_mulai/plan_seq di-generate nanti saat promote)
+    var isDraft = (data.is_draft === true);
+    if (isDraft) {
+      _updateStatusToDraft(spkSheet, generatedSpks);
+      SpreadsheetApp.flush();
+    } else {
+      if (typeof kalkulasiEstimasiWaktu === 'function') kalkulasiEstimasiWaktu();
+    }
+
+    return { success: true, spk_no: spkNo, count_out: data.out_ctl.length, generated: generatedSpks, is_draft: isDraft };
   } finally {
     lock.releaseLock();
   }
@@ -344,9 +379,10 @@ function saveSPK_SHR_Final(data) {
   lock.waitLock(10000);
 
   try {
-    // ✅ Validasi stok sheet sebelum lanjut
+    // ✅ Validasi stok sheet/WIP sebelum lanjut — teruskan source_loc supaya
+    //    validator tahu harus cek Stok_Sheet atau Stok_WIP (fallback 2-arah).
     if (typeof validateSheetAvailability === 'function') {
-      validateSheetAvailability(data.batch_id, data.qty_input, data.kg_input);
+      validateSheetAvailability(data.batch_id, data.qty_input, data.kg_input, null, data.source_loc);
     }
     const spkSheet   = getSheet("SPK");
     if (!spkSheet) throw new Error("Sheet 'SPK' tidak ditemukan!");
@@ -1828,6 +1864,24 @@ function updateAndAppendSpkCTL(data) {
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
   try {
+    // 🚩 Sesi 2: Promote DRAFT → ANTRIAN kalau Save final (bukan Save Draft)
+    // Cara: cari existing header dgn SPK_No, kalau statusnya DRAFT dan payload
+    // TIDAK is_draft, promote status semua rows ke ANTRIAN.
+    var promoteFromDraft = false;
+    if (data.spk_no && data.is_draft !== true) {
+      var _s = getSheet('SPK');
+      var _v = _s.getDataRange().getValues();
+      var _h = _v[0].map(function(x){ return String(x).trim(); });
+      var _iSpk = _h.indexOf('SPK_No'), _iSt = _h.indexOf('Status');
+      if (_iSpk >= 0 && _iSt >= 0) {
+        for (var _r = 1; _r < _v.length; _r++) {
+          if (String(_v[_r][_iSpk]||'').trim() === String(data.spk_no).trim()) {
+            if (String(_v[_r][_iSt]||'').trim().toUpperCase() === 'DRAFT') promoteFromDraft = true;
+            break;
+          }
+        }
+      }
+    }
     // ✅ Validasi stok coil saat edit (Bug 6) — exclude SPK ini sendiri
     if (typeof validateCoilAvailability === 'function' && data.batch_id && data.weight_kg) {
       validateCoilAvailability(data.batch_id, data.weight_kg, data.spk_no);
@@ -2262,7 +2316,35 @@ function updateAndAppendSpkCTL(data) {
     });
 
     SpreadsheetApp.flush();
-    if (typeof kalkulasiEstimasiWaktu === 'function') kalkulasiEstimasiWaktu();
+
+    // 🚩 Sesi 2: Promote DRAFT rows → ANTRIAN kalau editing DRAFT dgn Save final
+    if (promoteFromDraft) {
+      var _s2 = getSheet('SPK');
+      var _v2 = _s2.getDataRange().getValues();
+      var _h2 = _v2[0].map(function(x){ return String(x).trim(); });
+      var _iSpk2 = _h2.indexOf('SPK_No'), _iSt2 = _h2.indexOf('Status');
+      var _iParent = _h2.indexOf('Parent_SPK');
+      if (_iSpk2 >= 0 && _iSt2 >= 0) {
+        for (var _r2 = 1; _r2 < _v2.length; _r2++) {
+          var _sn = String(_v2[_r2][_iSpk2]||'').trim();
+          var _pr = String(_v2[_r2][_iParent]||'').trim();
+          var _st = String(_v2[_r2][_iSt2]||'').trim().toUpperCase();
+          // Promote kalau SPK_No cocok atau parent match spkNo, dan status masih DRAFT
+          if (_st === 'DRAFT' && (_sn === spkNo || _pr === spkNo || _sn.indexOf(spkNo) === 0)) {
+            _s2.getRange(_r2+1, _iSt2+1).setValue('ANTRIAN');
+          }
+        }
+      }
+      SpreadsheetApp.flush();
+    }
+
+    // 🚩 Sesi 2: Kalau Save Draft di edit mode, flip rows baru ke DRAFT
+    if (data.is_draft === true && generatedSpks.length) {
+      _updateStatusToDraft(spkSheet, generatedSpks);
+      SpreadsheetApp.flush();
+    }
+
+    if (data.is_draft !== true && typeof kalkulasiEstimasiWaktu === 'function') kalkulasiEstimasiWaktu();
 
     return {
       spk_no          : spkNo,
@@ -2273,6 +2355,8 @@ function updateAndAppendSpkCTL(data) {
       count_new       : generatedSpks.length,
       count_updated   : updatedSpks.length,
       count_cancelled : cancelledSpks.length,
+      is_draft        : data.is_draft === true,
+      promoted        : promoteFromDraft,
       mode            : 'UPDATE_APPEND'
     };
   } finally {
@@ -3065,9 +3149,10 @@ function updateAndAppendSpkSHR(data) {
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
   try {
-    // ✅ Validasi stok sheet (Bug 3) — exclude SPK ini sendiri
+    // ✅ Validasi stok sheet/WIP (Bug 3) — exclude SPK ini sendiri
+    //    Teruskan source_loc supaya validator tahu cek Stok_Sheet atau Stok_WIP.
     if (typeof validateSheetAvailability === 'function') {
-      validateSheetAvailability(data.batch_id, data.qty_input, data.kg_input, data.spk_no);
+      validateSheetAvailability(data.batch_id, data.qty_input, data.kg_input, data.spk_no, data.source_loc);
     }
     const spkSheet = getSheet("SPK");
     const allData  = spkSheet.getDataRange().getValues();
@@ -4577,4 +4662,239 @@ function fetchBoardBundleSHR(machineNo) {
   });
 
   return { queue: queue, done: done };
+}
+
+/* ============================================================================
+ * REPRINT LABEL — v1.2 (fix: batch & lot pull from Trace_Log, not SPK)
+ * ========================================================================= */
+function getReprintLabelData(parentSpkNo) {
+  try {
+    if (!parentSpkNo) return { ok: false, msg: 'SPK No kosong' };
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = ss.getSheetByName('SPK');
+    if (!sh) return { ok: false, msg: 'Sheet SPK tidak ditemukan' };
+
+    var data = sh.getDataRange().getValues();
+    var header = data[0];
+    var col = {};
+    header.forEach(function(h, i){ col[h] = i; });
+
+    // ── Build M_ITEM lookup ────────────────────────────────────────────
+    var mItemMap = {};
+    var mSh = ss.getSheetByName('M_ITEM');
+    if (mSh) {
+      var mData = mSh.getDataRange().getValues();
+      var mCol = {};
+      mData[0].forEach(function(h, i){ mCol[h] = i; });
+      for (var mi = 1; mi < mData.length; mi++) {
+        var code = String(mData[mi][mCol.Item_Code] || '').trim();
+        if (!code) continue;
+        mItemMap[code] = {
+          spec: String(mData[mi][mCol.Spec] || '').trim(),
+          t:    Number(mData[mi][mCol.T]) || 0,
+          p:    mData[mi][mCol.P] || '',
+          l:    mData[mi][mCol.L] || ''
+        };
+      }
+    }
+
+    // ── Build Trace_Log lookup by SPK_Ref ──────────────────────────────
+    // Map: SPK_Ref → { batch_id, source_batch, root_batch, tgl_prod }
+    var traceMap = {};
+    var tSh = ss.getSheetByName('Trace_Log');
+    if (tSh && tSh.getLastRow() > 1) {
+      var tData = tSh.getDataRange().getValues();
+      var tCol = {};
+      tData[0].forEach(function(h, i){ tCol[String(h).trim()] = i; });
+      for (var ti = 1; ti < tData.length; ti++) {
+        var spkRef = String(tData[ti][tCol.SPK_Ref] || '').trim();
+        if (!spkRef) continue;
+        // Kalau ada multiple entry per SPK_Ref, ambil yang pertama (biasanya 1 SPK OUT = 1 entry)
+        if (traceMap[spkRef]) continue;
+        traceMap[spkRef] = {
+          batch_id:     String(tData[ti][tCol.Batch_ID] || '').trim(),
+          source_batch: String(tData[ti][tCol.Source_Batch] || '').trim(),
+          root_batch:   String(tData[ti][tCol.Root_Batch] || '').trim(),
+          tgl_prod:     tData[ti][tCol.Tgl_Prod] || tData[ti][tCol.Tgl_Buat] || null
+        };
+      }
+    }
+
+    // ── Cari HEADER row ────────────────────────────────────────────────
+    var headerRow = null;
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][col.SPK_No]) === String(parentSpkNo)) {
+        headerRow = data[i]; break;
+      }
+    }
+    if (!headerRow) return { ok: false, msg: 'SPK ' + parentSpkNo + ' tidak ditemukan' };
+
+    var headerSpkType = String(headerRow[col.SPK_Type] || '');
+    if (headerSpkType.indexOf('HEADER') < 0) {
+      return { ok: false, msg: 'SPK ' + parentSpkNo + ' bukan HEADER (type: ' + headerSpkType + ')' };
+    }
+
+    // ── Cari semua OUT ─────────────────────────────────────────────────
+    var outRows = [];
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][col.Parent_SPK]) === String(parentSpkNo)
+          && String(data[i][col.SPK_Type] || '').indexOf('OUT') >= 0) {
+        outRows.push(data[i]);
+      }
+    }
+
+    // ── Mapping WIP: CTL-OUT → SHR-HEADER → SHR-OUT ────────────────────
+    var shrHeaderByParent = {};
+    var shrOutByParent    = {};
+    for (var i = 1; i < data.length; i++) {
+      var r = data[i];
+      var t = String(r[col.SPK_Type] || '');
+      if (t === 'SHR-HEADER') {
+        var p = String(r[col.Parent_SPK] || '');
+        if (!shrHeaderByParent[p]) shrHeaderByParent[p] = [];
+        shrHeaderByParent[p].push(String(r[col.SPK_No]));
+      } else if (t === 'SHR-OUT') {
+        var pp = String(r[col.Parent_SPK] || '');
+        if (!shrOutByParent[pp]) shrOutByParent[pp] = [];
+        shrOutByParent[pp].push(r);
+      }
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────
+    function _labelTypeFromTargetLoc(tgt) {
+      var s = String(tgt || '').trim();
+      if (s === 'FG_Cust')         return 'FG';
+      if (s === 'FG_RM_Stamping')  return 'FG_STP';
+      if (s === 'WIP_Cust')        return 'WIP';
+      if (s === 'WIP_Stamping')    return 'WIP_STP';
+      if (s === 'Stok_Sheet')      return 'STOK_SHT';
+      return 'FG';
+    }
+
+    function _parseSpecPure(rawSpec) {
+      if (!rawSpec) return '';
+      var s = String(rawSpec).trim();
+      var m = s.match(/^([A-Za-z][A-Za-z0-9\-\/\.]*(?:\s[A-Za-z][A-Za-z0-9\-\/\.]*)?)/);
+      if (m) return m[1].trim();
+      var sp = s.indexOf(' ');
+      return sp > 0 ? s.substring(0, sp) : s;
+    }
+
+    function _resolveFields(row) {
+      var itemCode = String(row[col.Item_Code] || '').trim();
+      var mi = mItemMap[itemCode] || {};
+      var rawSpec = String(row[col.Input_Spec] || '').trim();
+      var spec = mi.spec || _parseSpecPure(rawSpec);
+      var t = mi.t || Number(row[col.T]) || 0;
+      var p = mi.p || row[col.P] || '';
+      var l = mi.l || row[col.L] || '';
+      return { itemCode: itemCode, spec: spec, t: t, p: p, l: l };
+    }
+
+    function _getShrChildrenForCtlOut(ctlOutSpkNo) {
+      var result = [];
+      var shrHeaders = shrHeaderByParent[ctlOutSpkNo] || [];
+      shrHeaders.forEach(function(shrHdrSpkNo){
+        var childOuts = shrOutByParent[shrHdrSpkNo] || [];
+        childOuts.forEach(function(r){
+          var st = String(r[col.Status] || '').toUpperCase();
+          if (st === 'CANCELLED') return;
+          var f = _resolveFields(r);
+          result.push({
+            target_loc: String(r[col.Target_Loc] || ''),
+            p:          f.p,
+            l:          f.l,
+            qty:        Number(r[col.Qty_Target] || 0),
+            cust:       String(r[col.Cust] || '')
+          });
+        });
+      });
+      return result;
+    }
+
+    // ── Build OUT array ────────────────────────────────────────────────
+    var outs = outRows.map(function(r){
+      var spkNoOut  = String(r[col.SPK_No] || '');
+      var targetLoc = String(r[col.Target_Loc] || '');
+      var labelType = _labelTypeFromTargetLoc(targetLoc);
+      var f = _resolveFields(r);
+      var status = String(r[col.Status] || '').toUpperCase();
+
+      var qtyActual = Number(r[col.Qty_Actual] || 0);
+      var qtyTarget = Number(r[col.Qty_Target] || 0);
+      var qty       = qtyActual > 0 ? qtyActual : qtyTarget;
+
+      var qtyNG = Number(r[col.Qty_NG] || 0);
+      var kgNG  = Number(r[col.KG_NG] || 0);
+      var hasNG = qtyNG > 0;
+
+      // ── Batch child & Lot dari Trace_Log ────────────────────────────
+      var trace = traceMap[spkNoOut] || null;
+      var batchAvailable = trace !== null && trace.batch_id !== '';
+      var batchChild = batchAvailable ? trace.batch_id : '';
+      var lotProd    = batchAvailable ? String(trace.batch_id ? spkNoOut : spkNoOut) : spkNoOut;
+      // Note: SPK_Ref di Trace_Log = SPK OUT No → sama dengan spkNoOut, dipakai sebagai Lot Prod
+
+      var tglProd;
+      if (trace && trace.tgl_prod) {
+        tglProd = trace.tgl_prod instanceof Date ? trace.tgl_prod.toISOString() : String(trace.tgl_prod);
+      } else {
+        var selesai = r[col.Selesai_DT];
+        var buat    = r[col.Tgl_Buat];
+        var t2 = selesai || buat || new Date();
+        tglProd = t2 instanceof Date ? t2.toISOString() : String(t2);
+      }
+
+      // ── NG batch (fallback kalau Trace_Log gak ada entry NG) ────────
+      var ngSpkRef = spkNoOut + '-NG';
+      var ngTrace  = traceMap[ngSpkRef] || null;
+      var ngBatch  = ngTrace && ngTrace.batch_id ? ngTrace.batch_id : ngSpkRef;
+
+      return {
+        spk_no:           spkNoOut,
+        target_loc:       targetLoc,
+        label_type:       labelType,
+        status:           status,
+        cust:             String(r[col.Cust] || ''),
+        item_code:        f.itemCode,
+        spec:             f.spec,
+        t:                f.t,
+        p:                f.p,
+        l:                f.l,
+        qty:              qty,
+        batch_id:         batchChild,     // dari Trace_Log
+        lot:              spkNoOut,       // SPK_Ref di Trace_Log = SPK OUT No
+        batch_available:  batchAvailable, // false = blokir print (belum DONE)
+        tgl_prod:         tglProd,
+        has_ng:           hasNG,
+        ng: hasNG ? {
+          qty:        qtyNG,
+          kg:         kgNG,
+          mc:         String(r[col.MC_No] || ''),
+          owner:      String(r[col.Owner_Used] || r[col.Owner] || 'FC'),
+          source_spk: spkNoOut,
+          batch_id:   ngBatch,
+          lot:        ngSpkRef
+        } : null,
+        shr_children: (labelType === 'WIP' || labelType === 'WIP_STP')
+          ? _getShrChildrenForCtlOut(spkNoOut)
+          : []
+      };
+    });
+
+    var hTgl = headerRow[col.Tgl_Buat];
+    return {
+      ok: true,
+      header: {
+        spk_no:    parentSpkNo,
+        spk_type:  headerSpkType,
+        status:    String(headerRow[col.Status] || ''),
+        tgl_buat:  hTgl instanceof Date ? hTgl.toISOString() : String(hTgl || '')
+      },
+      outs: outs
+    };
+  } catch (e) {
+    return { ok: false, msg: 'Error: ' + e.message };
+  }
 }
