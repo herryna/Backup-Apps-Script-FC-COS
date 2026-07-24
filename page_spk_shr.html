@@ -144,12 +144,26 @@ td{padding:8px 12px;border-bottom:1px solid #e2e8f0;vertical-align:middle;overfl
      VIEW 1: LIST SPK SHR
 ================================================================ -->
 <div id="view-list" class="view-container active">
-  <div class="dash-header">
+  <div class="dash-header" style="align-items:flex-start;">
     <div>
       <h1 class="dash-title">SPK SHR</h1>
-      <div class="dash-sub">Daftar Work Order Shearing &mdash; Klik baris untuk detail</div>
     </div>
-    <div style="display:flex;gap:8px;">
+  </div>
+  <div class="spk-toolbar" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:8px 0 12px;">
+    <div class="dash-sub" style="margin:0;">Daftar Work Order Shearing &mdash; Klik baris untuk detail</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <div style="position:relative;">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#94a3b8;pointer-events:none;font-size:13px;">🔍</span>
+        <input type="text" id="shr-search" placeholder="Cari SPK / Spec / T / P / L…" oninput="applyShrFilter()" style="padding:7px 12px 7px 30px;border:1px solid var(--border-color,#cbd5e1);border-radius:var(--radius-sm,6px);font-size:13px;min-width:240px;background:var(--input-bg,#fff);color:var(--text-primary,#0f172a);outline:none;" />
+      </div>
+      <select id="shr-status-filter" onchange="applyShrFilter()" style="padding:7px 10px;border:1px solid var(--border-color,#cbd5e1);border-radius:var(--radius-sm,6px);font-size:13px;background:var(--input-bg,#fff);color:var(--text-primary,#0f172a);cursor:pointer;">
+        <option value="">Status: Semua</option>
+        <option value="ANTRIAN">Antrian</option>
+        <option value="RUNNING">Running</option>
+        <option value="DONE">Done</option>
+        <option value="CANCELLED">Cancelled</option>
+      </select>
+      <button class="btn btn-outline" onclick="resetShrFilter()" title="Reset search & filter">✕ Reset</button>
       <button class="btn btn-outline" onclick="loadListSHR()">🔄 Refresh</button>
       <button class="btn btn-primary" onclick="openCreateSHR()">➕ Tambah SPK SHR</button>
     </div>
@@ -391,6 +405,7 @@ td{padding:8px 12px;border-bottom:1px solid #e2e8f0;vertical-align:middle;overfl
    NAVIGATION & SHARED STATE — SHR
 ================================================================ */
 var _listShrData  = [];
+var _shrFilterData = [];
 var _listShrPage  = 1;
 var _listShrSize  = 20;
 var _detailShrNo  = null;
@@ -430,7 +445,7 @@ function loadListSHR() {
     .withSuccessHandler(function(data){
       _listShrData = Array.isArray(data) ? data : [];
       _listShrPage = 1;
-      renderListSHR();
+      applyShrFilter();
       hideOverlaySHR();
     })
     .withFailureHandler(function(err){
@@ -440,17 +455,40 @@ function loadListSHR() {
     .getSpkListSHR();
 }
 
+function applyShrFilter() {
+  var qEl = document.getElementById('shr-search');
+  var fEl = document.getElementById('shr-status-filter');
+  var q  = qEl ? (qEl.value || '').trim().toLowerCase() : '';
+  var st = fEl ? (fEl.value || '') : '';
+  _shrFilterData = _listShrData.filter(function(d){
+    if (st && String(d.status || '').toUpperCase() !== st) return false;
+    if (!q) return true;
+    var hay = ((d.spk_no || '') + ' ' + (d.input_spec || '')).toLowerCase();
+    return hay.indexOf(q) !== -1;
+  });
+  _listShrPage = 1;
+  renderListSHR();
+}
+
+function resetShrFilter() {
+  var s = document.getElementById('shr-search'); if (s) s.value = '';
+  var f = document.getElementById('shr-status-filter'); if (f) f.value = '';
+  applyShrFilter();
+}
+
 function renderListSHR() {
   var tbody = document.getElementById('list-shr-tbody');
+  var totalItems = _shrFilterData.length;
   var start = (_listShrPage-1)*_listShrSize;
-  var end   = Math.min(start+_listShrSize, _listShrData.length);
+  var end   = Math.min(start+_listShrSize, totalItems);
   var html  = '';
 
-  if (!_listShrData.length) {
-    html = '<tr><td colspan="10" style="text-align:center;padding:40px;color:#94a3b8;font-style:italic;">Tidak ada data SPK SHR.</td></tr>';
+  if (!totalItems) {
+    var emptyMsg = (_listShrData.length === 0) ? 'Tidak ada data SPK SHR.' : 'Tidak ada hasil untuk filter/pencarian ini.';
+    html = '<tr><td colspan="10" style="text-align:center;padding:40px;color:#94a3b8;font-style:italic;">' + emptyMsg + '</td></tr>';
   } else {
     for (var i=start; i<end; i++) {
-      var d = _listShrData[i];
+      var d = _shrFilterData[i];
       var rowStyle = d.status==='CANCELLED' ? 'style="opacity:.55;"' : '';
       var qtyKg = (d.qty_target ? d.qty_target+' Sht' : '—') + (d.kg_target ? ' / '+d.kg_target.toLocaleString('id-ID')+' kg' : '');
       html += '<tr class="dash-row" '+rowStyle+' onclick="openDetailSHR(\''+d.spk_no.replace(/'/g,"\\'")+'\')">'; 
@@ -469,14 +507,14 @@ function renderListSHR() {
   }
   tbody.innerHTML = html;
 
-  var total = Math.ceil(_listShrData.length/_listShrSize)||1;
-  document.getElementById('pg-info-shr').textContent = 'Halaman '+_listShrPage+' / '+total+'  ('+_listShrData.length+' SPK)';
+  var total = Math.ceil(totalItems/_listShrSize)||1;
+  document.getElementById('pg-info-shr').textContent = 'Halaman '+_listShrPage+' / '+total+'  ('+totalItems+' dari '+_listShrData.length+' SPK)';
   document.getElementById('pg-prev-shr').disabled = (_listShrPage<=1);
   document.getElementById('pg-next-shr').disabled = (_listShrPage>=total);
 }
 
 function changeListShrPage(dir) {
-  var total = Math.ceil(_listShrData.length/_listShrSize)||1;
+  var total = Math.ceil(_shrFilterData.length/_listShrSize)||1;
   _listShrPage = Math.max(1, Math.min(total, _listShrPage+dir));
   renderListSHR();
 }

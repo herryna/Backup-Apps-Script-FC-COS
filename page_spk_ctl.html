@@ -524,12 +524,27 @@ td{ padding: 8px 12px; border-bottom: 1px solid var(--border-subtle);
 </div>
 
 <div id="view-list" class="view-container active">
-  <div class="dash-header">
+  <div class="dash-header" style="align-items:flex-start;">
     <div>
       <h1 class="dash-title">SPK CTL</h1>
-      <div class="dash-sub">Daftar Work Order Cut-to-Length &mdash; Klik baris untuk detail</div>
     </div>
-    <div style="display:flex;gap:8px;">
+  </div>
+  <div class="spk-toolbar" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:8px 0 12px;">
+    <div class="dash-sub" style="margin:0;">Daftar Work Order Cut-to-Length &mdash; Klik baris untuk detail</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <div style="position:relative;">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#94a3b8;pointer-events:none;font-size:13px;">🔍</span>
+        <input type="text" id="list-search" placeholder="Cari SPK / Spec / T / P / L…" oninput="applyListFilter()" style="padding:7px 12px 7px 30px;border:1px solid var(--border-color,#cbd5e1);border-radius:var(--radius-sm,6px);font-size:13px;min-width:240px;background:var(--input-bg,#fff);color:var(--text-primary,#0f172a);outline:none;" />
+      </div>
+      <select id="list-status-filter" onchange="applyListFilter()" style="padding:7px 10px;border:1px solid var(--border-color,#cbd5e1);border-radius:var(--radius-sm,6px);font-size:13px;background:var(--input-bg,#fff);color:var(--text-primary,#0f172a);cursor:pointer;">
+        <option value="">Status: Semua</option>
+        <option value="DRAFT">Draft</option>
+        <option value="ANTRIAN">Antrian</option>
+        <option value="RUNNING">Running</option>
+        <option value="DONE">Done</option>
+        <option value="CANCELLED">Cancelled</option>
+      </select>
+      <button class="btn btn-outline" onclick="resetListFilter()" title="Reset search & filter">✕ Reset</button>
       <button class="btn btn-outline" onclick="loadListCTL()">🔄 Refresh</button>
       <button class="btn btn-primary" onclick="openCreateCTL()">➕ Tambah SPK CTL</button>
     </div>
@@ -776,6 +791,7 @@ td{ padding: 8px 12px; border-bottom: 1px solid var(--border-subtle);
    1. NAVIGATION & SHARED STATE
 ================================================================ */
 var _listData    = [];
+var _listFilterData = [];
 var _listPage    = 1;
 var _listPageSize= 20;
 var _detailSpkNo = null;
@@ -809,22 +825,45 @@ function loadListCTL() {
   google.script.run
     .withSuccessHandler(function(data) {
       _listData = Array.isArray(data) ? data : [];
-      _listPage = 1; renderList(); hideOverlay();
+      _listPage = 1; applyListFilter(); hideOverlay();
     })
     .withFailureHandler(function(err) { hideOverlay(); alert('❌ Gagal memuat list:\n' + (err.message || err)); })
     .getSpkListCTL();
 }
 
+function applyListFilter() {
+  var qEl = document.getElementById('list-search');
+  var fEl = document.getElementById('list-status-filter');
+  var q  = qEl ? (qEl.value || '').trim().toLowerCase() : '';
+  var st = fEl ? (fEl.value || '') : '';
+  _listFilterData = _listData.filter(function(d){
+    if (st && String(d.status || '').toUpperCase() !== st) return false;
+    if (!q) return true;
+    var hay = ((d.spk_no || '') + ' ' + (d.input_spec || '')).toLowerCase();
+    return hay.indexOf(q) !== -1;
+  });
+  _listPage = 1;
+  renderList();
+}
+
+function resetListFilter() {
+  var s = document.getElementById('list-search'); if (s) s.value = '';
+  var f = document.getElementById('list-status-filter'); if (f) f.value = '';
+  applyListFilter();
+}
+
 function renderList() {
   var tbody = document.getElementById('list-tbody');
+  var totalItems = _listFilterData.length;
   var start = (_listPage - 1) * _listPageSize;
-  var end   = Math.min(start + _listPageSize, _listData.length);
+  var end   = Math.min(start + _listPageSize, totalItems);
   var html  = '';
-  if (_listData.length === 0) {
-    html = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#94a3b8;font-style:italic;">Tidak ada data SPK CTL.</td></tr>';
+  if (totalItems === 0) {
+    var emptyMsg = (_listData.length === 0) ? 'Tidak ada data SPK CTL.' : 'Tidak ada hasil untuk filter/pencarian ini.';
+    html = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#94a3b8;font-style:italic;">' + emptyMsg + '</td></tr>';
   } else {
     for (var i = start; i < end; i++) {
-      var d = _listData[i];
+      var d = _listFilterData[i];
       var rowStyle = (d.status === 'CANCELLED') ? 'style="opacity:.55;"' : '';
       html += '<tr class="dash-row" ' + rowStyle + ' onclick="openDetailCTL(\'' + d.spk_no.replace(/'/g,"\\'"  ) + '\')">';
       html += '<td>' + (d.tgl_buat || '—') + '</td>';
@@ -840,14 +879,14 @@ function renderList() {
     }
   }
   tbody.innerHTML = html;
-  var total = Math.ceil(_listData.length / _listPageSize) || 1;
-  document.getElementById('pg-info-list').textContent = 'Halaman ' + _listPage + ' / ' + total + '  (' + _listData.length + ' SPK)';
+  var total = Math.ceil(totalItems / _listPageSize) || 1;
+  document.getElementById('pg-info-list').textContent = 'Halaman ' + _listPage + ' / ' + total + '  (' + totalItems + ' dari ' + _listData.length + ' SPK)';
   document.getElementById('pg-prev-list').disabled = (_listPage <= 1);
   document.getElementById('pg-next-list').disabled = (_listPage >= total);
 }
 
 function changeListPage(dir) {
-  var total = Math.ceil(_listData.length / _listPageSize) || 1;
+  var total = Math.ceil(_listFilterData.length / _listPageSize) || 1;
   _listPage = Math.max(1, Math.min(total, _listPage + dir));
   renderList();
 }

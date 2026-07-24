@@ -2398,45 +2398,15 @@ if (typeof google === 'undefined') {
         }
         window.closeFinalizeModal();
 
-        // Print labels per OUT
-        outs.forEach(function(o, idx) {
-          var childRow = _finCachedOuts.find(function(r){ return r.SPK_No === o.spk_no; });
-          if (!childRow) return;
-          setTimeout(function() {
-            var parsed = window.parseInputSpec(childRow.Input_Spec);
-            window.printLabelChild({
-              itemCode: childRow.Item_Code || '--',
-              cust    : childRow.Cust || '--',
-              spek    : parsed.spek,
-              size    : parsed.size,
-              qtyLbr  : o.qty_actual,
-              lotProd : childRow.SPK_No,
-              tglProd : new Date().toLocaleDateString('id-ID', {day:'2-digit', month:'short', year:'2-digit'})
-            });
-          }, idx * 500);
-        });
-
-        // Print NG labels (kalau ada)
-        if (res.ng_created && res.ng_created.length > 0) {
-          res.ng_created.forEach(function(ng, idx){
-            setTimeout(function(){
-              window.printLabelNG({
-                spkNo:     ng.spk_no,
-                sourceSpk: hdr.SPK_No,
-                spec:      ng.spec,
-                t: ng.t, p: ng.p, l: ng.l,
-                qty: ng.qty, kg: ng.kg,
-                owner: ng.owner, mc: ng.mc_no
-              });
-            }, (outs.length + idx) * 500 + 300);
-          });
-        }
-
-        // Refresh kolom mesin ini saja (setelah aksi)
+        // Refresh kolom mesin ini dulu
         _state[mc].activeHeader = null;
         _state[mc].activeChildren = [];
         _state[mc].suggestedSpkNo = findNextSuggestion(mc);
         refreshColumn(mc);
+
+        // Print via template baru (80×80mm) — fetch fresh data dari Trace_Log
+        var targetSpkList = outs.map(function(o){ return o.spk_no; });
+        _printBoardLabels(hdr.SPK_No, targetSpkList, res.ng_created || []);
       })
       .finalizeShrBatch({
         header_spk : hdr.SPK_No,
@@ -2446,6 +2416,104 @@ if (typeof google === 'undefined') {
         created_by : 'operator'
       }, mc);
   };
+
+  // ─── HELPER: print label pakai template baru via getReprintLabelData ───────
+  function _printBoardLabels(parentSpkNo, targetSpkList, ngCreated, retryCount) {
+    retryCount = retryCount || 0;
+    google.script.run
+      .withFailureHandler(function(err){
+        console.error('[BoardLabel] fetch fail:', err);
+        if (retryCount < 1) {
+          setTimeout(function(){
+            _printBoardLabels(parentSpkNo, targetSpkList, ngCreated, retryCount + 1);
+          }, 600);
+        } else {
+          alert('⚠️ Label gagal di-print (batch belum ter-generate).\nSilakan reprint dari halaman list SPK.');
+        }
+      })
+      .withSuccessHandler(function(data){
+        if (!data || !data.ok) {
+          console.error('[BoardLabel] backend error:', data && data.msg);
+          return;
+        }
+        var items = [];
+        var needRetry = false;
+        (targetSpkList || []).forEach(function(childSpkNo){
+          var target = (data.outs || []).find(function(o){
+            return String(o.spk_no).trim() === String(childSpkNo).trim();
+          });
+          if (!target) {
+            console.warn('[BoardLabel] child SPK not found:', childSpkNo);
+            return;
+          }
+          if (!target.batch_available) {
+            needRetry = true;
+            return;
+          }
+          items.push({ type: target.label_type, opts: _buildLabelOpts(target) });
+        });
+        if (needRetry && retryCount < 1) {
+          setTimeout(function(){
+            _printBoardLabels(parentSpkNo, targetSpkList, ngCreated, retryCount + 1);
+          }, 600);
+          return;
+        }
+        (ngCreated || []).forEach(function(ng){
+          var parent = (data.outs || []).find(function(o){
+            return String(o.spk_no).trim() === String(ng.parent_spk || '').trim();
+          }) || (data.outs && data.outs[0]) || {};
+          items.push({
+            type: 'NG',
+            opts: {
+              spkNo:     ng.spk_no || 'NG',
+              sourceSpk: ng.parent_spk || parent.spk_no || '',
+              spec:      ng.spec || parent.spec || '',
+              t:         ng.t    || parent.t    || 0,
+              p:         ng.p    || parent.p    || '',
+              l:         ng.l    || parent.l    || '',
+              qty:       ng.qty,
+              kg:        ng.kg,
+              owner:     ng.owner || 'FC',
+              mc:        ng.mc_no || '',
+              tglProd:   new Date()
+            }
+          });
+        });
+        if (items.length === 0) return;
+        if (typeof window.printCosLabelBatch === 'function') {
+          window.printCosLabelBatch(items);
+        } else if (typeof window.printCosLabel === 'function') {
+          items.forEach(function(it, idx){
+            setTimeout(function(){ window.printCosLabel(it.type, it.opts); }, idx * 600);
+          });
+        } else {
+          alert('⚠️ Label template belum ter-load.');
+        }
+      })
+      .getReprintLabelData(parentSpkNo);
+  }
+
+  function _buildLabelOpts(o) {
+    var opts = {
+      cust:     o.cust,
+      itemCode: o.item_code,
+      spec:     o.spec,
+      t:        o.t,
+      p:        o.p,
+      l:        o.l,
+      qty:      o.qty,
+      uom:      'LBR',
+      lot:      o.lot,
+      batchId:  o.batch_id,
+      tglProd:  o.tgl_prod
+    };
+    if (o.label_type === 'WIP' || o.label_type === 'WIP_STP') {
+      opts.shrChildren = (o.shr_children || []).map(function(c){
+        return { targetLoc: c.target_loc, p: c.p, l: c.l, qty: c.qty, cust: c.cust };
+      });
+    }
+    return opts;
+  }
 
   function findNextSuggestion(mc) {
     var antrian = _state[mc].queue.filter(function(j){ return j.Status === 'ANTRIAN'; });

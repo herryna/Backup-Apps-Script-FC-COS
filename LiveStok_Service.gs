@@ -717,7 +717,8 @@ function getStockHealth(opts) {
     var activePeriods = _shGetActivePeriods(period, customPeriods);
     var currentPeriod = _shCurrentPeriodKey();
 
-    var demandByFp = _shAggregateDemand(ss, activePeriods, currentPeriod, itemMap);
+    var demandWarnings = [];
+    var demandByFp = _shAggregateDemand(ss, activePeriods, currentPeriod, itemMap, demandWarnings);
     var fisikByFp  = _shAggregateFisikItem(ss, itemMap);
     var motherByFp = _shBuildMotherCoilBatches(ss, itemMap);
     var leadTime   = _shGetLeadTime(ss);
@@ -838,6 +839,7 @@ function getStockHealth(opts) {
       success  : true,
       materials: materials,
       summary  : summary,
+      warnings : demandWarnings,
       meta     : {
         period           : period,
         active_periods   : activePeriods,
@@ -926,12 +928,22 @@ function _shBuildItemMap(ss) {
   return map;
 }
 
-function _shAggregateDemand(ss, activePeriods, currentPeriod, itemMap) {
+function _shAggregateDemand(ss, activePeriods, currentPeriod, itemMap, warnings) {
   var result = {};
 
-  var addDemand = function(itemCode, kg, periodKey) {
+  var addDemand = function(itemCode, kg, periodKey, sourceSheet) {
     var it = itemMap[itemCode];
-    if (!it || !it.fingerprint) return;
+    if (!it || !it.fingerprint) {
+      if (warnings) {
+        warnings.push({
+          item_code: itemCode,
+          source   : sourceSheet,
+          kg       : Math.round(kg),
+          reason   : !it ? 'item_not_in_master' : 'no_fingerprint'
+        });
+      }
+      return;
+    }
     var fp = it.fingerprint;
     if (!result[fp]) result[fp] = { total: 0, current: 0, forecast: 0, items: [], _itemMap: {} };
     var b = result[fp];
@@ -949,7 +961,10 @@ function _shAggregateDemand(ss, activePeriods, currentPeriod, itemMap) {
     else iRef.forecast_kg += kg;
   };
 
-  // SO sheet
+  // Skip status: apply to SO + STP_REQ (Opsi A — align dgn Demand_Service)
+  var SKIP_STATUS = { 'CANCELLED': 1, 'DONE': 1, 'CLOSED': 1 };
+
+  // SO sheet — kolom KG pakai BL_KG (sisa), fallback SO_KG (total awal)
   var soSh = ss.getSheetByName('SO');
   if (soSh) {
     var last = soSh.getLastRow();
@@ -957,25 +972,25 @@ function _shAggregateDemand(ss, activePeriods, currentPeriod, itemMap) {
       var data = soSh.getRange(1, 1, last, soSh.getLastColumn()).getValues();
       var hdr = data[0].map(function(h) { return String(h).trim(); });
       var iIc = _lsFindCol(hdr, ['Item_Code']);
-      var iKg = _lsFindCol(hdr, ['KG_Req', 'KG', 'Qty_Kg']);
+      var iKg = _lsFindCol(hdr, ['BL_KG', 'SO_KG']);
       var iStat = _lsFindCol(hdr, ['Status']);
       var iPer = _lsFindCol(hdr, ['SO_Period', 'Period']);
       if (iIc >= 0 && iKg >= 0) {
         for (var r = 1; r < data.length; r++) {
           var status = iStat >= 0 ? String(data[r][iStat] || '').toUpperCase().trim() : '';
-          if (status && status !== 'OPEN' && status !== 'PARTIAL') continue;
+          if (SKIP_STATUS[status]) continue;
           var pk = iPer >= 0 ? _shPeriodToKey(data[r][iPer]) : currentPeriod;
           if (activePeriods !== null && activePeriods.indexOf(pk) < 0) continue;
           var ic = String(data[r][iIc] || '').trim();
           var kg = parseFloat(data[r][iKg]) || 0;
-          if (!ic || kg === 0) continue;
-          addDemand(ic, kg, pk);
+          if (!ic || kg <= 0) continue;
+          addDemand(ic, kg, pk, 'SO');
         }
       }
     }
   }
 
-  // STP_REQ sheet
+  // STP_REQ sheet — kolom KG pakai BL_KG (sisa), fallback STP_KG (total awal)
   var stpSh = ss.getSheetByName('STP_REQ');
   if (stpSh) {
     var last = stpSh.getLastRow();
@@ -983,19 +998,19 @@ function _shAggregateDemand(ss, activePeriods, currentPeriod, itemMap) {
       var data = stpSh.getRange(1, 1, last, stpSh.getLastColumn()).getValues();
       var hdr = data[0].map(function(h) { return String(h).trim(); });
       var iIc = _lsFindCol(hdr, ['Item_Code']);
-      var iKg = _lsFindCol(hdr, ['KG_Req', 'KG', 'Qty_Kg']);
+      var iKg = _lsFindCol(hdr, ['BL_KG', 'STP_KG']);
       var iStat = _lsFindCol(hdr, ['Status']);
-      var iPer = _lsFindCol(hdr, ['SO_Period', 'Period', 'STP_Period']);
+      var iPer = _lsFindCol(hdr, ['STP_Period']);
       if (iIc >= 0 && iKg >= 0) {
         for (var r = 1; r < data.length; r++) {
           var status = iStat >= 0 ? String(data[r][iStat] || '').toUpperCase().trim() : '';
-          if (status === 'CLOSED' || status === 'CANCELLED') continue;
+          if (SKIP_STATUS[status]) continue;
           var pk = iPer >= 0 ? _shPeriodToKey(data[r][iPer]) : currentPeriod;
           if (activePeriods !== null && activePeriods.indexOf(pk) < 0) continue;
           var ic = String(data[r][iIc] || '').trim();
           var kg = parseFloat(data[r][iKg]) || 0;
-          if (!ic || kg === 0) continue;
-          addDemand(ic, kg, pk);
+          if (!ic || kg <= 0) continue;
+          addDemand(ic, kg, pk, 'STP_REQ');
         }
       }
     }
